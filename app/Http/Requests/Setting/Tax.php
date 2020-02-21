@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Setting;
 
-use App\Http\Requests\Request;
+use App\Abstracts\Http\FormRequest;
 
-class Tax extends Request
+class Tax extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -26,6 +26,8 @@ class Tax extends Request
         return [
             'name' => 'required|string',
             'rate' => 'required|min:0|max:100',
+            'type' => 'required|string',
+            'enabled' => 'integer|boolean',
         ];
     }
 }

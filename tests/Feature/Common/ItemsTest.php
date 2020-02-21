@@ -2,76 +2,76 @@
 
 namespace Tests\Feature\Common;
 
+use App\Jobs\Common\CreateItem;
 use App\Models\Common\Item;
-use Illuminate\Http\UploadedFile;
 use Tests\Feature\FeatureTestCase;
 
 class ItemsTest extends FeatureTestCase
 {
-	public function testItShouldBeShowTheItemsPage()
+	public function testItShouldSeeItemListPage()
 	{
-		$this
-			->loginAs()
+		$this->loginAs()
 			->get(route('items.index'))
 			->assertStatus(200)
-			->assertSee('Items');
+			->assertSeeText(trans_choice('general.items', 2));
 	}
 
-	public function testItShouldBeShowCreateItemPage()
+	public function testItShouldSeeItemCreatePage()
 	{
-		$this
-			->loginAs()
+		$this->loginAs()
 			->get(route('items.create'))
 			->assertStatus(200)
-			->assertSee('New Item');
+			->assertSeeText(trans('general.title.new', ['type' => trans_choice('general.items', 1)]));
 	}
 
-	public function testItShouldStoreAnItem()
+	public function testItShouldCreateItem()
 	{
-		$picture = UploadedFile::fake()->create('image.jpg');
+		$this->loginAs()
+			->post(route('items.store'), $this->getRequest())
+			->assertStatus(200);
 
-		$item = [
-			'name' => $this->faker->title,
-			'sku' => $this->faker->languageCode,
-			'picture' => $picture,
-			'description' => $this->faker->text(100),
-			'purchase_price' => $this->faker->randomFloat(2,10,20),
-			'sale_price' => $this->faker->randomFloat(2,10,20),
-			'quantity' => $this->faker->randomNumber(2),
-			'category_id' => $this->company->categories()->first()->id,
-			'tax_id' => $this->company->taxes()->first()->id,
-			'enabled' => $this->faker->boolean ? 1 : 0
-		];
-
-		$this
-			->loginAs()
-			->post(route('items.store'), $item)
-			->assertStatus(302)
-			->assertRedirect(route('items.index'));
 		$this->assertFlashLevel('success');
 	}
 
-	public function testItShouldEditItem()
+	public function testItShouldSeeItemUpdatePage()
 	{
-		$item = factory(Item::class)->create();
+        $item = $this->dispatch(new CreateItem($this->getRequest()));
 
-		$this
-			->loginAs()
-			->get(route('items.edit', ['item' => $item]))
+		$this->loginAs()
+			->get(route('items.edit', $item->id))
 			->assertStatus(200)
 			->assertSee($item->name);
 	}
 
-	public function testItShouldDeleteItem()
+	public function testItShouldUpdateItem()
 	{
-		$item = factory(Item::class)->create();
+		$request = $this->getRequest();
 
-		$this
-			->loginAs()
-			->delete(route('items.destroy', ['item' => $item]))
-			->assertStatus(302)
-			->assertRedirect(route('items.index'));
+		$item = $this->dispatch(new CreateItem($request));
+
+		$request['name'] = $this->faker->text(15);
+
+		$this->loginAs()
+			->patch(route('items.update', $item->id), $request)
+			->assertStatus(200)
+			->assertSee($request['name']);
 
 		$this->assertFlashLevel('success');
 	}
+
+	public function testItShouldDeleteItem()
+	{
+		$item = $this->dispatch(new CreateItem($this->getRequest()));
+
+		$this->loginAs()
+			->delete(route('items.destroy', $item->id))
+			->assertStatus(200);
+
+		$this->assertFlashLevel('success');
+	}
+
+    public function getRequest()
+    {
+        return factory(Item::class)->states('enabled')->raw();
+    }
 }

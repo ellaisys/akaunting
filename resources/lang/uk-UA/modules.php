@@ -2,24 +2,30 @@
 
 return [
 
-    'title'                 => 'API маркер',
-    'api_token'             => 'Маркер',
-    'top_paid'              => 'Топ Paid',
-    'new'                   => 'Нове',
+    'api_key'               => 'Api ключ',
+    'my_apps'               => 'Мої додатки',
+    'pre_sale'              => 'Попередній продаж',
+    'top_paid'              => 'Топ оплат',
+    'new'                   => 'Новий',
     'top_free'              => 'Топ безкоштовних',
     'free'                  => 'БЕЗКОШТОВНО',
     'search'                => 'Пошук',
     'install'               => 'Встановити',
     'buy_now'               => 'Купити зараз',
-    'token_link'            => '<a href="https://akaunting.com/tokens" target="_blank">натисніть тут</a> щоб отримати ваш API маркер.',
+    'api_key_link'          => '<a href="https://akaunting.com/tokens" target="_blank">Натисніть тут</a> щоб отримати ваш API маркер.',
     'no_apps'               => 'Немає поки що додатків у цій категорії.',
-    'developer'             => 'Ви розробник? <a href="https://akaunting.com/blog/akaunting-app-store" target="_blank">тут</a> ви можете дізнатися, як створити додаток і почати продажі сьогодні!',
+    'developer'             => 'Ви розробник? <a href="https://akaunting.com/developers" target="_blank">Тут</a> Ви можете дізнатися, як створити додаток і почати продажі сьогодні!',
+
+    'recommended_apps'      => 'Рекомендовані додатки',
 
     'about'                 => 'Про',
 
     'added'                 => 'Додано',
     'updated'               => 'Оновлено',
     'compatibility'         => 'Сумiснiсть',
+    'documentation'         => 'Документація',
+    'view'                  => 'Перегляд',
+    'back'                  => 'Назад',
 
     'installed'             => ':module встановлено',
     'uninstalled'           => ':module видалено',
@@ -31,13 +37,30 @@ return [
         'installation'      => 'Встановлення',
         'faq'               => 'Поширені запитання',
         'changelog'         => 'Історія змін',
+        'reviews'           => 'Перегляди',
     ],
 
     'installation' => [
         'header'            => 'Встановлення додатку',
-        'download'          => 'Завантаження: файл модуля.',
-        'unzip'             => 'Вилучення файлів :module.',
-        'install'           => 'Установка файлів : module .',
+        'download'          => 'Завантаження: модуль',
+        'unzip'             => 'Вилучення файлів :module',
+        'file_copy'         => 'Копіювання файлів :module',
+        'finish'            => 'Завершення встановлення :module',
+        'redirect'          => ':module встановлено, перенаправлення на сторінку оновлень',
+        'install'           => 'Установка :module',
+    ],
+
+    'errors' => [
+        'download'          => 'Не вдалося завантажити :module',
+        'zip'               => 'Не вдалося створити файл :module zip',
+        'unzip'             => 'Не вдалося розпакувати :module',
+        'file_copy'         => 'Неможливо скопіювати :module файли',
+        'finish'            => 'Не вдалося завершити встановлення :module',
+    ],
+
+    'badge' => [
+        'installed'         => 'Встановлено',
+        'pre_sale'          => 'Попередній продаж',
     ],
 
     'button' => [
@@ -45,4 +68,17 @@ return [
         'disable'           => 'Вимкнути',
         'enable'            => 'Увімкнути',
     ],
+
+    'my' => [
+        'purchased'         => 'Придбано',
+        'installed'         => 'Встановлено',
+    ],
+
+    'reviews' => [
+        'button' => [
+            'add'           => 'Додати відгук'
+        ],
+
+        'na'                => 'Немає відгуків.'
+    ]
 ];

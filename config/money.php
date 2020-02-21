@@ -152,8 +152,8 @@ return [
         'subunit'             => 100,
         'symbol'              => 'лв',
         'symbol_first'        => false,
-        'decimal_mark'        => '.',
-        'thousands_separator' => ',',
+        'decimal_mark'        => ',',
+        'thousands_separator' => ' ',
     ],
 
     'BHD' => [
@@ -266,7 +266,7 @@ return [
         'thousands_separator' => ',',
     ],
 
-    'BYR' => [
+    'BYN' => [
         'name'                => 'Belarussian Ruble',
         'code'                => 974,
         'precision'           => 0,

@@ -2,8 +2,9 @@
 
 return [
 
-    'title'                 => 'API Token',
-    'api_token'             => 'Token',
+    'api_key'               => 'API nøgle',
+    'my_apps'               => 'Mine apps',
+    'pre_sale'              => 'Pre-salg',
     'top_paid'              => 'Top betalt',
     'new'                   => 'Ny',
     'top_free'              => 'Top gratis',
@@ -11,15 +12,20 @@ return [
     'search'                => 'Søg',
     'install'               => 'Installer',
     'buy_now'               => 'Køb nu',
-    'token_link'            => '<a href="https://akaunting.com/tokens" target="_blank">Klik her</a> for at få din API-token.',
+    'api_key_link'          => '<a class="text-red" href="https://akaunting.com/profile" target="_blank">Klik her</a> for at få din API nøgle.',
     'no_apps'               => 'Der er ingen apps i denne kategori endnu.',
-    'developer'             => 'Er du udvikler? <a href="https://akaunting.com/blog/akaunting-app-store" target="_blank">her</a> kan du lære hvordan du opretter en app og begynde at sælge i dag!',
+    'developer'             => 'Er du udvikler? <a href="https://akaunting.com/developers" target="_blank">her</a> kan du lære hvordan du opretter en app og begynde at sælge i dag!',
+
+    'recommended_apps'      => 'Anbefalede programmer',
 
     'about'                 => 'Om',
 
     'added'                 => 'Tilføjet',
     'updated'               => 'Opdateret',
     'compatibility'         => 'Kompatibilitet',
+    'documentation'         => 'Dokumentation',
+    'view'                  => 'Vis',
+    'back'                  => 'Tilbage',
 
     'installed'             => ':module installeret',
     'uninstalled'           => ':module afinstalleret',
@@ -31,13 +37,30 @@ return [
         'installation'      => 'Installation',
         'faq'               => 'FAQ',
         'changelog'         => 'Ændringslog',
+        'reviews'           => 'Gennemsyn',
     ],
 
     'installation' => [
         'header'            => 'App installation',
-        'download'          => 'Downloading :modul filen.',
-        'unzip'             => 'Udpakker :module filer.',
-        'install'           => 'Installere :module filer.',
+        'download'          => 'Hent :module',
+        'unzip'             => 'Udpak :module filer',
+        'file_copy'         => 'Kopier :module filer',
+        'finish'            => 'Færdiggør :module installation',
+        'redirect'          => ':module er installeret, sender dig til Opdaterings siden',
+        'install'           => 'Installerer :module',
+    ],
+
+    'errors' => [
+        'download'          => 'Kan ikke hente :module',
+        'zip'               => 'Kan ikke oprette :module zip filen',
+        'unzip'             => 'Kan ikke udpakke zip filen :module',
+        'file_copy'         => 'Kan ikke kopiere :module filerne',
+        'finish'            => 'Kan ikke færdiggøre :module installationen',
+    ],
+
+    'badge' => [
+        'installed'         => 'Installeret',
+        'pre_sale'          => 'Pre-salg',
     ],
 
     'button' => [
@@ -45,4 +68,17 @@ return [
         'disable'           => 'Deaktiver',
         'enable'            => 'Aktivér',
     ],
+
+    'my' => [
+        'purchased'         => 'Købt',
+        'installed'         => 'Installeret',
+    ],
+
+    'reviews' => [
+        'button' => [
+            'add'           => 'Tilføj en anmeldelse'
+        ],
+
+        'na'                => 'Der er ingen anmeldelser.'
+    ]
 ];

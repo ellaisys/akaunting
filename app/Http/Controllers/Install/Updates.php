@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Install;
 
-use App\Http\Controllers\Controller;
-use App\Events\UpdateFinished;
+use App\Abstracts\Http\Controller;
 use App\Utilities\Updater;
 use App\Utilities\Versions;
-use Artisan;
-use Module;
+use Illuminate\Http\Request;
 
 class Updates extends Controller
 {
@@ -29,7 +27,7 @@ class Updates extends Controller
             $core = $updates['core'];
         }
 
-        $rows = Module::all();
+        $rows = module()->all();
 
         if ($rows) {
             foreach ($rows as $row) {
@@ -40,7 +38,7 @@ class Updates extends Controller
                 }
 
                 $m = new \stdClass();
-                $m->name = $row->get('name');
+                $m->name = $row->getName();
                 $m->alias = $row->get('alias');
                 $m->category = $row->get('category');
                 $m->installed = $row->get('version');
@@ -80,41 +78,223 @@ class Updates extends Controller
      */
     public function update($alias, $version)
     {
-        set_time_limit(600); // 10 minutes
+        if ($alias == 'core') {
+            $name = 'Akaunting ' . $version;
 
-        if (Updater::update($alias, $version)) {
-            return redirect('install/updates/post/' . $alias . '/' . version('short') . '/' . $version);
+            $installed = version('short');
+        } else {
+            // Get module instance
+            $module = module($alias);
+
+            $name = $module->getName();
+
+            $installed = $module->get('version');
         }
 
-        flash(trans('updates.error'))->error()->important();
-
-        return redirect()->back();
+        return view('install.updates.edit', compact('alias', 'name', 'installed', 'version'));
     }
 
     /**
-     * Final actions post update.
+     * Show the form for viewing the specified resource.
      *
-     * @param  $alias
-     * @param  $old
-     * @param  $new
+     * @param  $request
+     *
      * @return Response
      */
-    public function post($alias, $old, $new)
+    public function steps(Request $request)
     {
-        // Check if the file mirror was successful
-        if (($alias == 'core') && (version('short') != $new)) {
-            flash(trans('updates.error'))->error()->important();
+        $steps = [];
 
-            return redirect('install/updates');
+        $name = $request['name'];
+
+        // Download
+        $steps[] = [
+            'text' => trans('modules.installation.download', ['module' => $name]),
+            'url'  => route('updates.download'),
+        ];
+
+        // Unzip
+        $steps[] = [
+            'text' => trans('modules.installation.unzip', ['module' => $name]),
+            'url'  => route('updates.unzip'),
+        ];
+
+        // Copy files
+        $steps[] = [
+            'text' => trans('modules.installation.file_copy', ['module' => $name]),
+            'url'  => route('updates.copy'),
+        ];
+
+        // Finish/Apply
+        $steps[] = [
+            'text' => trans('modules.installation.finish', ['module' => $name]),
+            'url'  => route('updates.finish'),
+        ];
+
+        // Redirect
+        $steps[] = [
+            'text' => trans('modules.installation.redirect', ['module' => $name]),
+            'url'  => route('updates.redirect'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'error' => false,
+            'data' => $steps,
+            'message' => null
+        ]);
+    }
+
+    /**
+     * Download the file
+     *
+     * @param  $request
+     *
+     * @return Response
+     */
+    public function download(Request $request)
+    {
+        set_time_limit(900); // 15 minutes
+
+        try {
+            $path = Updater::download($request['alias'], $request['version'], $request['installed']);
+
+            $json = [
+                'success' => true,
+                'error' => false,
+                'message' => null,
+                'data' => [
+                    'path' => $path,
+                ],
+            ];
+        } catch (\Exception $e) {
+            $json = [
+                'success' => false,
+                'error' => true,
+                'message' => $e->getMessage(),
+                'data' => [],
+            ];
         }
 
-        // Clear cache after update
-        Artisan::call('cache:clear');
+        return response()->json($json);
+    }
 
-        event(new UpdateFinished($alias, $old, $new));
+    /**
+     * Unzip the downloaded file
+     *
+     * @param  $request
+     *
+     * @return Response
+     */
+    public function unzip(Request $request)
+    {
+        set_time_limit(900); // 15 minutes
 
-        flash(trans('updates.success'))->success();
+        try {
+            $path = Updater::unzip($request['path'], $request['alias'], $request['version'], $request['installed']);
 
-        return redirect('install/updates');
+            $json = [
+                'success' => true,
+                'error' => false,
+                'message' => null,
+                'data' => [
+                    'path' => $path,
+                ],
+            ];
+        } catch (\Exception $e) {
+            $json = [
+                'success' => false,
+                'error' => true,
+                'message' => $e->getMessage(),
+                'data' => [],
+            ];
+        }
+
+        return response()->json($json);
+    }
+
+    /**
+     * Copy files
+     *
+     * @param  $request
+     *
+     * @return Response
+     */
+    public function copyFiles(Request $request)
+    {
+        set_time_limit(900); // 15 minutes
+
+        try {
+            $path = Updater::copyFiles($request['path'], $request['alias'], $request['version'], $request['installed']);
+
+            $json = [
+                'success' => true,
+                'error' => false,
+                'message' => null,
+                'data' => [
+                    'path' => $path,
+                ],
+            ];
+        } catch (\Exception $e) {
+            $json = [
+                'success' => false,
+                'error' => true,
+                'message' => $e->getMessage(),
+                'data' => [],
+            ];
+        }
+
+        return response()->json($json);
+    }
+
+    /**
+     * Finish the update
+     *
+     * @param  $request
+     *
+     * @return Response
+     */
+    public function finish(Request $request)
+    {
+        set_time_limit(900); // 15 minutes
+
+        try {
+            Updater::finish($request['alias'], $request['version'], $request['installed']);
+
+            $json = [
+                'success' => true,
+                'error' => false,
+                'message' => null,
+                'data' => [],
+            ];
+        } catch (\Exception $e) {
+            $json = [
+                'success' => false,
+                'error' => true,
+                'message' => $e->getMessage(),
+                'data' => [],
+            ];
+        }
+
+        return response()->json($json);
+    }
+
+    /**
+     * Redirect back
+     *
+     * @param  $request
+     *
+     * @return Response
+     */
+    public function redirect()
+    {
+        $json = [
+            'success' => true,
+            'errors' => false,
+            'redirect' => route('updates.index'),
+            'data' => [],
+        ];
+
+        return response()->json($json);
     }
 }

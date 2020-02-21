@@ -2,29 +2,29 @@
 
 return [
 
-    'this_year'             => 'Tento rok',
+    'this_year'             => 'Aktuální rok',
     'previous_year'         => 'Předchozí rok',
     'this_quarter'          => 'Aktuální čtvrtletí',
     'previous_quarter'      => 'Předchozí čtvrtletí',
     'last_12_months'        => 'Posledních 12 měsíců',
-    'profit_loss'           => 'Profit & Loss',
-    'gross_profit'          => 'Gross Profit',
-    'net_profit'            => 'Net Profit',
-    'total_expenses'        => 'Total Expenses',
-    'net'                   => 'NET',
+    'profit_loss'           => 'Zisk a ztráty',
+    'gross_profit'          => 'Hrubý zisk',
+    'net_profit'            => 'Čistý zisk',
+    'total_expenses'        => 'Celkové výdaje',
+    'net'                   => 'NETTO',
+    'income-expense'        => 'Příjmy a výdaje',
 
     'summary' => [
         'income'            => 'Přehled příjmů',
         'expense'           => 'Přehled výdajů',
         'income_expense'    => 'Příjmy vs Výdaje',
-        'tax'               => 'Tax Summary',
+        'tax'               => 'Souhrn daně',
     ],
 
-    'quarter' => [
-        '1'                 => 'Jan-Mar',
-        '2'                 => 'Apr-Jun',
-        '3'                 => 'Jul-Sep',
-        '4'                 => 'Oct-Dec',
+    'charts' => [
+        'line'              => 'Čárový',
+        'bar'               => 'Sloupcový',
+        'pie'               => 'Koláčový',
     ],
 
 ];

@@ -4,21 +4,21 @@ return [
 
     'name'      =>  'Akaunting',
 
-    'code'      =>  'Recurring',
+    'code'      =>  'Argon',
 
-    'major'     =>  '1',
+    'major'     =>  '2',
 
-    'minor'     =>  '2',
+    'minor'     =>  '0',
 
-    'patch'     =>  '16',
+    'patch'     =>  '2',
 
     'build'     =>  '',
 
     'status'    =>  'Stable',
 
-    'date'      =>  '14-September-2018',
+    'date'      =>  '20-Feb-2019',
 
-    'time'      =>  '12:30',
+    'time'      =>  '14:30',
 
     'zone'      =>  'GMT +3',
 

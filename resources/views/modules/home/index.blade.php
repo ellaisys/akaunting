@@ -3,42 +3,66 @@
 @section('title', trans_choice('general.modules', 2))
 
 @section('new_button')
-    <span class="new-button"><a href="{{ url('apps/token/create') }}" class="btn btn-success btn-sm"><span class="fa fa-key"></span> &nbsp;{{ trans('modules.api_token') }}</a></span>
-    <span class="new-button"><a href="{{ url('apps/my')  }}" class="btn btn-default btn-sm"><span class="fa fa-user"></span> &nbsp;{{ trans('modules.my_apps') }}</a></span>
+    <span><a href="{{ route('apps.api-key.create') }}" class="btn btn-white btn-sm header-button-top"><span class="fa fa-key"></span> &nbsp;{{ trans('modules.api_key') }}</a></span>
+    <span><a href="{{ route('apps.my.index') }}" class="btn btn-white btn-sm header-button-top"><span class="fa fa-user"></span> &nbsp;{{ trans('modules.my_apps') }}</a></span>
 @endsection
 
 @section('content')
     @include('partials.modules.bar')
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="content-header no-padding-left">
-                <h3>{{ trans('modules.top_paid') }}</h3>
+        @if ($pre_sale)
+            <h2>{{ trans('modules.pre_sale') }}</h2>
+            <div class="row">
+                @if ($pre_sale->data)
+                    @foreach ($pre_sale->data as $module)
+                        @include('partials.modules.pre_sale')
+                    @endforeach
+                @else
+                    @include('partials.modules.no_apps')
+                @endif
             </div>
+        @endif
 
-            @foreach ($paid as $module)
-                @include('partials.modules.item')
-            @endforeach
-        </div>
-
-        <div class="col-md-12">
-            <div class="content-header no-padding-left">
-                <h3>{{ trans('modules.new') }}</h3>
+        @if ($paid)
+            <h2>{{ trans('modules.top_paid') }}</h2>
+            <div class="row">
+                @if ($paid->data)
+                    @foreach ($paid->data as $module)
+                        @include('partials.modules.item')
+                    @endforeach
+                @else
+                    @include('partials.modules.no_apps')
+                @endif
             </div>
+        @endif
 
-            @foreach ($new as $module)
-                @include('partials.modules.item')
-            @endforeach
-        </div>
-
-        <div class="col-md-12">
-            <div class="content-header no-padding-left">
-                <h3>{{ trans('modules.top_free') }}</h3>
+        @if ($new)
+            <h2>{{ trans('modules.new') }}</h2>
+            <div class="row">
+                @if ($new->data)
+                    @foreach ($new->data as $module)
+                        @include('partials.modules.item')
+                    @endforeach
+                @else
+                    @include('partials.modules.no_apps')
+                @endif
             </div>
+        @endif
 
-            @foreach ($free as $module)
-                @include('partials.modules.item')
-            @endforeach
-        </div>
-    </div>
+        @if ($free)
+            <h2>{{ trans('modules.top_free') }}</h2>
+            <div class="row">
+                @if ($free->data)
+                    @foreach ($free->data as $module)
+                        @include('partials.modules.item')
+                    @endforeach
+                @else
+                    @include('partials.modules.no_apps')
+                @endif
+            </div>
+        @endif
 @endsection
+
+@push('scripts_start')
+    <script src="{{ asset('public/js/modules/apps.js?v=' . version('short')) }}"></script>
+@endpush

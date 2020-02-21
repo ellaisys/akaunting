@@ -32,7 +32,7 @@ return [
     'download_pdf'      => '下載 PDF格式',
     'send_mail'         => '傳送電子郵件',
 
-    'status' => [
+    'statuses' => [
         'draft'         => '草稿',
         'received'      => '已收到',
         'partial'       => '部分',
@@ -41,6 +41,18 @@ return [
 
     'messages' => [
         'received'      => '成功標記帳單為已收到！',
+        'draft'          => '這是 <b>草稿</b> 帳單, 在簽收後將反映在圖表上。',
+
+        'status' => [
+            'created'   => '創建於 :date',
+            'receive'      => [
+                'draft'     => '未發送',
+                'received'  => '簽收於 :date',
+            ],
+            'paid'      => [
+                'await'     => '等待付款',
+            ],
+        ],
     ],
 
 ];

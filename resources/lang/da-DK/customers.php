@@ -2,10 +2,11 @@
 
 return [
 
-    'allow_login'           => 'Tillad login?',
+    'can_login'             => 'Kan logge ind?',
     'user_created'          => 'Bruger oprettet',
 
     'error' => [
         'email'             => 'Denne mail er allerede registreret.'
-    ]
+    ],
+
 ];

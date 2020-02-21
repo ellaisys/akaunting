@@ -2,7 +2,7 @@
 
 namespace App\Models\Setting;
 
-use App\Models\Model;
+use App\Abstracts\Model;
 
 class Currency extends Model
 {
@@ -28,39 +28,44 @@ class Currency extends Model
         return $this->hasMany('App\Models\Banking\Account', 'currency_code', 'code');
     }
 
+    public function bills()
+    {
+        return $this->hasMany('App\Models\Purchase\Bill', 'currency_code', 'code');
+    }
+
+    public function contacts()
+    {
+        return $this->hasMany('App\Models\Common\Contact', 'currency_code', 'code');
+    }
+
     public function customers()
     {
-        return $this->hasMany('App\Models\Income\Customer', 'currency_code', 'code');
+        return $this->contacts()->where('type', 'customer');
+    }
+
+    public function expense_transactions()
+    {
+        return $this->transactions()->where('type', 'expense');
+    }
+
+    public function income_transactions()
+    {
+        return $this->transactions()->where('type', 'income');
     }
 
     public function invoices()
     {
-        return $this->hasMany('App\Models\Income\Invoice', 'currency_code', 'code');
+        return $this->hasMany('App\Models\Sale\Invoice', 'currency_code', 'code');
     }
 
-    public function invoice_payments()
+    public function transactions()
     {
-        return $this->hasMany('App\Models\Income\InvoicePayment', 'currency_code', 'code');
+        return $this->hasMany('App\Models\Banking\Transaction', 'currency_code', 'code');
     }
 
-    public function revenues()
+    public function vendors()
     {
-        return $this->hasMany('App\Models\Income\Revenue', 'currency_code', 'code');
-    }
-
-    public function bills()
-    {
-        return $this->hasMany('App\Models\Expense\Bill', 'currency_code', 'code');
-    }
-
-    public function bill_payments()
-    {
-        return $this->hasMany('App\Models\Expense\BillPayment', 'currency_code', 'code');
-    }
-
-    public function payments()
-    {
-        return $this->hasMany('App\Models\Expense\Payment', 'currency_code', 'code');
+        return $this->contacts()->where('type', 'vendor');
     }
 
     /**
@@ -81,11 +86,11 @@ class Currency extends Model
      */
     public function getPrecisionAttribute($value)
     {
-        if (empty($value)) {
+        if (is_null($value)) {
             return config('money.' . $this->code . '.precision');
         }
 
-        return $value;
+        return (int) $value;
     }
 
     /**
@@ -95,7 +100,7 @@ class Currency extends Model
      */
     public function getSymbolAttribute($value)
     {
-        if (empty($value)) {
+        if (is_null($value)) {
             return config('money.' . $this->code . '.symbol');
         }
 
@@ -109,7 +114,7 @@ class Currency extends Model
      */
     public function getSymbolFirstAttribute($value)
     {
-        if (empty($value)) {
+        if (is_null($value)) {
             return config('money.' . $this->code . '.symbol_first');
         }
 
@@ -123,7 +128,7 @@ class Currency extends Model
      */
     public function getDecimalMarkAttribute($value)
     {
-        if (empty($value)) {
+        if (is_null($value)) {
             return config('money.' . $this->code . '.decimal_mark');
         }
 
@@ -137,7 +142,7 @@ class Currency extends Model
      */
     public function getThousandsSeparatorAttribute($value)
     {
-        if (empty($value)) {
+        if (is_null($value)) {
             return config('money.' . $this->code . '.thousands_separator');
         }
 

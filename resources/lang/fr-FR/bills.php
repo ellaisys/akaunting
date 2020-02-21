@@ -32,7 +32,7 @@ return [
     'download_pdf'      => 'Télécharger en PDF',
     'send_mail'         => 'Envoyer un Email',
 
-    'status' => [
+    'statuses' => [
         'draft'         => 'Brouillon',
         'received'      => 'Reçu',
         'partial'       => 'Partiel',
@@ -41,6 +41,18 @@ return [
 
     'messages' => [
         'received'      => 'Facture marquée comme reçue avec succès !',
+        'draft'          => 'Ceci est une facture <b>BROUILLON</b> et sera comptabilisée dans les graphiques une fois reçue.',
+
+        'status' => [
+            'created'   => 'Créée le :date',
+            'receive'      => [
+                'draft'     => 'Pas envoyée',
+                'received'  => 'Reçue le :date',
+            ],
+            'paid'      => [
+                'await'     => 'En attente du paiement',
+            ],
+        ],
     ],
 
 ];

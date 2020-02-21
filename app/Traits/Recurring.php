@@ -8,12 +8,11 @@ use Recurr\Transformer\ArrayTransformerConfig;
 
 trait Recurring
 {
-
     public function createRecurring()
     {
         $request = request();
 
-        if ($request->get('recurring_frequency') == 'no') {
+        if ($request->get('recurring_frequency', 'no') == 'no') {
             return;
         }
 
@@ -34,7 +33,7 @@ trait Recurring
     {
         $request = request();
 
-        if ($request->get('recurring_frequency') == 'no') {
+        if ($request->get('recurring_frequency', 'no') == 'no') {
             $this->recurring()->delete();
             return;
         }
@@ -134,7 +133,7 @@ trait Recurring
 
     public function getRuleTimeZone()
     {
-        return setting('general.timezone');
+        return setting('localisation.timezone');
     }
 
     public function getRuleCount()
