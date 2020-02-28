@@ -10,7 +10,7 @@
                 </span>
             </div>
 
-            <money :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="value" :masked="masked" class="form-control"></money>
+            <money :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="value" :disabled="disabled" :masked="masked" class="form-control"></money>
         </div>
 
         <div class="invalid-feedback d-block" v-if="error" v-html="error"></div>
@@ -74,7 +74,7 @@ export default {
             description: "Selectbox disabled status"
         },
         disabled: {
-            type: Boolean,
+            type: [Boolean, Number],
             default: false,
             description: "Selectbox disabled status"
         },
