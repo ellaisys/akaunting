@@ -1,16 +1,26 @@
 @stack($name . '_input_start')
 
     <akaunting-money :col="'{{ $col }}'"
+        @if (!empty($attributes['v-error']))
+        :form-classes="[{'has-error': {{ $attributes['v-error'] }} }]"
+        @else
+        :form-classes="[{'has-error': form.errors.has('{{ $name }}') }]"
+        @endif
+
         @if (isset($attributes['required']))
         :required="{{ ($attributes['required']) ? 'true' : 'false' }}"
         @endif
 
         @if (isset($attributes['readonly']))
-        :readonly="'{{ $attributes['readonly'] }}'"
+        :readonly="{{ $attributes['readonly'] }}"
         @endif
 
         @if (isset($attributes['disabled']))
         :disabled="{{ $attributes['disabled'] }}"
+        @endif
+
+        @if (isset($attributes['show']))
+        v-if="{{ $attributes['show'] }}"
         @endif
 
         @if (isset($attributes['masked']))
@@ -27,6 +37,8 @@
 
         @if (!empty($attributes['dynamic-currency']))
         :dynamic-currency="{{ $attributes['dynamic-currency'] }}"
+        @else
+        :dynamic-currency="currency"
         @endif
 
         @if (!empty($attributes['v-model']))
@@ -43,6 +55,12 @@
         @interface="{{ 'form.' . $attributes['data-field'] . '.' . $name . ' = $event' }}"
         @else
         @interface="form.{{ $name }} = $event"
+        @endif
+
+        @if (isset($attributes['v-error-message']))
+        :form-error="{{ $attributes['v-error-message'] }}"
+        @else
+        :form-error="form.errors.get('{{ $name }}')"
         @endif
     ></akaunting-money>
 

@@ -16,7 +16,7 @@
         :options="{{ json_encode($values) }}"
 
         @if (isset($selected) || old($name))
-        value="{{ json_encode(old($name, $selected)) }}"
+        :value="{{ json_encode(old($name, $selected)) }}"
         @endif
 
         @if (!empty($attributes['model']))
@@ -42,11 +42,15 @@
         @endif
 
         @if (isset($attributes['readonly']))
-        :readonly="'{{ $attributes['readonly'] }}'"
+        :readonly="{{ $attributes['readonly'] }}"
         @endif
 
         @if (isset($attributes['disabled']))
-        :disabled="'{{ $attributes['disabled'] }}'"
+        :disabled="{{ $attributes['disabled'] }}"
+        @endif
+
+        @if (isset($attributes['show']))
+        v-if="{{ $attributes['show'] }}"
         @endif
 
         @if (isset($attributes['v-error-message']))

@@ -11,12 +11,13 @@ import AkauntingSelect from './../components/AkauntingSelect';
 import AkauntingSelectRemote from './../components/AkauntingSelectRemote';
 import AkauntingDate from './../components/AkauntingDate';
 import AkauntingRecurring from './../components/AkauntingRecurring';
+import AkauntingHtmlEditor from './../components/AkauntingHtmlEditor';
 
 import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
 import NProgressAxios from './../plugins/nprogress-axios';
 
-import { Select, Option, Steps, Step, Button, Link, Tooltip } from 'element-ui';
+import { Select, Option, Steps, Step, Button, Link, Tooltip, ColorPicker } from 'element-ui';
 
 import Form from './../plugins/form';
 
@@ -31,6 +32,7 @@ export default {
         AkauntingModalAddNew,
         AkauntingDate,
         AkauntingRecurring,
+        AkauntingHtmlEditor,
         [Select.name]: Select,
         [Option.name]: Option,
         [Steps.name]: Steps,
@@ -38,11 +40,13 @@ export default {
         [Button.name]: Button,
         [Link.name]: Link,
         [Tooltip.name]: Tooltip,
+        [ColorPicker.name]: ColorPicker,
     },
 
     data: function () {
         return {
             component: '',
+            currency: null,
         }
     },
 
@@ -183,16 +187,30 @@ export default {
                 this.form.currency_code = response.data.currency_code;
                 this.form.currency_rate = response.data.currency_rate;
 
-                this.money.decimal = response.data.decimal_mark;
-                this.money.thousands = response.data.thousands_separator;
-                this.money.prefix = (response.data.symbol_first) ? response.data.symbol : '';
-                this.money.suffix = !(response.data.symbol_first) ? response.data.symbol : '';
-                this.money.precision = response.data.precision;
+                this.currency = response.data;
             })
             .catch(error => {
             });
         },
 
+        // Change currency get money
+        onChangeCurrency(currency_code) {
+            axios.get(url + '/settings/currencies/currency', {
+                params: {
+                  code: currency_code
+                }
+            })
+            .then(response => {
+                this.currency = response.data;
+
+                this.form.currency_code = response.data.code;
+                this.form.currency_rate = response.data.rate;
+            })
+            .catch(error => {
+            });
+        },
+
+        // Pages limit change
         onChangePaginationLimit(event) {
             let path = '';
 
@@ -232,6 +250,7 @@ export default {
             window.location.href = path;
         },
 
+        // Dynamic component get path view and show it.
         onDynamicComponent(path)
         {
             axios.get(path)

@@ -49,6 +49,7 @@ import Vue from 'vue';
 
 import { SlideYUpTransition } from "vue2-transitions";
 import AkauntingModal from './AkauntingModal';
+import AkauntingMoney from './AkauntingMoney';
 import AkauntingRadioGroup from './forms/AkauntingRadioGroup';
 import AkauntingSelect from './AkauntingSelect';
 import AkauntingDate from './AkauntingDate';
@@ -56,7 +57,6 @@ import AkauntingRecurring from './AkauntingRecurring';
 
 import Form from './../plugins/form';
 import { Alert, ColorPicker } from 'element-ui';
-import {VMoney} from 'v-money';
 
 export default {
     name: 'akaunting-modal-add-new',
@@ -66,13 +66,10 @@ export default {
         AkauntingRadioGroup,
         AkauntingSelect,
         AkauntingModal,
+        AkauntingMoney,
         AkauntingDate,
         AkauntingRecurring,
         [ColorPicker.name]: ColorPicker,
-    },
-
-    directives: {
-        money: VMoney
     },
 
     props: {
@@ -133,6 +130,12 @@ export default {
         };
     },
 
+    created: function () {
+        let documentClasses = document.body.classList;
+
+        documentClasses.add("modal-open");
+    },
+
     mounted() {
         if (this.is_component) {
             this.component = Vue.component('add-new-component', (resolve, reject) => {
@@ -143,13 +146,10 @@ export default {
                         AkauntingRadioGroup,
                         AkauntingSelect,
                         AkauntingModal,
+                        AkauntingMoney,
                         AkauntingDate,
                         AkauntingRecurring,
                         [ColorPicker.name]: ColorPicker,
-                    },
-
-                    directives: {
-                        money: VMoney
                     },
 
                     created: function() {
@@ -165,7 +165,7 @@ export default {
                     data: function () {
                         return {
                             form: {},
-                            money: {
+                            currency: {
                                 decimal: '.',
                                 thousands: ',',
                                 prefix: '$ ',
@@ -236,6 +236,10 @@ export default {
         },
 
         onCancel() {
+            let documentClasses = document.body.classList;
+
+            documentClasses.remove("modal-open");
+
             this.$emit("cancel");
         }
     },
