@@ -11,7 +11,7 @@ class Overrider
     public static function load($type)
     {
         // Overrides apply per company
-        $company_id = session('company_id');
+        $company_id = company_id();
         if (empty($company_id)) {
             return;
         }
@@ -25,13 +25,14 @@ class Overrider
 
     protected static function loadSettings()
     {
-        // Set the active company settings
-        setting()->setExtraColumns(['company_id' => static::$company_id]);
-        setting()->forgetAll();
-        setting()->load(true);
-
         // Timezone
-        config(['app.timezone' => setting('localisation.timezone', 'UTC')]);
+        $timezone = setting('localisation.timezone');
+
+        if (empty($timezone)) {
+            $timezone = config('setting.fallback.localisation.timezone');
+        }
+
+        config(['app.timezone' => $timezone]);
         date_default_timezone_set(config('app.timezone'));
 
         // Email
@@ -51,12 +52,16 @@ class Overrider
         }
 
         // Locale
-        if (session('locale') == '') {
-            app()->setLocale(setting('default.locale'));
+        if (! session('locale')) {
+            $locale = user()->locale ?? setting('default.locale');
+
+            app()->setLocale($locale);
         }
 
-        // Set app url dynamically
-        config(['app.url' => url('/')]);
+        // Set app url dynamically if empty
+        if (! config('app.url')) {
+            config(['app.url' => url('/')]);
+        }
     }
 
     protected static function loadCurrencies()
@@ -64,10 +69,8 @@ class Overrider
         $currencies = Currency::all();
 
         foreach ($currencies as $currency) {
-            if (!isset($currency->precision)) {
-                continue;
-            }
-
+            config(['money.' . $currency->code . '.name' => $currency->name]);
+            config(['money.' . $currency->code . '.rate' => $currency->rate]);
             config(['money.' . $currency->code . '.precision' => $currency->precision]);
             config(['money.' . $currency->code . '.symbol' => $currency->symbol]);
             config(['money.' . $currency->code . '.symbol_first' => $currency->symbol_first]);

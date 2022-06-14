@@ -2,17 +2,16 @@
 
 return [
 
-    'api_key'               => 'Kunci API',
+    'api_key'               => 'Token API',
     'my_apps'               => 'Aplikasi saya',
     'pre_sale'              => 'Pra Penjualan',
     'top_paid'              => 'Dibayar atas',
     'new'                   => 'Baru',
     'top_free'              => 'Gratis Teratas',
     'free'                  => 'GRATIS',
-    'search'                => 'Cari',
     'install'               => 'Pasang',
     'buy_now'               => 'Beli Sekarang',
-    'get_api_key'           => '<a href=":url" target="_blank">Klik disini</a> untuk mendapatkan Kunci API.',
+    'get_api_key'           => '<a href=":url" target="_blank">Klik disini</a> untuk mendapatkan Token API.',
     'no_apps'               => 'Belum ada aplikasi dalam kategori ini.',
     'become_developer'      => 'Apakah Anda seorang pengembang? <a href=":url" target="_blank"> Di Sini </a> Anda dapat belajar cara membuat aplikasi dan mulai menjual hari ini!',
     'recommended_apps'      => 'Aplikasi yang direkomendasikan',
@@ -28,13 +27,13 @@ return [
 
     'installed'             => ':module terpasang',
     'uninstalled'           => ':module dihapus',
-    //'updated'               => ':module updated',
+    'updated_2'             => ':module diperbarui',
     'enabled'               => ':module diaktifkan',
     'disabled'              => ':module dinonaktifkan',
 
     'tab' => [
         'installation'      => 'Instalasi',
-        'faq'               => 'FAQ',
+        'faq'               => 'Tanya jawab',
         'changelog'         => 'Perubahan Catatan',
         'reviews'           => 'Ulasan',
     ],

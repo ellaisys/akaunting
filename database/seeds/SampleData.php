@@ -6,8 +6,7 @@ use App\Abstracts\Model;
 use App\Models\Banking\Account;
 use App\Models\Common\Contact;
 use App\Models\Common\Item;
-use App\Models\Purchase\Bill;
-use App\Models\Sale\Invoice;
+use App\Models\Document\Document;
 use App\Models\Setting\Category;
 use App\Models\Setting\Tax;
 use Illuminate\Database\Seeder;
@@ -28,6 +27,8 @@ class SampleData extends Seeder
         $count = (int) $this->command->option('count');
         $small_count = ($count <= 10) ? $count : 10;
 
+        $company = (int) $this->command->option('company');
+
         $this->command->info('Creating sample data...');
 
         $bar = $this->command->getOutput()->createProgressBar(7);
@@ -35,25 +36,25 @@ class SampleData extends Seeder
 
         $bar->start();
 
-        factory(Contact::class, $count)->create();
+        Contact::factory()->company($company)->count($count)->create();
         $bar->advance();
 
-        factory(Category::class, $count)->create();
+        Category::factory()->company($company)->count($count)->create();
         $bar->advance();
 
-        factory(Tax::class, $small_count)->states('enabled')->create();
+        Tax::factory()->company($company)->count($small_count)->enabled()->create();
         $bar->advance();
 
-        factory(Item::class, $count)->create();
+        Item::factory()->company($company)->count($count)->create();
         $bar->advance();
 
-        factory(Account::class, $small_count)->create();
+        Account::factory()->company($company)->count($small_count)->create();
         $bar->advance();
 
-        factory(Bill::class, $count)->create();
+        Document::factory()->company($company)->bill()->count($count)->create();
         $bar->advance();
 
-        factory(Invoice::class, $count)->create();
+        Document::factory()->company($company)->invoice()->count($count)->create();
         $bar->advance();
 
         $bar->finish();

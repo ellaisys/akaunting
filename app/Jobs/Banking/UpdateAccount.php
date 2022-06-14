@@ -3,78 +3,60 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Banking\Account;
 
-class UpdateAccount extends Job
+class UpdateAccount extends Job implements ShouldUpdate
 {
-    protected $account;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $account
-     * @param  $request
-     */
-    public function __construct($account, $request)
-    {
-        $this->account = $account;
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Account
-     */
-    public function handle()
+    public function handle(): Account
     {
         $this->authorize();
 
-        $this->account->update($this->request->all());
+        \DB::transaction(function () {
+            $this->model->update($this->request->all());
 
-        // Set default account
-        if ($this->request['default_account']) {
-            setting()->set('default.account', $this->account->id);
-            setting()->save();
-        }
+            // Set default account
+            if ($this->request['default_account']) {
+                setting()->set('default.account', $this->model->id);
+                setting()->save();
+            }
+        });
 
-        return $this->account;
+        return $this->model;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
-        if (!$relationships = $this->getRelationships()) {
-            return;
-        }
+        $relationships = $this->getRelationships();
 
-        if ($this->account->currency_code != $this->request->get('currency_code')) {
-            $message = trans('messages.warning.disable_code', ['name' => $this->account->name, 'text' => implode(', ', $relationships)]);
+        if (!$this->request->get('enabled') && ($this->model->id == setting('default.account'))) {
+            $relationships[] = strtolower(trans_choice('general.companies', 1));
+
+            $message = trans('messages.warning.disabled', ['name' => $this->model->name, 'text' => implode(', ', $relationships)]);
 
             throw new \Exception($message);
         }
 
-        if (!$this->request->get('enabled') && ($this->account->id == setting('default.account'))) {
-            $relationships[] = strtolower(trans_choice('general.companies', 1));
+        if (!$relationships) {
+            return;
+        }
 
-            $message = trans('messages.warning.disabled', ['name' => $this->account->name, 'text' => implode(', ', $relationships)]);
+        if ($this->model->currency_code != $this->request->get('currency_code')) {
+            $message = trans('messages.warning.disable_code', ['name' => $this->model->name, 'text' => implode(', ', $relationships)]);
 
             throw new \Exception($message);
         }
     }
 
-    public function getRelationships()
+    public function getRelationships(): array
     {
         $rels = [
             'transactions' => 'transactions',
         ];
 
-        return $this->countRelationships($this->account, $rels);
+        return $this->countRelationships($this->model, $rels);
     }
 }

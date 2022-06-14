@@ -57,9 +57,10 @@ const app = new Vue({
     },
 
     methods: {
-        onChangelog() {
-            axios.get(url + '/install/updates/changelog')
-            .then(response => {
+        async onChangelog() {
+            let changelog_promise = Promise.resolve(axios.get(url + '/install/updates/changelog'));
+
+            changelog_promise.then(response => {
                 this.changelog.show = true;
                 this.changelog.html = response.data;
             })
@@ -71,14 +72,16 @@ const app = new Vue({
             });
         },
 
-        steps() {
+        async steps() {
             let name = document.getElementById('name').value;
+            let version = document.getElementById('version').value;
 
-            axios.post(url + '/install/updates/steps', {
+            let steps_promise = Promise.resolve(axios.post(url + '/install/updates/steps', {
                 name: name,
                 version: version
-            })
-            .then(response => {
+            }));
+
+            steps_promise.then(response => {
                 if (response.data.error) {
                     this.update.status = 'exception';
                     this.update.html = '<div class="text-danger">' + response.data.message + '</div>';
@@ -96,7 +99,7 @@ const app = new Vue({
             });
         },
 
-        next() {
+        async next() {
             let data = this.update.steps.shift();
 
             let name = document.getElementById('name').value;
@@ -105,21 +108,22 @@ const app = new Vue({
             let installed = document.getElementById('installed').value;
 
             if (data) {
-                this.update.total = (100 - ((this.update.steps.length / this.update.steps_total) * 100)).toFixed(0);
+                this.update.total = parseInt((100 - ((this.update.steps.length / this.update.steps_total) * 100)).toFixed(0));
 
-                this.update.html = '<span class="text-default"><i class="fa fa-spinner fa-spin update-spin"></i> ' + data['text'] + '</span> </br>';
+                this.update.html = '<span class="text-default"><i class=""></i> ' + data['text'] + '</span> </br>';
 
-                axios.post(data.url, {
+                let step_promise = Promise.resolve(axios.post(data.url, {
                     name: name,
                     alias: alias,
                     version: version,
                     installed: installed,
                     path: this.update.path,
-                })
-                .then(response => {
+                }));
+
+                step_promise.then(response => {
                     if (response.data.error) {
                         this.update.status = 'exception';
-                        this.update.html = '<div class="text-danger"><i class="fa fa-times update-error"></i> ' + response.data.message + '</div>';
+                        this.update.html = '<div class="text-danger"><i class="submit-spin absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto"></i> ' + response.data.message + '</div>';
                     }
 
                     if (response.data.success) {
@@ -131,11 +135,9 @@ const app = new Vue({
                     }
 
                     if (!response.data.error && !response.data.redirect) {
-                        let self = this;
-
                         setTimeout(function() {
-                            self.next();
-                        }, 800);
+                            this.next();
+                        }.bind(this), 800);
                     }
 
                     if (response.data.redirect) {

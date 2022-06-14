@@ -14,12 +14,8 @@ class Event extends Provider
     protected $listen = [
         'App\Events\Install\UpdateFinished' => [
             'App\Listeners\Update\CreateModuleUpdatedHistory',
-            'App\Listeners\Update\V20\Version200',
-            'App\Listeners\Update\V20\Version203',
-            'App\Listeners\Update\V20\Version205',
-            'App\Listeners\Update\V20\Version207',
-            'App\Listeners\Update\V20\Version208',
-            'App\Listeners\Update\V20\Version209',
+            'App\Listeners\Module\UpdateExtraModules',
+            'App\Listeners\Update\V30\Version300',
         ],
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\Auth\Login',
@@ -27,50 +23,83 @@ class Event extends Provider
         'Illuminate\Auth\Events\Logout' => [
             'App\Listeners\Auth\Logout',
         ],
-        'App\Events\Purchase\BillCreated' => [
-            'App\Listeners\Purchase\CreateBillCreatedHistory',
-            'App\Listeners\Purchase\IncreaseNextBillNumber',
+        //'Illuminate\Console\Events\ScheduledTaskStarting' => [
+        'Illuminate\Console\Events\CommandStarting' => [
+            'App\Listeners\Common\SkipScheduleInReadOnlyMode',
         ],
-        'App\Events\Purchase\BillReceived' => [
-            'App\Listeners\Purchase\MarkBillReceived',
+        'App\Events\Auth\LandingPageShowing' => [
+            'App\Listeners\Auth\AddLandingPages',
         ],
-        'App\Events\Purchase\BillCancelled' => [
-            'App\Listeners\Purchase\MarkBillCancelled',
+        'App\Events\Auth\InvitationCreated' => [
+            'App\Listeners\Auth\SendUserInvitation',
         ],
-        'App\Events\Purchase\BillRecurring' => [
-            'App\Listeners\Purchase\SendBillRecurringNotification',
+        'App\Events\Auth\UserDeleted' => [
+            'App\Listeners\Auth\DeleteUserInvitation',
         ],
-        'App\Events\Purchase\BillReminded' => [
-            'App\Listeners\Purchase\SendBillReminderNotification',
+        'App\Events\Document\DocumentCreated' => [
+            'App\Listeners\Document\CreateDocumentCreatedHistory',
+            'App\Listeners\Document\IncreaseNextDocumentNumber',
+            'App\Listeners\Document\SettingFieldCreated',
         ],
-        'App\Events\Sale\PaymentReceived' => [
-            'App\Listeners\Sale\CreateInvoiceTransaction',
-            'App\Listeners\Sale\SendInvoicePaymentNotification',
+        'App\Events\Document\DocumentReceived' => [
+            'App\Listeners\Document\MarkDocumentReceived',
         ],
-        'App\Events\Sale\InvoiceCreated' => [
-            'App\Listeners\Sale\CreateInvoiceCreatedHistory',
-            'App\Listeners\Sale\IncreaseNextInvoiceNumber',
+        'App\Events\Document\DocumentCancelled' => [
+            'App\Listeners\Document\MarkDocumentCancelled',
         ],
-        'App\Events\Sale\InvoiceSent' => [
-            'App\Listeners\Sale\MarkInvoiceSent',
+        'App\Events\Document\DocumentRecurring' => [
+            'App\Listeners\Document\SendDocumentRecurringNotification',
         ],
-        'App\Events\Sale\InvoiceCancelled' => [
-            'App\Listeners\Sale\MarkInvoiceCancelled',
+        'App\Events\Document\DocumentReminded' => [
+            'App\Listeners\Document\SendDocumentReminderNotification',
         ],
-        'App\Events\Sale\InvoiceViewed' => [
-            'App\Listeners\Sale\MarkInvoiceViewed',
+        'App\Events\Document\PaymentReceived' => [
+            'App\Listeners\Document\CreateDocumentTransaction',
+            'App\Listeners\Document\SendDocumentPaymentNotification',
         ],
-        'App\Events\Sale\InvoiceRecurring' => [
-            'App\Listeners\Sale\SendInvoiceRecurringNotification',
+        'App\Events\Document\DocumentMarkedSent' => [
+            'App\Listeners\Document\MarkDocumentSent',
         ],
-        'App\Events\Sale\InvoiceReminded' => [
-            'App\Listeners\Sale\SendInvoiceReminderNotification',
+        'App\Events\Document\DocumentSent' => [
+            'App\Listeners\Document\MarkDocumentSent',
+        ],
+        'App\Events\Document\DocumentUpdated' => [
+            'App\Listeners\Document\SettingFieldUpdated',
+        ],
+        'App\Events\Document\DocumentViewed' => [
+            'App\Listeners\Document\MarkDocumentViewed',
+            'App\Listeners\Document\SendDocumentViewNotification',
+        ],
+        'App\Events\Install\UpdateFailed' => [
+            'App\Listeners\Update\SendNotificationOnFailure',
+        ],
+        'App\Events\Menu\NotificationsCreated' => [
+            'App\Listeners\Menu\ShowInNotifications',
         ],
         'App\Events\Menu\AdminCreated' => [
-            'App\Listeners\Menu\AddAdminItems',
+            'App\Listeners\Menu\ShowInAdmin',
+        ],
+        'App\Events\Menu\ProfileCreated' => [
+            'App\Listeners\Menu\ShowInProfile',
+        ],
+        'App\Events\Menu\SettingsCreated' => [
+            'App\Listeners\Menu\ShowInSettings',
+        ],
+        'App\Events\Menu\NewwCreated' => [
+            'App\Listeners\Menu\ShowInNeww',
         ],
         'App\Events\Menu\PortalCreated' => [
-            'App\Listeners\Menu\AddPortalItems',
+            'App\Listeners\Menu\ShowInPortal',
+        ],
+        'App\Events\Module\Installed' => [
+            'App\Listeners\Module\InstallExtraModules',
+            'App\Listeners\Module\FinishInstallation',
+        ],
+        'App\Events\Module\Uninstalled' => [
+            'App\Listeners\Module\FinishUninstallation',
+        ],
+        'App\Events\Banking\TransactionCreated' => [
+            'App\Listeners\Banking\IncreaseNextTransactionNumber',
         ],
     ];
 
@@ -80,6 +109,7 @@ class Event extends Provider
      * @var array
      */
     protected $subscribe = [
+        'App\Listeners\Module\ClearCache',
         'App\Listeners\Report\AddDate',
         'App\Listeners\Report\AddAccounts',
         'App\Listeners\Report\AddCustomers',
@@ -87,7 +117,8 @@ class Event extends Provider
         'App\Listeners\Report\AddExpenseCategories',
         'App\Listeners\Report\AddIncomeCategories',
         'App\Listeners\Report\AddIncomeExpenseCategories',
-        'App\Listeners\Report\AddSearch',
+        'App\Listeners\Report\AddSearchString',
         'App\Listeners\Report\AddRowsToTax',
+        'App\Listeners\Report\AddBasis',
     ];
 }

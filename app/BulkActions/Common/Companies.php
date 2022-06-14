@@ -11,21 +11,25 @@ class Companies extends BulkAction
 {
     public $model = Company::class;
 
+    public $text = 'general.companies';
+
+    public $path = [
+        'group' => 'common',
+        'type' => 'companies',
+    ];
+
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-common-companies',
+        'enable'    => [
+            'icon'          => 'check_circle',
+            'name'          => 'general.enable',
+            'message'       => 'bulk_actions.message.enable',
+            'permission'    => 'update-common-companies',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-common-companies',
-        ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-common-companies',
+        'disable'   => [
+            'icon'          => 'hide_source',
+            'name'          => 'general.disable',
+            'message'       => 'bulk_actions.message.disable',
+            'permission'    => 'update-common-companies',
         ],
     ];
 
@@ -37,7 +41,7 @@ class Companies extends BulkAction
             try {
                 $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 1])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -50,7 +54,7 @@ class Companies extends BulkAction
             try {
                 $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 0])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -63,7 +67,7 @@ class Companies extends BulkAction
             try {
                 $this->dispatch(new DeleteCompany($company));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }

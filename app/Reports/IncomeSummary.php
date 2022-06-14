@@ -4,51 +4,56 @@ namespace App\Reports;
 
 use App\Abstracts\Report;
 use App\Models\Banking\Transaction;
-use App\Models\Sale\Invoice;
+use App\Models\Document\Document;
 use App\Utilities\Recurring;
 
 class IncomeSummary extends Report
 {
-    public $default_name = 'reports.summary.income';
+    public $default_name = 'reports.income_summary';
 
-    public $icon = 'fa fa-money-bill';
+    public $icon = 'payments';
+
+    public $type = 'summary';
 
     public $chart = [
-        'line' => [
-            'width' => '0',
-            'height' => '300',
-            'options' => [
-                'color' => '#328aef',
-                'legend' => [
-                    'display' => false,
-                ],
+        'bar' => [
+            'colors' => [
+                '#8bb475',
             ],
-            'backgroundColor' => '#328aef',
-            'color' => '#328aef',
+        ],
+        'donut' => [
+            //
         ],
     ];
 
+    public function setTables()
+    {
+        $this->tables = [
+            'income' => trans_choice('general.incomes', 1),
+        ];
+    }
+
     public function setData()
     {
-        $transactions = $this->applyFilters(Transaction::type('income')->isNotTransfer(), ['date_field' => 'paid_at']);
+        $transactions = $this->applyFilters(Transaction::with('recurring')->income()->isNotTransfer(), ['date_field' => 'paid_at']);
 
-        switch ($this->model->settings->basis) {
+        switch ($this->getBasis()) {
             case 'cash':
-                // Revenues
-                $revenues = $transactions->get();
-                $this->setTotals($revenues, 'paid_at');
+                // Incomes
+                $incomes = $transactions->get();
+                $this->setTotals($incomes, 'paid_at', false, 'income');
 
                 break;
             default:
                 // Invoices
-                $invoices = $this->applyFilters(Invoice::accrued(), ['date_field' => 'invoiced_at'])->get();
-                Recurring::reflect($invoices, 'invoiced_at');
-                $this->setTotals($invoices, 'invoiced_at');
+                $invoices = $this->applyFilters(Document::invoice()->with('recurring', 'transactions')->accrued(), ['date_field' => 'issued_at'])->get();
+                Recurring::reflect($invoices, 'issued_at');
+                $this->setTotals($invoices, 'issued_at', false, 'income');
 
-                // Revenues
-                $revenues = $transactions->isNotDocument()->get();
-                Recurring::reflect($revenues, 'paid_at');
-                $this->setTotals($revenues, 'paid_at');
+                // Incomes
+                $incomes = $transactions->isNotDocument()->get();
+                Recurring::reflect($incomes, 'paid_at');
+                $this->setTotals($incomes, 'paid_at', false, 'income');
 
                 break;
         }

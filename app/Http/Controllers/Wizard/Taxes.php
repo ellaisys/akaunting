@@ -17,9 +17,9 @@ class Taxes extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-settings-taxes')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-settings-taxes')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-settings-taxes')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-settings-taxes')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-settings-taxes')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-settings-taxes')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-settings-taxes')->only('destroy');
     }
 
@@ -32,7 +32,17 @@ class Taxes extends Controller
     {
         $taxes = Tax::collect();
 
-        return view('wizard.taxes.index', compact('taxes'));
+        return $this->response('wizard.taxes.index', compact('taxes'));
+    }
+
+    /**
+     * Show the form for viewing the specified resource.
+     *
+     * @return Response
+     */
+    public function show()
+    {
+        return redirect()->route('wizard.taxes.index');
     }
 
     /**
@@ -46,17 +56,13 @@ class Taxes extends Controller
     {
         $response = $this->ajaxDispatch(new CreateTax($request));
 
-        $response['redirect'] = route('wizard.taxes.index');
-
         if ($response['success']) {
             $message = trans('messages.success.added', ['type' => trans_choice('general.taxes', 1)]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
+
+        $response['message'] = $message;
 
         return response()->json($response);
     }
@@ -73,18 +79,14 @@ class Taxes extends Controller
     {
         $response = $this->ajaxDispatch(new UpdateTax($tax, $request));
 
-        $response['redirect'] = route('wizard.taxes.index');
-
         if ($response['success']) {
             $message = trans('messages.success.updated', ['type' => $tax->name]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
 
+        $response['message'] = $message;
+        
         return response()->json($response);
     }
 
@@ -97,19 +99,18 @@ class Taxes extends Controller
      */
     public function destroy(Tax $tax)
     {
-        $response = $this->ajaxDispatch(new DeleteTax($tax));
+        $tax_id = $tax->id;
 
-        $response['redirect'] = route('wizard.taxes.index');
+        $response = $this->ajaxDispatch(new DeleteTax($tax));
 
         if ($response['success']) {
             $message = trans('messages.success.deleted', ['type' => $tax->name]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
+
+        $response['tax_id'] = $tax_id;
+        $response['message'] = $message;
 
         return response()->json($response);
     }

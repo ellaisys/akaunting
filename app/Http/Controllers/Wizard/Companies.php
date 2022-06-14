@@ -18,9 +18,9 @@ class Companies extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-common-companies')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-common-companies')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-common-companies')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-common-companies')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-common-companies')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-common-companies')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-common-companies')->only('destroy');
     }
 
@@ -31,9 +31,9 @@ class Companies extends Controller
      */
     public function edit()
     {
-        $company = Company::find(session('company_id'));
+        $company = Company::find(company_id());
 
-        return view('wizard.companies.edit', compact('company'));
+        return $this->response('wizard.companies.edit', compact('company'));
     }
 
     /**
@@ -46,12 +46,13 @@ class Companies extends Controller
     public function update(Request $request)
     {
         // Company
-        $company = Company::find(session('company_id'));
+        $company = Company::find(company_id());
 
         $fields = $request->all();
 
-        $skip_keys = ['company_id', '_method', '_token'];
+        $skip_keys = ['company_id', '_method', '_token', '_prefix'];
         $file_keys = ['company.logo'];
+        $uploaded_file_keys = ['company.uploaded_logo'];
 
         foreach ($fields as $key => $value) {
             // Don't process unwanted keys
@@ -66,17 +67,25 @@ class Companies extends Controller
                 case 'financial_start':
                     $real_key = 'localisation.' . $key;
                     break;
+                case 'country':
+                    $real_key = 'company.' . $key;
+                    break;
                 default:
                     $real_key = 'company.' . $key;
             }
 
-            // Process file uploads
-            if (in_array($real_key, $file_keys)) {
+            // change dropzone middleware already uploaded file
+            if (in_array($real_key, $uploaded_file_keys)) {
+                continue;
+            }
+
+             // Process file uploads
+             if (in_array($real_key, $file_keys)) {
                 // Upload attachment
                 if ($request->file($key)) {
                     $media = $this->getMedia($request->file($key), 'settings');
 
-                    $company->attachMedia($media, Str::snake($key));
+                    $company->attachMedia($media, Str::snake($real_key));
 
                     $value = $media->id;
                 }
@@ -93,19 +102,12 @@ class Companies extends Controller
         // Save all settings
         setting()->save();
 
-        $message = trans('messages.success.updated', ['type' => trans_choice('general.companies', 2)]);
-
-        $response = [
+        return response()->json([
             'status' => null,
             'success' => true,
             'error' => false,
-            'message' => $message,
+            'message' => trans('messages.success.updated', ['type' => trans_choice('general.companies', 2)]),
             'data' => null,
-            'redirect' => route('wizard.currencies.index'),
-        ];
-
-        flash($message)->success();
-
-        return response()->json($response);
+        ]);
     }
 }

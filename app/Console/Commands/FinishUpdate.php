@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Events\Install\UpdateFinished;
-use App\Models\Common\Company;
 use Illuminate\Console\Command;
 
 class FinishUpdate extends Command
@@ -43,20 +42,23 @@ class FinishUpdate extends Command
         // Check if file mirror was successful
         $version = ($alias == 'core') ? version('short') : module($alias)->get('version');
         if ($version != $new) {
+            logger($alias . ' update failed:: file version > ' . $version . ' -vs- ' . 'request version > ' . $new);
+
             throw new \Exception(trans('modules.errors.finish', ['module' => $alias]));
         }
 
-        // Set locale for modules
-        if ($alias != 'core') {
-            $company = Company::find($company_id);
+        $company = company($company_id);
 
-            if (!empty($company->locale)) {
-                app()->setLocale($company->locale);
-            }
+        if (empty($company)) {
+            return;
         }
 
-        session(['company_id' => $company_id]);
-        setting()->setExtraColumns(['company_id' => $company_id]);
+        $company->makeCurrent();
+
+        // Set locale for modules
+        if (($alias != 'core') && !empty($company->locale)) {
+            app()->setLocale($company->locale);
+        }
 
         // Disable model cache during update
         config(['laravel-model-caching.enabled' => false]);

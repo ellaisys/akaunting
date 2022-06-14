@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Bill Number',
     'bill_date'             => 'Bill Date',
+    'bill_amount'           => 'Bill Amount',
     'total_price'           => 'Total Price',
     'due_date'              => 'Due Date',
     'order_number'          => 'Order Number',
@@ -18,11 +19,13 @@ return [
     'total'                 => 'Total',
 
     'item_name'             => 'Item Name|Item Names',
+    'recurring_bills'       => 'Recurring Bill|Recurring Bills',
 
     'show_discount'         => ':discount% Discount',
     'add_discount'          => 'Add Discount',
     'discount_desc'         => 'of subtotal',
 
+    'payment_made'          => 'Payment Made',
     'payment_due'           => 'Payment Due',
     'amount_due'            => 'Amount Due',
     'paid'                  => 'Paid',
@@ -38,26 +41,17 @@ return [
     'receive_bill'          => 'Receive Bill',
     'make_payment'          => 'Make Payment',
 
-    'statuses' => [
-        'draft'             => 'Draft',
-        'received'          => 'Received',
-        'partial'           => 'Partial',
-        'paid'              => 'Paid',
-        'overdue'           => 'Overdue',
-        'unpaid'            => 'Unpaid',
-        'cancelled'         => 'Cancelled',
+    'form_description' => [
+        'billing'           => 'Billing details appear in your bill. Bill Date is used in the dashboard and reports. Select the date you expect to pay as the Due Date.',
     ],
 
     'messages' => [
-        'marked_received'   => 'Bill marked as received!',
-        'marked_paid'       => 'Bill marked as paid!',
-        'marked_cancelled'  => 'Bill marked as cancelled!',
         'draft'             => 'This is a <b>DRAFT</b> bill and will be reflected to charts after it gets received.',
 
         'status' => [
             'created'       => 'Created on :date',
             'receive' => [
-                'draft'     => 'Not sent',
+                'draft'     => 'Not received',
                 'received'  => 'Received on :date',
             ],
             'paid' => [

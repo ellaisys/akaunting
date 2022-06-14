@@ -3,18 +3,24 @@
 return [
 
     'company' => [
-        'description'       => 'कंपनी का नाम, ईमेल, पता, कर संख्या आदि बदलें',
-        'name'              => 'नाम',
-        'email'             => 'ईमेल',
-        'phone'             => 'फ़ोन',
-        'address'           => 'पता',
-        'logo'              => 'लोगो',
+        'description'                => 'कंपनी का नाम, ईमेल, पता, कर संख्या आदि बदलें',
+        'name'                       => 'नाम',
+        'email'                      => 'ईमेल',
+        'phone'                      => 'फ़ोन',
+        'address'                    => 'पता',
+        'edit_your_business_address' => 'अपना व्यावसायिक पता संपादित करें',
+        'logo'                       => 'लोगो',
     ],
 
     'localisation' => [
         'description'       => 'वित्तीय वर्ष, समय क्षेत्र, तिथि प्रारूप और अधिक स्थानीय सेट करें',
         'financial_start'   => 'वित्तीय वर्ष प्रारंभ',
         'timezone'          => 'समय क्षेत्र',
+        'financial_denote' => [
+            'title'         => 'वित्तीय वर्ष की देन',
+            'begins'        => 'जिस वर्ष से यह शुरू होता है',
+            'ends'          => 'जिस वर्ष तक यह समाप्त हो जाता है',
+        ],
         'date' => [
             'format'        => 'तारीख प्रारूप',
             'separator'     => 'तारीख विभाजक',
@@ -30,10 +36,10 @@ return [
             'after'         => 'नंबर के बाद',
         ],
         'discount_location' => [
-            'name'          => 'Discount Location',
-            'item'          => 'At line',
-            'total'         => 'At total',
-            'both'          => 'Both line and total',
+            'name'          => 'छूट का स्थान',
+            'item'          => 'रेखा पर',
+            'total'         => 'कुल पर',
+            'both'          => 'लाइन और कुल दोनों पर',
         ],
     ],
 
@@ -62,12 +68,27 @@ return [
         'default'           => 'पूर्व निर्धारित',
         'classic'           => 'क्लासिक',
         'modern'            => 'नवीन',
+        'hide'              => [
+            'item_name'         => 'वस्तु का नाम छिपाएं',
+            'item_description'  => 'वस्तु का विवरण छिपाएँ',
+            'quantity'          => 'मात्रा छिपाएं',
+            'price'             => 'मूल्य छिपाएं',
+            'amount'            => 'राशि छिपाएं',
+        ],
+    ],
+
+    'transfer' => [
+        'choose_template'   => 'स्थानांतरण टेम्पलेट चुनें',
+        'second'            => 'दूसरा',
+        'third'             => 'तीसरा',
     ],
 
     'default' => [
         'description'       => 'मूल खाता, मुद्रा, आपकी कंपनी की भाषा',
         'list_limit'        => 'प्रति पृष्ठ रेकार्ड',
         'use_gravatar'      => 'Gravatar का उपयोग करें',
+        'income_category'   => 'आय श्रेणी',
+        'expense_category'  => 'व्यय की श्रेणी',
     ],
 
     'email' => [
@@ -100,6 +121,7 @@ return [
             'invoice_payment_admin'     => 'भुगतान प्राप्त टेम्प्लेट (व्यवस्थापक को भेजा गया)',
             'bill_remind_admin'         => 'बिल स्मरणपत्र टेम्पलेट (व्यवस्थापक को भेजा गया)',
             'bill_recur_admin'          => 'बिल आवर्ती टेम्पलेट (व्यवस्थापक को भेजा गया)',
+            'revenue_new_customer'      => 'आय प्राप्त टेम्प्लेट (ग्राहक को भेजा गया)',
         ],
     ],
 

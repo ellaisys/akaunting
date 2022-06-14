@@ -6,14 +6,11 @@ use App\Abstracts\Http\Controller;
 use App\Exports\Common\Items as Export;
 use App\Http\Requests\Common\Item as Request;
 use App\Http\Requests\Common\Import as ImportRequest;
-use App\Http\Requests\Common\TotalItem as TotalRequest;
 use App\Imports\Common\Items as Import;
 use App\Jobs\Common\CreateItem;
 use App\Jobs\Common\DeleteItem;
 use App\Jobs\Common\UpdateItem;
 use App\Models\Common\Item;
-use App\Models\Setting\Category;
-use App\Models\Setting\Currency;
 use App\Models\Setting\Tax;
 use App\Traits\Uploads;
 
@@ -28,9 +25,9 @@ class Items extends Controller
      */
     public function index()
     {
-        $items = Item::with(['category', 'tax'])->collect();
+        $items = Item::with('category', 'media', 'taxes')->collect();
 
-        return view('common.items.index', compact('items'));
+        return $this->response('common.items.index', compact('items'));
     }
 
     /**
@@ -50,13 +47,9 @@ class Items extends Controller
      */
     public function create()
     {
-        $categories = Category::type('item')->enabled()->orderBy('name')->pluck('name', 'id');
-
         $taxes = Tax::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        $currency = Currency::where('code', setting('default.currency', 'USD'))->first();
-
-        return view('common.items.create', compact('categories', 'taxes', 'currency'));
+        return view('common.items.create', compact('taxes'));
     }
 
     /**
@@ -80,7 +73,7 @@ class Items extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -113,13 +106,19 @@ class Items extends Controller
      */
     public function import(ImportRequest $request)
     {
-        \Excel::import(new Import(), $request->file('import'));
+        $response = $this->importExcel(new Import, $request, trans_choice('general.items', 2));
 
-        $message = trans('messages.success.imported', ['type' => trans_choice('general.items', 2)]);
+        if ($response['success']) {
+            $response['redirect'] = route('items.index');
 
-        flash($message)->success();
+            flash($response['message'])->success();
+        } else {
+            $response['redirect'] = route('import.create', ['common', 'items']);
 
-        return redirect()->route('items.index');
+            flash($response['message'])->error()->important();
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -131,11 +130,9 @@ class Items extends Controller
      */
     public function edit(Item $item)
     {
-        $categories = Category::type('item')->enabled()->orderBy('name')->pluck('name', 'id');
-
         $taxes = Tax::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        return view('common.items.edit', compact('item', 'categories', 'taxes'));
+        return view('common.items.edit', compact('item', 'taxes'));
     }
 
     /**
@@ -160,7 +157,7 @@ class Items extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -222,7 +219,7 @@ class Items extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -235,7 +232,7 @@ class Items extends Controller
      */
     public function export()
     {
-        return \Excel::download(new Export(), \Str::filename(trans_choice('general.items', 2)) . '.xlsx');
+        return $this->exportExcel(new Export, trans_choice('general.items', 2));
     }
 
     public function autocomplete()
@@ -256,12 +253,48 @@ class Items extends Controller
 
         if ($items) {
             foreach ($items as $item) {
-                $tax = Tax::find($item->tax_id);
-
+                $item_price = ($type == 'bill') ? $item->purchase_price : $item->sale_price;
                 $item_tax_price = 0;
 
-                if (!empty($tax)) {
-                    $item_tax_price = ($item->sale_price / 100) * $tax->rate;
+                if ($item->taxes->count()) {
+                    $inclusives = $compounds = [];
+
+                    foreach($item->taxes as $item_tax) {
+                        $tax = $item_tax->tax;
+
+                        switch ($tax->type) {
+                            case 'inclusive':
+                                $inclusives[] = $tax;
+                                break;
+                            case 'compound':
+                                $compounds[] = $tax;
+                                break;
+                            case 'fixed':
+                                $item_tax_price += $tax->rate;
+                                break;
+                            case 'withholding':
+                                $item_tax_amount = 0 - $item_price * ($tax->rate / 100);
+
+                                $item_tax_price += $item_tax_amount;
+                                break;
+                            default:
+                                $item_tax_amount = ($item_price / 100) * $tax->rate;
+
+                                $item_tax_price += $item_tax_amount;
+                                break;
+                        }
+                    }
+
+                    if ($inclusives) {
+                        $item_base_rate = $item_price / (1 + collect($inclusives)->sum('rate') / 100);
+                        $item_tax_price = $item_price - $item_base_rate;
+                    }
+
+                    if ($compounds) {
+                        foreach ($compounds as $compound) {
+                            $item_tax_price += ($item_tax_price / 100) * $compound->rate;
+                        }
+                    }
                 }
 
                 switch ($type) {
@@ -274,7 +307,7 @@ class Items extends Controller
                         break;
                 }
 
-                $item->total = money($total, $currency_code, true)->format();
+                $item->total = $total;
             }
         }
 
@@ -285,122 +318,5 @@ class Items extends Controller
             'count' => $items->count(),
             'data' => ($items->count()) ? $items : null,
         ]);
-    }
-
-    public function total(TotalRequest $request)
-    {
-        $input_items = $request->input('items');
-        $currency_code = $request->input('currency_code');
-        $discount = $request->input('discount');
-
-        if (empty($currency_code)) {
-            $currency_code = setting('default.currency');
-        }
-
-        $json = new \stdClass();
-
-        $sub_total = 0;
-        $tax_total = 0;
-
-        $items = [];
-
-        if ($input_items) {
-            foreach ($input_items as $key => $item) {
-                $price = (double) $item['price'];
-                $quantity = (double) $item['quantity'];
-
-                $item_tax_total = 0;
-                $item_tax_amount = 0;
-
-                $item_sub_total = ($price * $quantity);
-                $item_discounted_total = $item_sub_total;
-
-                // Apply discount to amount
-                if ($discount) {
-                    $item_discounted_total = $item_sub_total - ($item_sub_total * ($discount / 100));
-                }
-
-                if (!empty($item['tax_id'])) {
-                    $inclusives = $compounds = [];
-
-                    foreach ($item['tax_id'] as $tax_id) {
-                        $tax = Tax::find($tax_id);
-
-                        switch ($tax->type) {
-                            case 'inclusive':
-                                $inclusives[] = $tax;
-                                break;
-                            case 'compound':
-                                $compounds[] = $tax;
-                                break;
-                            case 'fixed':
-                                $item_tax_total += $tax->rate * $quantity;
-                                break;
-                            default:
-                                $item_tax_amount = ($item_discounted_total / 100) * $tax->rate;
-
-                                $item_tax_total += $item_tax_amount;
-                                break;
-                        }
-                    }
-
-                    if ($inclusives) {
-                        $item_sub_and_tax_total = $item_discounted_total + $item_tax_total;
-
-                        $item_base_rate = $item_sub_and_tax_total / (1 + collect($inclusives)->sum('rate') / 100);
-                        $item_tax_total = $item_sub_and_tax_total - $item_base_rate;
-
-                        $item_sub_total = $item_base_rate + $discount;
-                    }
-
-                    if ($compounds) {
-                        foreach ($compounds as $compound) {
-                            $item_tax_total += (($item_discounted_total + $item_tax_total) / 100) * $compound->rate;
-                        }
-                    }
-                }
-
-                $sub_total += $item_sub_total;
-                $tax_total += $item_tax_total;
-
-                $items[$key] = money($item_sub_total, $currency_code, true)->format();
-            }
-        }
-
-        $json->items = $items;
-
-        $json->sub_total = money($sub_total, $currency_code, true)->format();
-
-        $json->discount_text = trans('invoices.add_discount');
-        $json->discount_total = '';
-
-        $json->tax_total = money($tax_total, $currency_code, true)->format();
-
-        // Apply discount to total
-        if ($discount) {
-            $json->discount_text = trans('invoices.show_discount', ['discount' => $discount]);
-            $json->discount_total = money($sub_total * ($discount / 100), $currency_code, true)->format();
-
-            $sub_total = $sub_total - ($sub_total * ($discount / 100));
-        }
-
-        $grand_total = $sub_total + $tax_total;
-
-        $json->grand_total = money($grand_total, $currency_code, true)->format();
-
-        // Get currency object
-        $currency = Currency::where('code', $currency_code)->first();
-
-        $json->currency_name = $currency->name;
-        $json->currency_code = $currency_code;
-        $json->currency_rate = $currency->rate;
-
-        $json->thousands_separator = $currency->thousands_separator;
-        $json->decimal_mark = $currency->decimal_mark;
-        $json->precision = (int) $currency->precision;
-        $json->symbol_first = $currency->symbol_first;
-        $json->symbol = $currency->symbol;
-
-        return response()->json($json);
     }
 }

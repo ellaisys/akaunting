@@ -3,103 +3,109 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
+use App\Jobs\Banking\CreateTransaction;
 use App\Models\Banking\Account;
-use App\Models\Banking\Transaction;
 use App\Models\Banking\Transfer;
 use App\Models\Setting\Category;
-use App\Models\Setting\Currency;
+use App\Traits\Currencies;
+use App\Traits\Transactions;
 
-class CreateTransfer extends Job
+class CreateTransfer extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $request;
+    use Currencies, Transactions;
 
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
+    public function handle(): Transfer
     {
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $expense_currency_code = $this->getCurrencyCode('from');
+            $income_currency_code = $this->getCurrencyCode('to');
 
-    /**
-     * Execute the job.
-     *
-     * @return Transfer
-     */
-    public function handle()
-    {
-        $currencies = Currency::enabled()->pluck('rate', 'code')->toArray();
+            $expense_currency_rate = $this->getCurrencyRate('from');
+            $income_currency_rate = $this->getCurrencyRate('to');
 
-        $expense_currency_code = Account::where('id', $this->request->get('from_account_id'))->pluck('currency_code')->first();
-        $income_currency_code = Account::where('id', $this->request->get('to_account_id'))->pluck('currency_code')->first();
+            $expense_transaction = $this->dispatch(new CreateTransaction([
+                'company_id' => $this->request['company_id'],
+                'type' => 'expense',
+                'number' => $this->getNextTransactionNumber(),
+                'account_id' => $this->request->get('from_account_id'),
+                'paid_at' => $this->request->get('transferred_at'),
+                'currency_code' => $expense_currency_code,
+                'currency_rate' => $expense_currency_rate,
+                'amount' => $this->request->get('amount'),
+                'contact_id' => 0,
+                'description' => $this->request->get('description'),
+                'category_id' => Category::transfer(), // Transfer Category ID
+                'payment_method' => $this->request->get('payment_method'),
+                'reference' => $this->request->get('reference'),
+                'created_by' => $this->request->get('created_by'),
+            ]));
 
-        $expense_transaction = Transaction::create([
-            'company_id' => $this->request['company_id'],
-            'type' => 'expense',
-            'account_id' => $this->request->get('from_account_id'),
-            'paid_at' => $this->request->get('transferred_at'),
-            'currency_code' => $expense_currency_code,
-            'currency_rate' => $currencies[$expense_currency_code],
-            'amount' => $this->request->get('amount'),
-            'contact_id' => 0,
-            'description' => $this->request->get('description'),
-            'category_id' => Category::transfer(), // Transfer Category ID
-            'payment_method' => $this->request->get('payment_method'),
-            'reference' => $this->request->get('reference'),
-        ]);
+            $amount = $this->request->get('amount');
 
-        // Convert amount if not same currency
-        if ($expense_currency_code != $income_currency_code) {
-            $default_currency = setting('default.currency', 'USD');
-
-            $default_amount = $this->request->get('amount');
-
-            if ($default_currency != $expense_currency_code) {
-                $default_amount_model = new Transfer();
-
-                $default_amount_model->default_currency_code = $default_currency;
-                $default_amount_model->amount = $this->request->get('amount');
-                $default_amount_model->currency_code = $expense_currency_code;
-                $default_amount_model->currency_rate = $currencies[$expense_currency_code];
-
-                $default_amount = $default_amount_model->getAmountConvertedToDefault();
+            // Convert amount if not same currency
+            if ($expense_currency_code != $income_currency_code) {
+                $amount = $this->convertBetween($amount, $expense_currency_code, $expense_currency_rate, $income_currency_code, $income_currency_rate);
             }
 
-            $transfer_amount = new Transfer();
+            $income_transaction = $this->dispatch(new CreateTransaction([
+                'company_id' => $this->request['company_id'],
+                'type' => 'income',
+                'number' => $this->getNextTransactionNumber(),
+                'account_id' => $this->request->get('to_account_id'),
+                'paid_at' => $this->request->get('transferred_at'),
+                'currency_code' => $income_currency_code,
+                'currency_rate' => $income_currency_rate,
+                'amount' => $amount,
+                'contact_id' => 0,
+                'description' => $this->request->get('description'),
+                'category_id' => Category::transfer(), // Transfer Category ID
+                'payment_method' => $this->request->get('payment_method'),
+                'reference' => $this->request->get('reference'),
+                'created_by' => $this->request->get('created_by'),
+            ]));
 
-            $transfer_amount->default_currency_code = $expense_currency_code;
-            $transfer_amount->amount = $default_amount;
-            $transfer_amount->currency_code = $income_currency_code;
-            $transfer_amount->currency_rate = $currencies[$income_currency_code];
+            $this->model = Transfer::create([
+                'company_id' => $this->request['company_id'],
+                'expense_transaction_id' => $expense_transaction->id,
+                'income_transaction_id' => $income_transaction->id,
+                'created_by' => $this->request->get('created_by'),
+            ]);
 
-            $amount = $transfer_amount->getAmountConvertedFromDefault();
-        } else {
-            $amount = $this->request->get('amount');
+            // Upload attachment
+            if ($this->request->file('attachment')) {
+                foreach ($this->request->file('attachment') as $attachment) {
+                    $media = $this->getMedia($attachment, 'transfers');
+
+                    $this->model->attachMedia($media, 'attachment');
+                }
+            }
+        });
+
+        return $this->model;
+    }
+
+    protected function getCurrencyCode($type)
+    {
+        $currency_code = $this->request->get($type . '_account_currency_code');
+
+        if (empty($currency_code)) {
+            $currency_code = Account::where('id', $this->request->get($type . '_account_id'))->pluck('currency_code')->first();
         }
 
-        $income_transaction = Transaction::create([
-            'company_id' => $this->request['company_id'],
-            'type' => 'income',
-            'account_id' => $this->request->get('to_account_id'),
-            'paid_at' => $this->request->get('transferred_at'),
-            'currency_code' => $income_currency_code,
-            'currency_rate' => $currencies[$income_currency_code],
-            'amount' => $amount,
-            'contact_id' => 0,
-            'description' => $this->request->get('description'),
-            'category_id' => Category::transfer(), // Transfer Category ID
-            'payment_method' => $this->request->get('payment_method'),
-            'reference' => $this->request->get('reference'),
-        ]);
+        return $currency_code;
+    }
 
-        $transfer = Transfer::create([
-            'company_id' => $this->request['company_id'],
-            'expense_transaction_id' => $expense_transaction->id,
-            'income_transaction_id' => $income_transaction->id,
-        ]);
+    protected function getCurrencyRate($type)
+    {
+        $currency_rate = $this->request->get($type . '_account_rate');
 
-        return $transfer;
+        if (empty($currency_rate)) {
+            $currency_rate = config('money.' . $this->getCurrencyCode($type) . '.rate');
+        }
+
+        return $currency_rate;
     }
 }

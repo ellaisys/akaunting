@@ -12,16 +12,24 @@ class TaxesTest extends FeatureTestCase
         $this->loginAs()
             ->get(route('wizard.taxes.index'))
             ->assertStatus(200)
-            ->assertSeeText(trans('general.add_new'));
+            ->assertSeeText(trans('general.wizard'));
     }
 
     public function testItShouldCreateTax()
     {
-        $this->loginAs()
-            ->post(route('wizard.taxes.store'), $this->getRequest())
-            ->assertStatus(200);
+        $request = $this->getRequest();
 
-        $this->assertFlashLevel('success');
+        $message = trans('messages.success.added', ['type' => trans_choice('general.taxes', 1)]);
+
+        $this->loginAs()
+            ->post(route('wizard.taxes.store'), $request)
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
+
+        $this->assertDatabaseHas('taxes', $request);
     }
 
     public function testItShouldUpdateTax()
@@ -32,26 +40,40 @@ class TaxesTest extends FeatureTestCase
 
         $request['name'] = $this->faker->text(15);
 
+        $message = trans('messages.success.updated', ['type' => $request['name']]);
+
         $this->loginAs()
             ->patch(route('wizard.taxes.update', $tax->id), $request)
-            ->assertStatus(200);
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
 
-        $this->assertFlashLevel('success');
+        $this->assertDatabaseHas('taxes', $request);
     }
 
     public function testItShouldDeleteTax()
     {
-        $tax = $this->dispatch(new CreateTax($this->getRequest()));
+        $request = $this->getRequest();
+
+        $tax = $this->dispatch(new CreateTax($request));
+
+        $message = trans('messages.success.deleted', ['type' => $tax->name]);
 
         $this->loginAs()
             ->delete(route('wizard.taxes.destroy', $tax->id))
-            ->assertStatus(200);
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
 
-        $this->assertFlashLevel('success');
+        $this->assertDatabaseHas('taxes', $request);
     }
 
     public function getRequest()
     {
-        return factory(Tax::class)->states('enabled')->raw();
+        return Tax::factory()->enabled()->raw();
     }
 }

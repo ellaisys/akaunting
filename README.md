@@ -6,17 +6,18 @@
 [![Tests](https://img.shields.io/github/workflow/status/akaunting/akaunting/Tests?label=tests)](https://github.com/akaunting/akaunting/actions)
 [![License](https://img.shields.io/github/license/akaunting/akaunting?label=license)](LICENSE.txt)
 
-Akaunting is a free, open source and online accounting software designed for small businesses and freelancers. It is built with modern technologies such as Laravel, VueJS, Bootstrap 4, RESTful API etc. Thanks to its modular structure, Akaunting provides an awesome App Store for users and developers.
+Akaunting is a free, open source and online accounting software designed for small businesses and freelancers. It is built with modern technologies such as Laravel, VueJS, Tailwind, RESTful API etc. Thanks to its modular structure, Akaunting provides an awesome App Store for users and developers.
 
 * [Home](https://akaunting.com) - The house of Akaunting
 * [Forum](https://akaunting.com/forum) - Ask for support
-* [Documentation](https://akaunting.com/docs) - Learn how to use and develop
+* [Documentation](https://akaunting.com/docs) - Learn how to use
+* [Developer Portal](https://developer.akaunting.com) - Generate passive income
 * [App Store](https://akaunting.com/apps) - Extend your Akaunting
 * [Translations](https://crowdin.com/project/akaunting) - Help us translate Akaunting
 
 ## Requirements
 
-* PHP 7.2.5 or higher
+* PHP 8.0 or higher
 * Database (eg: MySQL, PostgreSQL, SQLite)
 * Web Server (eg: Apache, Nginx, IIS)
 * [Other libraries](https://akaunting.com/docs/requirements)
@@ -56,23 +57,13 @@ Please see [Releases](../../releases) for more information what has changed rece
 
 ## Security
 
-If you discover any security related issues, please email security@akaunting.com instead of using the issue tracker.
+Please review [our security policy](https://github.com/akaunting/akaunting/security/policy) on how to report security vulnerabilities.
 
 ## Credits
 
 * [Denis Duliçi](https://github.com/denisdulici)
 * [Cüneyt Şentürk](https://github.com/cuneytsenturk)
 * [All Contributors](../../contributors)
-
-## Partners
-
-Each of our partners can help you craft a beautiful, well-architected project. Feel free to get in [contact](https://akaunting.com/contact) with us to become a partner.
-
-* [Creative Tim](https://www.creative-tim.com) is our design partner since Akaunting 2.0 version. They create beautiful UI Kits, Templates, and Dashboards built on top of Bootstrap, Vue.js, React, Angular, Node.js, and Laravel.
-
-## Sponsors
-
-Support Akaunting by becoming a sponsor on [Patreon](https://www.patreon.com/akaunting). Your logo will show up here with a link to your website.
 
 ## License
 

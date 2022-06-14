@@ -7,11 +7,12 @@ use App\Models\Common\Contact;
 use App\Models\Setting\Category;
 use App\Traits\Contacts;
 use App\Traits\DateTime;
-use Date;
+use App\Traits\SearchString;
+use App\Utilities\Date;
 
 abstract class Report
 {
-    use Contacts, DateTime;
+    use Contacts, DateTime, SearchString;
 
     protected $classes = [];
 
@@ -50,49 +51,75 @@ abstract class Report
         return $years;
     }
 
-    public function getAccounts()
+    public function getAccounts($limit = false)
     {
-        return Account::enabled()->orderBy('name')->pluck('name', 'id')->toArray();
+        $model = Account::enabled()->orderBy('name');
+
+        if ($limit !== false) {
+            $model->take(setting('default.select_limit'));
+        }
+
+        return $model->pluck('name', 'id')->toArray();
     }
 
-    public function getItemCategories()
+    public function getItemCategories($limit = false)
     {
-        return $this->getCategories('item');
+        return $this->getCategories('item', $limit);
     }
 
-    public function getIncomeCategories()
+    public function getIncomeCategories($limit = false)
     {
-        return $this->getCategories('income');
+        return $this->getCategories('income', $limit);
     }
 
-    public function getExpenseCategories()
+    public function getExpenseCategories($limit = false)
     {
-        return $this->getCategories('expense');
+        return $this->getCategories('expense', $limit);
     }
 
-    public function getIncomeExpenseCategories()
+    public function getIncomeExpenseCategories($limit = false)
     {
-        return $this->getCategories(['income', 'expense']);
+        return $this->getCategories(['income', 'expense'], $limit);
     }
 
-    public function getCategories($types)
+    public function getCategories($types, $limit = false)
     {
-        return Category::type($types)->orderBy('name')->pluck('name', 'id')->toArray();
+        $model = Category::withSubCategory()->type($types)->orderBy('name');
+
+        if ($limit !== false) {
+            $model->take(setting('default.select_limit'));
+        }
+
+        return $model->pluck('name', 'id')->toArray();
     }
 
-    public function getCustomers()
+    public function getCustomers($limit = false)
     {
-        return $this->getContacts($this->getCustomerTypes());
+        return $this->getContacts($this->getCustomerTypes(), $limit);
     }
 
-    public function getVendors()
+    public function getVendors($limit = false)
     {
-        return $this->getContacts($this->getVendorTypes());
+        return $this->getContacts($this->getVendorTypes(), $limit);
     }
 
-    public function getContacts($types)
+    public function getContacts($types, $limit = false)
     {
-        return Contact::type($types)->orderBy('name')->pluck('name', 'id')->toArray();
+        $model = Contact::type($types)->orderBy('name');
+
+        if ($limit !== false) {
+            $model->take(setting('default.select_limit'));
+        }
+
+        return $model->pluck('name', 'id')->toArray();
+    }
+
+    public function getBasis()
+    {
+        return [
+            'cash' => trans('general.cash'),
+            'accrual' => trans('general.accrual'),
+        ];
     }
 
     public function applyDateFilter($event)
@@ -102,16 +129,26 @@ abstract class Report
 
     public function applySearchStringFilter($event)
     {
-        $event->model->usingSearchString(request('search'));
+        $input = request('search');
+
+        // Remove year as it's handled based on financial start
+        $search_year = 'year:' . $this->getSearchStringValue('year', '', $input);
+        $input = str_replace($search_year, '', $input);
+
+        // Remove basis as it's handled based on report itself
+        $search_basis = 'basis:' . $this->getSearchStringValue('basis', 'accrual', $input);
+        $input = str_replace($search_basis, '', $input);
+
+        $event->model->usingSearchString($input);
     }
 
     public function applyAccountGroup($event)
     {
-        if (($event->model->getTable() != 'invoices') && ($event->model->getTable() != 'bills')) {
+        if ($event->model->getTable() != 'documents') {
             return;
         }
 
-        $filter = request('accounts', []);
+        $filter = explode(',', $this->getSearchStringValue('account_id'));
 
         $event->model->account_id = 0;
 
@@ -146,38 +183,110 @@ abstract class Report
 
     public function setRowNamesAndValues($event, $rows)
     {
+        $nodes = [];
+
         foreach ($event->class->dates as $date) {
-            foreach ($event->class->tables as $table) {
+            foreach ($event->class->tables as $table_key => $table_name) {
                 foreach ($rows as $id => $name) {
-                    $event->class->row_names[$table][$id] = $name;
-                    $event->class->row_values[$table][$id][$date] = 0;
+                    $event->class->row_names[$table_key][$id] = $name;
+                    $event->class->row_values[$table_key][$id][$date] = 0;
+
+                    $nodes[$id] = null;
                 }
+            }
+        }
+
+        $this->setTreeNodes($event, $nodes);
+    }
+
+    public function setTreeNodes($event, $nodes)
+    {
+        foreach ($event->class->tables as $table_key => $table_name) {
+            foreach ($nodes as $id => $node) {
+                $event->class->row_tree_nodes[$table_key][$id] = $node;
             }
         }
     }
 
+    public function getCategoriesNodes($categories)
+    {
+        $nodes = [];
+
+        foreach ($categories as $id => $name) {
+            $category = Category::withSubCategory()->find($id);
+
+            if (!is_null($category->parent_id)) {
+                unset($categories[$id]);
+
+                continue;
+            }
+
+            $nodes[$id] = $this->getSubCategories($category);
+        }
+
+        return $nodes;
+    }
+
+    public function getSubCategories($category)
+    {
+        if ($category->sub_categories->count() == 0) {
+            return null;
+        }
+
+        $sub_categories = [];
+
+        foreach ($category->sub_categories as $sub_category) {
+            $sub_category->load('sub_categories');
+
+            $sub_categories[$sub_category->id] = $this->getSubCategories($sub_category);
+        }
+
+        if (!empty($sub_categories)) {
+            $sub_categories[$category->id] = null;
+        }
+
+        return $sub_categories;
+    }
+
     public function getFormattedDate($event, $date)
     {
-        if (empty($event->class->model->settings->period)) {
-            return $date->copy()->format('Y-m-d');
-        }
+        $formatted_date = null;
 
-        switch ($event->class->model->settings->period) {
+        switch ($event->class->getSetting('period')) {
             case 'yearly':
-                $d = $date->copy()->format($this->getYearlyDateFormat());
+                $financial_year = $this->getFinancialYear($event->class->model->year);
+
+                if ($date->greaterThanOrEqualTo($financial_year->getStartDate()) && $date->lessThanOrEqualTo($financial_year->getEndDate())) {
+                    if (setting('localisation.financial_denote') == 'begins') {
+                        $formatted_date = $financial_year->getStartDate()->copy()->format($this->getYearlyDateFormat());
+                    } else {
+                        $formatted_date = $financial_year->getEndDate()->copy()->format($this->getYearlyDateFormat());
+                    }
+                }
+
                 break;
             case 'quarterly':
-                $start = $date->copy()->startOfQuarter()->format($this->getQuarterlyDateFormat());
-                $end = $date->copy()->endOfQuarter()->format($this->getQuarterlyDateFormat());
+                $quarters = $this->getFinancialQuarters($event->class->model->year);
 
-                $d = $start . '-' . $end;
+                foreach ($quarters as $quarter) {
+                    if ($date->lessThan($quarter->getStartDate()) || $date->greaterThan($quarter->getEndDate())) {
+                        continue;
+                    }
+
+                    $start = $quarter->getStartDate()->format($this->getQuarterlyDateFormat($event->class->model->year));
+                    $end = $quarter->getEndDate()->format($this->getQuarterlyDateFormat($event->class->model->year));
+
+                    $formatted_date = $start . '-' . $end;
+                }
+
                 break;
             default:
-                $d = $date->copy()->format($this->getMonthlyDateFormat());
+                $formatted_date = $date->copy()->format($this->getMonthlyDateFormat($event->class->model->year));
+
                 break;
         }
 
-        return $d;
+        return $formatted_date;
     }
 
     /**

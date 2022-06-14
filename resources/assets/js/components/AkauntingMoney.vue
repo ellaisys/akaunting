@@ -1,19 +1,38 @@
 <template>
-    <div class="form-group"
+    <div v-if="! rowInput" class="form-group"
         :class="[{'has-error': error}, {'required': required}, {'readonly': readonly}, {'disabled': disabled}, col]">
         <label v-if="title" :for="name" class="form-control-label">{{ title }}</label>
 
-        <div class="input-group input-group-merge" :class="group_class">
+        <div class="relative" :class="group_class">
+            <!-- <div class="input-group-prepend absolute left-2 bottom-3 text-light-gray">
+                <span class="input-group-text">
+                    <span class="material-icons w-4 h-5 text-sm">{{ icon }}</span>
+                </span>
+            </div> -->
+
+            <money :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="model" :disabled="disabled" :masked="masked" class="form-element" :class="moneyClass"></money>
+        </div>
+
+        <div class="text-red text-sm mt-1 block" v-if="error" v-html="error"></div>
+    </div>
+
+    <div v-else
+        :class="[{'has-error': error}, {'required': required}, {'readonly': readonly}, {'disabled': disabled}, col]">
+        <label v-if="title" :for="name" class="form-control-label">{{ title }}</label>
+
+        <div v-if="icon" class="input-group input-group-merge" :class="group_class">
             <div v-if="icon" class="input-group-prepend">
                 <span class="input-group-text">
-                    <i class="fa fa-" :class="icon"></i>
+                    <i :class="'fa fa-' + icon"></i>
                 </span>
             </div>
 
-            <money :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="value" :disabled="disabled" :masked="masked" class="form-control"></money>
+            <money :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="model" :disabled="disabled" :masked="masked" class="form-element" :class="moneyClass"></money>
         </div>
 
-        <div class="invalid-feedback d-block" v-if="error" v-html="error"></div>
+        <money v-else :name="name" @input="input" :placeholder="placeholder" v-bind="money" :value="model" :disabled="disabled" :masked="masked" class="form-element" :class="moneyClass"></money>
+
+        <div class="text-red text-sm mt-1 block" v-if="error" v-html="error"></div>
     </div>
 </template>
 
@@ -47,6 +66,11 @@ export default {
         icon: {
             type: String,
             description: "Prepend icon (left)"
+        },
+        moneyClass: {
+            type: String,
+            default: null,
+            description: "Selectbox disabled status"
         },
         group_class: {
             type: String,
@@ -109,6 +133,11 @@ export default {
             default: false,
             description: "Money result value"
         },
+        rowInput: {
+            type: [Boolean, Number],
+            default: false,
+            description: "Money result value"
+        },
     },
 
     data() {
@@ -126,6 +155,23 @@ export default {
     },
 
     mounted() {
+        //this.model = this.value;
+
+        if (this.dynamicCurrency.code != this.currency.code) {
+            if (! this.dynamicCurrency.decimal) {
+                this.money = {
+                    decimal: this.dynamicCurrency.decimal_mark,
+                    thousands: this.dynamicCurrency.thousands_separator,
+                    prefix: (this.dynamicCurrency.symbol_first) ? this.dynamicCurrency.symbol : '',
+                    suffix: (! this.dynamicCurrency.symbol_first) ? this.dynamicCurrency.symbol : '',
+                    precision: parseInt(this.dynamicCurrency.precision),
+                    masked: this.masked
+                };
+            } else {
+                this.money = this.dynamicCurrency;
+            }
+        }
+
         this.$emit('interface', this.model);
     },
 
@@ -133,9 +179,14 @@ export default {
         change() {
             //this.$emit('change', this.model);
             //this.$emit('interface', this.model);
+
+            this.$emit('input', this.model);
         },
+
         input(event) {
             this.model = event;
+
+            this.$emit('input', event);
 
             //this.$emit('change', this.model);
             //this.$emit('interface', this.model);
@@ -144,6 +195,10 @@ export default {
 
     watch: {
         dynamicCurrency: function (currency) {
+            if (!currency) {
+                return;
+            }
+
             this.money = {
                 decimal: currency.decimal_mark,
                 thousands: currency.thousands_separator,
@@ -153,9 +208,11 @@ export default {
                 masked: this.masked
             };
         },
+
         value: function (value) {
             this.model = value;
         },
+
         model: function (model) {
             this.$emit('change', this.model);
             this.$emit('interface', this.model);

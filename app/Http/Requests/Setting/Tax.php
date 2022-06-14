@@ -7,27 +7,34 @@ use App\Abstracts\Http\FormRequest;
 class Tax extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
-    {
-        return true;
-    }
-
-    /**
      * Get the validation rules that apply to the request.
      *
      * @return array
      */
     public function rules()
     {
+        // Check if store or update
+        if ($this->getMethod() == 'PATCH') {
+            $id = is_numeric($this->tax) ? $this->tax : $this->tax->getAttribute('id');
+            $enabled = 'integer|boolean';
+        } else {
+            $id = null;
+            $enabled = 'nullable';
+        }
+
+        $company_id = (int) $this->request->get('company_id');
+
+        $type = 'required|string';
+
+        if (!empty($this->request->get('type')) && $this->request->get('type') == 'compound') {
+            $type .= '|unique:taxes,NULL,' . $id . ',id,company_id,' . $company_id . ',type,compound,deleted_at,NULL';
+        }
+
         return [
             'name' => 'required|string',
             'rate' => 'required|min:0|max:100',
-            'type' => 'required|string',
-            'enabled' => 'integer|boolean',
+            'type' => $type,
+            'enabled' => $enabled,
         ];
     }
 }

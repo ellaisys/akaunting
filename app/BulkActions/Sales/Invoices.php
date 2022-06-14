@@ -3,60 +3,62 @@
 namespace App\BulkActions\Sales;
 
 use App\Abstracts\BulkAction;
-use App\Events\Sale\InvoiceCancelled;
-use App\Events\Sale\InvoiceCreated;
-use App\Events\Sale\InvoiceSent;
-use App\Events\Sale\PaymentReceived;
+use App\Events\Document\DocumentCancelled;
+use App\Events\Document\DocumentCreated;
+use App\Events\Document\DocumentMarkedSent;
+use App\Events\Document\PaymentReceived;
 use App\Exports\Sales\Invoices as Export;
-use App\Jobs\Sale\DeleteInvoice;
-use App\Models\Sale\Invoice;
+use App\Jobs\Document\DeleteDocument;
+use App\Models\Document\Document;
 
 class Invoices extends BulkAction
 {
-    public $model = Invoice::class;
+    public $model = Document::class;
 
-    public $actions = [
-        'paid' => [
-            'name' => 'invoices.mark_paid',
-            'message' => 'bulk_actions.message.paid',
-            'permission' => 'update-sales-invoices',
-        ],
-        'sent' => [
-            'name' => 'invoices.mark_sent',
-            'message' => 'bulk_actions.message.sent',
-            'permission' => 'update-sales-invoices',
-        ],
-        'cancelled' => [
-            'name' => 'general.cancel',
-            'message' => 'bulk_actions.message.cancelled',
-            'permission' => 'update-sales-invoices',
-        ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-sales-invoices',
-        ],
-        'export' => [
-            'name' => 'general.export',
-            'message' => 'bulk_actions.message.export',
-        ],
+    public $text = 'general.invoices';
+
+    public $path = [
+        'group' => 'sales',
+        'type' => 'invoices',
     ];
 
-    public function paid($request)
-    {
-        $invoices = $this->getSelectedRecords($request);
-
-        foreach ($invoices as $invoice) {
-            event(new PaymentReceived($invoice));
-        }
-    }
+    public $actions = [
+        'sent'      => [
+            'icon'          => 'send',
+            'name'          => 'invoices.mark_sent',
+            'message'       => 'bulk_actions.message.sent',
+            'permission'    => 'update-sales-invoices',
+        ],
+        'cancelled' => [
+            'icon'          => 'cancel',
+            'name'          => 'general.cancel',
+            'message'       => 'bulk_actions.message.cancelled',
+            'permission'    => 'update-sales-invoices',
+        ],
+        'delete'    => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-sales-invoices',
+        ],
+        'export'    => [
+            'icon'          => 'file_download',
+            'name'          => 'general.export',
+            'message'       => 'bulk_actions.message.export',
+            'type'          => 'download',
+        ],
+    ];
 
     public function sent($request)
     {
         $invoices = $this->getSelectedRecords($request);
 
         foreach ($invoices as $invoice) {
-            event(new InvoiceSent($invoice));
+            if ($invoice->status == 'sent') {
+                continue;
+            }
+
+            event(new DocumentMarkedSent($invoice));
         }
     }
 
@@ -65,7 +67,11 @@ class Invoices extends BulkAction
         $invoices = $this->getSelectedRecords($request);
 
         foreach ($invoices as $invoice) {
-            event(new InvoiceCancelled($invoice));
+            if ($invoice->status == 'cancelled') {
+                continue;
+            }
+
+            event(new DocumentCancelled($invoice));
         }
     }
 
@@ -76,24 +82,21 @@ class Invoices extends BulkAction
         foreach ($invoices as $invoice) {
             $clone = $invoice->duplicate();
 
-            event(new InvoiceCreated($clone));
+            event(new DocumentCreated($clone, $request));
         }
-    }
-
-    public function delete($request)
-    {
-        $this->destroy($request);
     }
 
     public function destroy($request)
     {
-        $invoices = $this->getSelectedRecords($request);
+        $invoices = $this->getSelectedRecords($request, [
+            'items', 'item_taxes', 'histories', 'transactions', 'recurring', 'totals'
+        ]);
 
         foreach ($invoices as $invoice) {
             try {
-                $this->dispatch(new DeleteInvoice($invoice));
+                $this->dispatch(new DeleteDocument($invoice));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -102,6 +105,6 @@ class Invoices extends BulkAction
     {
         $selected = $this->getSelectedInput($request);
 
-        return \Excel::download(new Export($selected), \Str::filename(trans_choice('general.invoices', 2)) . '.xlsx');
+        return $this->exportExcel(new Export($selected), trans_choice('general.invoices', 2));
     }
 }

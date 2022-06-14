@@ -8,7 +8,11 @@ use App\Jobs\Banking\CreateAccount;
 use App\Jobs\Banking\DeleteAccount;
 use App\Jobs\Banking\UpdateAccount;
 use App\Models\Banking\Account;
+use App\Models\Banking\Transaction;
+use App\Models\Banking\Transfer;
+use App\Utilities\Reports as Utility;
 use App\Models\Setting\Currency;
+use Date;
 
 class Accounts extends Controller
 {
@@ -19,9 +23,9 @@ class Accounts extends Controller
      */
     public function index()
     {
-        $accounts = Account::collect();
+        $accounts = Account::with('income_transactions', 'expense_transactions')->collect();
 
-        return view('banking.accounts.index', compact('accounts'));
+        return $this->response('banking.accounts.index', compact('accounts'));
     }
 
     /**
@@ -29,9 +33,25 @@ class Accounts extends Controller
      *
      * @return Response
      */
-    public function show()
+    public function show(Account $account)
     {
-        return redirect()->route('accounts.index');
+        // Handle transactions
+        $transactions = Transaction::with('account', 'category')->where('account_id', $account->id)->collect('paid_at');
+
+        $transfers = Transfer::with('expense_transaction', 'income_transaction')->get()->filter(function ($transfer) use($account) {
+            if ($transfer->expense_account->id == $account->id || $transfer->income_account->id == $account->id) {
+                return true;
+            }
+
+            return false;
+        })->sortByDesc(function ($transfer) {
+            return $transfer->expense_transaction->paid_at;
+        });
+
+        $limit = (int) request('limit', setting('default.list_limit', '25'));
+        $transfers = $this->paginate($transfers, $limit);
+
+        return view('banking.accounts.show', compact('account', 'transactions', 'transfers'));
     }
 
     /**
@@ -41,11 +61,9 @@ class Accounts extends Controller
      */
     public function create()
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
         $currency = Currency::where('code', '=', setting('default.currency'))->first();
 
-        return view('banking.accounts.create', compact('currencies', 'currency'));
+        return view('banking.accounts.create', compact('currency'));
     }
 
     /**
@@ -60,7 +78,7 @@ class Accounts extends Controller
         $response = $this->ajaxDispatch(new CreateAccount($request));
 
         if ($response['success']) {
-            $response['redirect'] = route('accounts.index');
+            $response['redirect'] = route('accounts.show', $response['data']->id);
 
             $message = trans('messages.success.added', ['type' => trans_choice('general.accounts', 1)]);
 
@@ -70,10 +88,28 @@ class Accounts extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
+    }
+
+    /**
+     * Duplicate the specified resource.
+     *
+     * @param  Account $account
+     *
+     * @return Response
+     */
+    public function duplicate(Account $account)
+    {
+        $clone = $account->duplicate();
+
+        $message = trans('messages.success.duplicated', ['type' => trans_choice('general.accounts', 1)]);
+
+        flash($message)->success();
+
+        return redirect()->route('accounts.edit', $clone->id);
     }
 
     /**
@@ -85,13 +121,11 @@ class Accounts extends Controller
      */
     public function edit(Account $account)
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
         $account->default_account = ($account->id == setting('default.account')) ? 1 : 0;
 
         $currency = Currency::where('code', '=', $account->currency_code)->first();
 
-        return view('banking.accounts.edit', compact('account', 'currencies', 'currency'));
+        return view('banking.accounts.edit', compact('account', 'currency'));
     }
 
     /**
@@ -107,7 +141,7 @@ class Accounts extends Controller
         $response = $this->ajaxDispatch(new UpdateAccount($account, $request));
 
         if ($response['success']) {
-            $response['redirect'] = route('accounts.index');
+            $response['redirect'] = route('accounts.show', $account->id);
 
             $message = trans('messages.success.updated', ['type' => $account->name]);
 
@@ -117,7 +151,7 @@ class Accounts extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -179,10 +213,52 @@ class Accounts extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
+    }
+
+    public function createIncome(Account $account)
+    {
+        $data['account_id'] = $account->id;
+
+        return redirect()->route('transactions.create', ['type' => 'income'])->withInput($data);
+    }
+
+    public function createExpense(Account $account)
+    {
+        $data['account_id'] = $account->id;
+
+        return redirect()->route('transactions.create', ['type' => 'expense'])->withInput($data);
+    }
+
+    public function createTransfer(Account $account)
+    {
+        $data['from_account_id'] = $account->id;
+
+        return redirect()->route('transfers.create')->withInput($data);
+    }
+
+    public function seePerformance(Account $account)
+    {
+        $data = [
+            'year'          => Date::now()->year,
+            'basis'         => 'accrual',
+            'account_id'    => $account->id,
+        ];
+
+        $report = Utility::getClassInstance('App\Reports\IncomeExpenseSummary');
+
+        if (empty($report) || empty($report->model)) {
+            $message = trans('accounts.create_report');
+
+            flash($message)->warning()->important();
+
+            return redirect()->route('reports.create');
+        }
+
+        return redirect()->route('reports.show', $report->model->id)->withInput($data);
     }
 
     public function currency()

@@ -3,51 +3,35 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldDelete;
 use App\Models\Setting\Category;
 
-class DeleteTransaction extends Job
+class DeleteTransaction extends Job implements ShouldDelete
 {
-    protected $transaction;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $transaction
-     */
-    public function __construct($transaction)
-    {
-        $this->transaction = $transaction;
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
+    public function handle(): bool
     {
         $this->authorize();
 
-        $this->transaction->recurring()->delete();
-        $this->transaction->delete();
+        \DB::transaction(function () {
+            $this->model->recurring()->delete();
+            $this->model->delete();
+        });
 
         return true;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
-        if ($this->transaction->reconciled) {
+        if ($this->model->reconciled) {
             $message = trans('messages.warning.reconciled_tran');
 
             throw new \Exception($message);
         }
 
-        if ($this->transaction->category->id == Category::transfer()) {
+        if ($this->model->category->id == Category::transfer()) {
             throw new \Exception('Unauthorized');
         }
     }

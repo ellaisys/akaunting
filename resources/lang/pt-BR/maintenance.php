@@ -6,6 +6,6 @@ return [
 
     'message' => 'Desculpe, estamos em manutenção. Por favor, tente novamente mais tarde!',
 
-    'last-updated' => 'Esta mensagem foi atualizada pela última vez em :timestamp.',
+    'read_only' => 'Modo somente leitura está ativado. Você pode visualizar, mas não pode alterar nada!',
 
 ];

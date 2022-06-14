@@ -9,13 +9,14 @@ class Customers extends Export
 {
     public function collection()
     {
-        $model = Model::type('customer')->usingSearchString(request('search'));
+        return Model::customer()->collectForExport($this->ids);
+    }
 
-        if (!empty($this->ids)) {
-            $model->whereIn('id', (array) $this->ids);
-        }
+    public function map($model): array
+    {
+        $model->country = ($model->country) ? trans('countries.' . $model->country) : null;
 
-        return $model->cursor();
+        return parent::map($model);
     }
 
     public function fields(): array
@@ -26,6 +27,10 @@ class Customers extends Export
             'tax_number',
             'phone',
             'address',
+            'country',
+            'state',
+            'zip_code',
+            'city',
             'website',
             'currency_code',
             'reference',

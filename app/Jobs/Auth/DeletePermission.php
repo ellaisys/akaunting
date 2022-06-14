@@ -3,32 +3,15 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
-use Artisan;
+use App\Interfaces\Job\ShouldDelete;
 
-class DeletePermission extends Job
+class DeletePermission extends Job implements ShouldDelete
 {
-    protected $permission;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $permission
-     */
-    public function __construct($permission)
+    public function handle(): bool
     {
-        $this->permission = $permission;
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
-    {
-        $this->permission->delete();
-
-        Artisan::call('cache:clear');
+        \DB::transaction(function () {
+            $this->model->delete();
+        });
 
         return true;
     }

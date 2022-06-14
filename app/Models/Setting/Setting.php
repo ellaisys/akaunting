@@ -2,14 +2,11 @@
 
 namespace App\Models\Setting;
 
-use App\Scopes\Company;
-use Illuminate\Database\Eloquent\Model as Eloquent;
+use App\Abstracts\Model;
 
-class Setting extends Eloquent
+class Setting extends Model
 {
     protected $table = 'settings';
-
-    public $timestamps = false;
 
     /**
      * Attributes that should be mass-assignable.
@@ -18,17 +15,12 @@ class Setting extends Eloquent
      */
     protected $fillable = ['company_id', 'key', 'value'];
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::addGlobalScope(new Company);
-    }
-
-    public function company()
-    {
-        return $this->belongsTo('App\Models\Common\Company');
-    }
+    /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
 
     /**
      * Scope to only include by prefix.
@@ -41,18 +33,5 @@ class Setting extends Eloquent
     public function scopePrefix($query, $prefix = 'company')
     {
         return $query->where('key', 'like', $prefix . '.%');
-    }
-
-    /**
-     * Scope to only include company data.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param $company_id
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeCompanyId($query, $company_id)
-    {
-        return $query->where($this->table . '.company_id', '=', $company_id);
     }
 }

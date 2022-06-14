@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Factuurnummer',
     'bill_date'             => 'Factuur datum',
+    'bill_amount'           => 'Rekening bedrag',
     'total_price'           => 'Totaalprijs',
     'due_date'              => 'Vervaldatum',
     'order_number'          => 'Bestelnummer',
@@ -13,6 +14,7 @@ return [
     'price'                 => 'Prijs',
     'sub_total'             => 'Subtotaal',
     'discount'              => 'Korting',
+    'item_discount'         => 'Vaste korting',
     'tax_total'             => 'Totaal BTW',
     'total'                 => 'Totaal',
 
@@ -30,24 +32,14 @@ return [
     'add_payment'           => 'Een betaling toevoegen',
     'mark_paid'             => 'Als betaald markeren',
     'mark_received'         => 'Markeer als ontvangen',
+    'mark_cancelled'        => 'Markeren als geannuleerd',
     'download_pdf'          => 'PDF downloaden',
     'send_mail'             => 'Verstuur e-mail',
     'create_bill'           => 'Factuur maken',
     'receive_bill'          => 'Factuur ontvangen',
     'make_payment'          => 'Betaling',
 
-    'statuses' => [
-        'draft'             => 'Concept',
-        'received'          => 'Ontvangen',
-        'partial'           => 'Gedeeltelijk',
-        'paid'              => 'Betaald',
-        'overdue'           => 'Verlopen',
-        'unpaid'            => 'Onbetaald',
-    ],
-
     'messages' => [
-        'received'          => 'Factuur als \'succesvol ontvangen\' gemarkeerd!',
-        'marked_paid'       => 'Factuur gemarkeerd als betaald!',
         'draft'             => 'Dit is een <b>CONCEPT</b> factuur en zal terugkomen in de statistieken wanneer het verzonden is.',
 
         'status' => [

@@ -26,16 +26,22 @@ class AccountsTest extends FeatureTestCase
 
     public function testItShouldCreateAccount()
     {
+        $request = $this->getRequest();
+
         $this->loginAs()
-            ->post(route('accounts.index'), $this->getRequest())
+            ->post(route('accounts.store'), $request)
             ->assertStatus(200);
 
         $this->assertFlashLevel('success');
+
+        $this->assertDatabaseHas('accounts', $request);
     }
 
     public function testItShouldSeeAccountUpdatePage()
     {
-        $account = $this->dispatch(new CreateAccount($this->getRequest()));
+        $request = $this->getRequest();
+
+        $account = $this->dispatch(new CreateAccount($request));
 
         $this->loginAs()
             ->get(route('accounts.edit', $account->id))
@@ -57,21 +63,39 @@ class AccountsTest extends FeatureTestCase
 			->assertSee($request['name']);
 
         $this->assertFlashLevel('success');
+
+        $this->assertDatabaseHas('accounts', $request);
     }
 
     public function testItShouldDeleteAccount()
     {
-        $account = $this->dispatch(new CreateAccount($this->getRequest()));
+        $request = $this->getRequest();
+
+        $account = $this->dispatch(new CreateAccount($request));
 
         $this->loginAs()
             ->delete(route('accounts.destroy', $account->id))
             ->assertStatus(200);
 
         $this->assertFlashLevel('success');
+
+        $this->assertSoftDeleted('accounts', $request);
+    }
+
+    public function testItShouldShowAccount()
+    {
+        $request = $this->getRequest();
+
+        $account = $this->dispatch(new CreateAccount($request));
+
+        $this->loginAs()
+            ->get(route('accounts.show', $account->id))
+            ->assertStatus(200)
+            ->assertSee($account->name);
     }
 
     public function getRequest()
     {
-        return factory(Account::class)->states('enabled')->raw();
+        return Account::factory()->enabled()->raw();
     }
 }

@@ -4,6 +4,7 @@ return [
 
     'invoice_number'        => 'Fakturanummer',
     'invoice_date'          => 'Fakturadatum',
+    'invoice_amount'        => 'Faktura belopp',
     'total_price'           => 'Summa pris',
     'due_date'              => 'Förfallodatum',
     'order_number'          => 'Ordernummer',
@@ -13,6 +14,7 @@ return [
     'price'                 => 'Pris',
     'sub_total'             => 'Delsumma',
     'discount'              => 'Rabatt',
+    'item_discount'         => 'Radrabatt',
     'tax_total'             => 'Summa Skatt',
     'total'                 => 'Totalt',
 
@@ -30,6 +32,7 @@ return [
     'mark_paid'             => 'Markera som betald',
     'mark_sent'             => 'Markera som skickad',
     'mark_viewed'           => 'Markera som visad',
+    'mark_cancelled'        => 'Markera som avbruten',
     'download_pdf'          => 'Ladda ner PDF',
     'send_mail'             => 'Skicka E-post',
     'all_invoices'          => 'Logga in för att visa alla fakturor',
@@ -38,21 +41,7 @@ return [
     'get_paid'              => 'Få betalt',
     'accept_payments'       => 'Acceptera onlinebetalningar',
 
-    'statuses' => [
-        'draft'             => 'Utkast',
-        'sent'              => 'Skickat',
-        'viewed'            => 'Visad',
-        'approved'          => 'Godkänd',
-        'partial'           => 'Delvis',
-        'paid'              => 'Betald',
-        'overdue'           => 'Förfallen',
-        'unpaid'            => 'Obetald',
-    ],
-
     'messages' => [
-        'email_sent'        => 'E-postadress till faktura har skickats!',
-        'marked_sent'       => 'Faktura markerad som skickad!',
-        'marked_paid'       => 'Faktura markerad som betald!',
         'email_required'    => 'Ingen e-postadress för den här kunden!',
         'draft'             => 'Detta är en <b>utkast</b> faktura och kommer att speglas till diagramet efter det skickas.',
 

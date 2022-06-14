@@ -3,31 +3,19 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Models\Common\Report;
 
-class CreateReport extends Job
+class CreateReport extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
+    public function handle(): Report
     {
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $this->model = Report::create($this->request->all());
+        });
 
-    /**
-     * Execute the job.
-     *
-     * @return Report
-     */
-    public function handle()
-    {
-        $report = Report::create($this->request->all());
-
-        return $report;
+        return $this->model;
     }
 }

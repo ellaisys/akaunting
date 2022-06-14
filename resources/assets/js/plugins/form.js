@@ -23,6 +23,43 @@ export default class Form {
                 continue;
             }
 
+            /*
+            if (name != null && name.indexOf('.') != '-1') {
+                let partial_name = name.split('.');
+
+                switch(partial_name.length) {
+                    case 2:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = '';
+
+                        break;
+                    case 3:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = '';
+
+                        break;
+                    case 4:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]] = '';
+
+                        break;
+                    case 5:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]][partial_name[4]] = '';
+
+                        break;
+                }
+
+                continue;
+            }
+            */
+
             if (form_element.getAttribute('data-item')) {
                 if (!this['items']) {
                     var item = {};
@@ -48,8 +85,56 @@ export default class Form {
                     this[form_element.getAttribute('data-field')] = field;
                 }
 
+                /*
                 if (!this[form_element.getAttribute('data-field')][name]) {
                     this[form_element.getAttribute('data-field')][name] = '';
+                }
+                */
+
+                if (type == 'radio') {
+                    if (!this[form_element.getAttribute('data-field')][name]) {
+                        this[form_element.getAttribute('data-field')][name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
+                    } else if (form_element.checked) {
+                        this[form_element.getAttribute('data-field')][name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
+                    } else if (form_element.getAttribute('checked')) {
+                        this[form_element.getAttribute('data-field')][name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
+                    }
+                } else if (type == 'checkbox') {
+                    if (this[form_element.getAttribute('data-field')][name]) {
+                        if (!this[form_element.getAttribute('data-field')][name].push) {
+                            this[form_element.getAttribute('data-field')][name] = [this[form_element.getAttribute('data-field')][name]];
+                        }
+    
+                        if (form_element.checked) {
+                            this[form_element.getAttribute('data-field')][name].push(form_element.value);
+                        }
+                    } else {
+                        if (form_element.checked) {
+                            if (form_element.dataset.type != undefined) {
+                                if (form_element.dataset.type == 'multiple') {
+                                    this[name] = [];
+
+                                    this[form_element.getAttribute('data-field')][name].push(form_element.value);
+                                } else {
+                                    this[form_element.getAttribute('data-field')][name] = form_element.value;
+                                }
+                            } else {
+                                this[form_element.getAttribute('data-field')][name] = form_element.value;
+                            }
+                        } else {
+                            if (form_element.dataset.type != undefined) {
+                                if (form_element.dataset.type == 'multiple') {
+                                    this[form_element.getAttribute('data-field')][name] = [];
+                                } else {
+                                    this[form_element.getAttribute('data-field')][name] = '';
+                                }
+                            } else {
+                                this[form_element.getAttribute('data-field')][name] = '';
+                            }
+                        }
+                    }
+                } else {
+                    this[form_element.getAttribute('data-field')][name] = form_element.getAttribute('value') || '';
                 }
 
                 continue;
@@ -57,7 +142,11 @@ export default class Form {
 
             if (type == 'radio') {
                 if (!this[name]) {
-                    this[name] = (form_element.getAttribute('value') ? 1 : 0) || 0;
+                    this[name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
+                } else if (form_element.checked) {
+                    this[name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
+                } else if (form_element.getAttribute('checked')) {
+                    this[name] = (form_element.getAttribute('value') ? form_element.getAttribute('value') : 0) || 0;
                 }
             } else if (type == 'checkbox') {
                 if (this[name]) {
@@ -70,9 +159,28 @@ export default class Form {
                     }
                 } else {
                     if (form_element.checked) {
-                        this[name] = form_element.value;
+                        if (form_element.dataset.type != undefined) {
+                            if (form_element.dataset.type == 'multiple') {
+                                this[name] = [];
+
+                                this[name].push(form_element.value);
+                            } else {
+                                this[name] = form_element.value;
+                            }
+                        } else {
+                            this[name] = form_element.value;
+                        }
                     } else {
-                        this[name] = [];
+                        
+                        if (form_element.dataset.type != undefined) {
+                            if (form_element.dataset.type == 'multiple') {
+                                this[name] = [];
+                            } else {
+                                this[name] = '';
+                            }
+                        } else {
+                            this[name] = '';
+                        }
                     }
                 }
             } else {
@@ -86,6 +194,43 @@ export default class Form {
             if (name == 'method') {
                 continue;
             }
+
+            /*
+            if (name != null && name.indexOf('.') != '-1') {
+                let partial_name = name.split('.');
+
+                switch(partial_name.length) {
+                    case 2:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = '';
+
+                        break;
+                    case 3:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = '';
+
+                        break;
+                    case 4:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]] = '';
+
+                        break;
+                    case 5:
+                        this[partial_name[0]] = [];
+                        this[partial_name[0]][partial_name[1]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]] = [];
+                        this[partial_name[0]][partial_name[1]][partial_name[2]][partial_name[3]][partial_name[4]] = '';
+
+                        break;
+                }
+
+                continue;
+            }
+            */
 
             if (form_element.getAttribute('data-item')) {
                 if (!this['items']) {
@@ -239,15 +384,19 @@ export default class Form {
 
     submit() {
         FormData.prototype.appendRecursive = function(data, wrapper = null) {  
-            for(var name in data) {
+            for (var name in data) {
+                if (name == "previewElement" || name == "previewTemplate") {
+                    continue;
+                }
+
                 if (wrapper) {
-                    if ((typeof data[name] == 'object' || data[name].constructor === Array) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                    if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
                         this.appendRecursive(data[name], wrapper + '[' + name + ']');
                     } else {
                         this.append(wrapper + '[' + name + ']', data[name]);
                     }
                 } else {
-                    if ((typeof data[name] == 'object' || data[name].constructor === Array) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                    if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
                         this.appendRecursive(data[name], name);
                     } else {
                         this.append(name, data[name]);
@@ -264,6 +413,50 @@ export default class Form {
         form_data.appendRecursive(data);
 
         window.axios({
+            method: this.method,
+            url: this.action,
+            data: form_data,
+            headers: {
+                'X-CSRF-TOKEN': window.Laravel.csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        .then(this.onSuccess.bind(this))
+        .catch(this.onFail.bind(this));
+    }
+
+    async asyncSubmit() {
+        FormData.prototype.appendRecursive = function(data, wrapper = null) {  
+            for (var name in data) {
+                if (name == "previewElement" || name == "previewTemplate") {
+                    continue;
+                }
+
+                if (wrapper) {
+                    if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                        this.appendRecursive(data[name], wrapper + '[' + name + ']');
+                    } else {
+                        this.append(wrapper + '[' + name + ']', data[name]);
+                    }
+                } else {
+                    if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                        this.appendRecursive(data[name], name);
+                    } else {
+                        this.append(name, data[name]);
+                    }
+                }
+            }
+        };
+
+        this.loading = true;
+
+        let data = this.data();
+
+        let form_data = new FormData();
+        form_data.appendRecursive(data);
+
+        await window.axios({
             method: this.method,
             url: this.action,
             data: form_data,

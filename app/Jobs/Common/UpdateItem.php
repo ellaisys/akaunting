@@ -3,42 +3,29 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
+use App\Jobs\Common\CreateItemTaxes;
 use App\Models\Common\Item;
 
-class UpdateItem extends Job
+class UpdateItem extends Job implements ShouldUpdate
 {
-    protected $item;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $item
-     * @param  $request
-     */
-    public function __construct($item, $request)
+    public function handle(): Item
     {
-        $this->item = $item;
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $this->model->update($this->request->all());
 
-    /**
-     * Execute the job.
-     *
-     * @return Item
-     */
-    public function handle()
-    {
-        $this->item->update($this->request->all());
+            // Upload picture
+            if ($this->request->file('picture')) {
+                $media = $this->getMedia($this->request->file('picture'), 'items');
 
-        // Upload picture
-        if ($this->request->file('picture')) {
-            $media = $this->getMedia($this->request->file('picture'), 'items');
+                $this->model->attachMedia($media, 'picture');
+            }
 
-            $this->item->attachMedia($media, 'picture');
-        }
+            $this->deleteRelationships($this->model, ['taxes']);
 
-        return $this->item;
+            $this->dispatch(new CreateItemTaxes($this->model, $this->request));
+        });
+
+        return $this->model;
     }
 }

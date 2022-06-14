@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Rechnungsnummer',
     'bill_date'             => 'Rechnungsdatum',
+    'bill_amount'           => 'Rechnungsbetrag',
     'total_price'           => 'Gesamtpreis',
     'due_date'              => 'Fälligkeitsdatum',
     'order_number'          => 'Bestellnummer',
@@ -31,33 +32,20 @@ return [
     'add_payment'           => 'Zahlung hinzufügen',
     'mark_paid'             => 'Als bezahlt markieren',
     'mark_received'         => 'Als erhalten markieren',
-    'mark_cancelled'        => 'Stornieren',
+    'mark_cancelled'        => 'Als storniert markieren',
     'download_pdf'          => 'Als PDF herunterladen',
     'send_mail'             => 'E-Mail senden',
     'create_bill'           => 'Rechnung erstellen',
     'receive_bill'          => 'Rechnung erhalten',
     'make_payment'          => 'Zahlung vornehmen',
 
-    'statuses' => [
-        'draft'             => 'Entwurf',
-        'received'          => 'Erhalten',
-        'partial'           => 'Teilweise',
-        'paid'              => 'Bezahlt',
-        'overdue'           => 'Überfällig',
-        'unpaid'            => 'Unbezahlt',
-        'cancelled'         => 'Storniert',
-    ],
-
     'messages' => [
-        'marked_received'   => 'Rechnung als erhalten markiert!',
-        'marked_paid'       => 'Rechnung als bezahlt markiert!',
-        'marked_cancelled'  => 'Rechnung als storniert markiert!',
         'draft'             => 'Dies ist eine Rechnungs-<b>Vorschau</b>. Die Rechnung erscheint in den Diagrammen nachdem sie als erhalten markiert wurde.',
 
         'status' => [
             'created'       => 'Erstellt am :date',
             'receive' => [
-                'draft'     => 'Noch nicht versandt',
+                'draft'     => 'Nicht erhalten',
                 'received'  => 'Empfangen am :date',
             ],
             'paid' => [

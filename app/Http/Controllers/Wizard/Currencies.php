@@ -18,9 +18,9 @@ class Currencies extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-settings-currencies')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-settings-currencies')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-settings-currencies')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-settings-currencies')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-settings-currencies')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-settings-currencies')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-settings-currencies')->only('destroy');
     }
 
@@ -37,13 +37,24 @@ class Currencies extends Controller
         $current = Currency::orderBy('code')->pluck('code')->toArray();
 
         // Prepare codes
-        $codes = array();
+        $codes = [];
         $money_currencies = MoneyCurrency::getCurrencies();
+
         foreach ($money_currencies as $key => $item) {
             $codes[$key] = $key;
         }
 
-        return view('wizard.currencies.index', compact('currencies', 'codes'));
+        return $this->response('wizard.currencies.index', compact('currencies', 'codes'));
+    }
+
+    /**
+     * Show the form for viewing the specified resource.
+     *
+     * @return Response
+     */
+    public function show()
+    {
+        return redirect()->route('wizard.currencies.index');
     }
 
     /**
@@ -57,18 +68,13 @@ class Currencies extends Controller
     {
         $response = $this->ajaxDispatch(new CreateCurrency($request));
 
-        $response['redirect'] = route('wizard.currencies.index');
-
         if ($response['success']) {
-
             $message = trans('messages.success.added', ['type' => trans_choice('general.currencies', 1)]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
+
+        $response['message'] = $message;
 
         return response()->json($response);
     }
@@ -85,18 +91,14 @@ class Currencies extends Controller
     {
         $response = $this->ajaxDispatch(new UpdateCurrency($currency, $request));
 
-        $response['redirect'] = route('wizard.currencies.index');
-
         if ($response['success']) {
             $message = trans('messages.success.updated', ['type' => $currency->name]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
 
+        $response['message'] = $message;
+        
         return response()->json($response);
     }
 
@@ -109,19 +111,18 @@ class Currencies extends Controller
      */
     public function destroy(Currency $currency)
     {
-        $response = $this->ajaxDispatch(new DeleteCurrency($currency));
+        $currency_id = $currency->id;
 
-        $response['redirect'] = route('wizard.currencies.index');
+        $response = $this->ajaxDispatch(new DeleteCurrency($currency));
 
         if ($response['success']) {
             $message = trans('messages.success.deleted', ['type' => $currency->name]);
-
-            flash($message)->success();
         } else {
             $message = $response['message'];
-
-            flash($message)->error();
         }
+
+        $response['currency_id'] = $currency_id;
+        $response['message'] = $message;
 
         return response()->json($response);
     }

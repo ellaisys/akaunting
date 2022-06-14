@@ -1,124 +1,58 @@
 <template>
-<div>
-    <div class="card" v-if="card">
-        <div class="row align-items-center">
-            <div class="col-md-6 p-5">
-                <div class="form-group">
-                    <label for="cardName" class="form-control-label">{{ textCardName }}</label>
-                    <div class="input-group input-group-merge">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">
-                                <i class="fas fa-font"></i>
-                            </span>
-                        </div>
+    <div>
+        <div class="flex flex-col" v-if="Object.keys(cards).length">
+            <div class="gap-y-2">
+                <div
+                    class="py-2 border-b hover:bg-gray-100 cursor-pointer"
+                    v-for="(name, key, id) in cards" :key="key"
+                    @click="onRegisterCard(id)"
+                >
+                    <label>
                         <input
-                            type="text"
-                            :id="fields.cardName"
-                            v-letter-only
-                            @input="changeName"
-                            class="form-control"
-                            :placeholder="placeholderCardName"
-                            :value="formData.cardName"
-                            data-card-field
-                            autocomplete="off"
-                        />
-                    </div>
+                            type="radio"
+                            :disabled="loading"
+                            :checked="register_card == id"
+                        >
+                        <span class="ltr:ml-2 rtl:mr-2">{{ name }}</span>
+                    </label>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="cardNumber" class="form-control-label">{{ textCardNumber }}</label>
-                    <div class="input-group input-group-merge">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">
-                                <i class="fas fa-credit-card"></i>
-                            </span>
-                        </div>
-                        <input
-                            type="tel"
-                            :id="fields.cardNumber"
-                            @input="changeNumber"
-                            @focus="focusCardNumber"
-                            @blur="blurCardNumber"
-                            class="form-control"
-                            :placeholder="placeholderCardNumber"
-                            :value="formData.cardNumber"
-                            :maxlength="cardNumberMaxLength"
-                            data-card-field
-                            autocomplete="off"
-                        />
-                    </div>
-                </div>
+            <div class="py-2 border-b hover:bg-gray-100 cursor-pointer" @click="onAddNewCard()">
+                <label>
+                    <input
+                        type="radio"
+                        id="card-new-card"
+                        name="new-card"
+                        :disabled="loading"
+                        :checked="new_card"
+                    >
+                    <span class="ltr:ml-2 rtl:mr-2">{{ textNewCard }}</span>
+                </label>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-7">
-                        <label for="cardMonth" class="form-control-label">{{ textExpirationDate }}</label>
-                        <div class="card-form__group">
-                            <select
-                                class="card-input__input -select"
-                                :id="fields.cardMonth"
-                                v-model="formData.cardMonth"
-                                @change="changeMonth"
-                                data-card-field
-                            >
-                                <option value disabled selected>{{ textMonth }}</option>
-                                <option
-                                    v-bind:value="n < 10 ? '0' + n : n"
-                                    v-for="n in 12"
-                                    v-bind:disabled="n < minCardMonth"
-                                    v-bind:key="n"
-                                >{{generateMonthValue(n)}}</option>
-                            </select>
+            <div class="flex justify-end" v-for="(name, key, id) in cards" :key="key">
+                <button
+                    v-if="register_card == id"
+                    type="button"
+                    :id="'card-'+ key + '-' + id"
+                    @click="onSelectedCard(key)"
+                    class="relative flex items-center justify-center px-6 py-1.5 my-2 bg-green hover:bg-green-700 text-white rounded-lg"
+                    :disabled="loading"
+                >
+                    <i
+                        v-if="loading || register_card_loading"
+                        class="animate-submit delay-[0.28s] absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto before:absolute before:w-2 before:h-2 before:rounded-full before:animate-submit before:delay-[0.14s] after:absolute after:w-2 after:h-2 after:rounded-full after:animate-submit before:-left-3.5 after:-right-3.5 after:delay-[0.42s]"
+                    >
+                    </i>
 
-                            <select
-                                class="card-input__input -select"
-                                :id="fields.cardYear"
-                                v-model="formData.cardYear"
-                                @change="changeYear"
-                                data-card-field
-                                >
-                                    <option value disabled selected>{{ textYear }}</option>
-                                    <option
-                                        v-bind:value="$index + minCardYear"
-                                        v-for="(n, $index) in 12"
-                                        v-bind:key="n"
-                                    >{{$index + minCardYear}}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-md-5">
-                        <div class="form-group">
-                            <label for="cardCvv" class="form-control-label">{{ textCvv }}</label>
-                            <div class="input-group input-group-merge">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">
-                                        <i class="fas fa-key"></i>
-                                    </span>
-                                </div>
-                                <input
-                                    type="tel"
-                                    class="form-control"
-                                    :placeholder="placeholderCvv"
-                                    v-number-only
-                                    :id="fields.cardCvv"
-                                    maxlength="4"
-                                    :value="formData.cardCvv"
-                                    @input="changeCvv"
-                                    data-card-field
-                                    autocomplete="off"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="btn btn-icon btn-success" v-on:click="invaildCard">
-                    <span class="btn-inner--icon"><i class="fas fa-check"></i></span>
-                    <span class="btn-inner--text">{{ textButton }}</span>
+                    <span :class="[{'opacity-0': loading || register_card_loading}]">
+                        {{ textButton }}
+                </span>
                 </button>
             </div>
 
-            <div class="col-md-6 mt--3">
+            <div v-if="new_card" class="w-full mt-3" id="collapseNewCard">
                 <Card
                     :fields="fields"
                     :labels="formData"
@@ -126,151 +60,136 @@
                     :randomBackgrounds="randomBackgrounds"
                     :backgroundImage="backgroundImage"
                 />
-            </div>
-        </div>
-    </div>
 
-    <div class="row align-items-center" v-if="!card">
-        <div class="col-md-6 p-5">
-            <div class="form-group">
-                <label for="cardNumber" class="form-control-label">{{ textCardNumber }}</label>
-                <div class="input-group input-group-merge">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">
-                            <i class="fas fa-credit-card"></i>
-                        </span>
+                <div class="grid sm:grid-cols-8 gap-x-4 gap-y-6 my-3.5">
+                    <div class="sm:col-span-8">
+                        <label for="cardName" class="form-control-label text-black text-sm font-medium">
+                            {{ textCardName }}
+                        </label>
+
+                        <input
+                            type="text"
+                            :id="fields.cardName"
+                            v-letter-only
+                            @input="changeName"
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :placeholder="placeholderCardName"
+                            :value="formData.cardName"
+                            data-card-field
+                            autocomplete="off"
+                        />
+
+                        <div class="text-red text-sm mt-1 block" v-if="validations.card_name" v-html="validations.card_name[0]"></div>
                     </div>
-                    <input
-                        type="tel"
-                        :id="fields.cardNumber"
-                        @input="changeNumber"
-                        @focus="focusCardNumber"
-                        @blur="blurCardNumber"
-                        class="form-control"
-                        :placeholder="placeholderCardNumber"
-                        :value="formData.cardNumber"
-                        :maxlength="cardNumberMaxLength"
-                        data-card-field
-                        autocomplete="off"
-                    />
-                </div>
-                <div class="invalid-feedback d-block" v-if="validations.card_number" v-html="validations.card_number[0]"></div>
-            </div>
 
-            <div class="form-group">
-                <label for="cardName" class="form-control-label">{{ textCardName }}</label>
-                <div class="input-group input-group-merge">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">
-                            <i class="fas fa-font"></i>
-                        </span>
+                    <div class="sm:col-span-8">
+                        <label for="cardNumber" class="form-control-label text-black text-sm font-medium">
+                            {{ textCardNumber }}
+                        </label>
+
+                        <input
+                            type="tel"
+                            :id="fields.cardNumber"
+                            @input="changeNumber"
+                            @focus="focusCardNumber"
+                            @blur="blurCardNumber"
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :placeholder="placeholderCardNumber"
+                            :value="formData.cardNumber"
+                            :maxlength="cardNumberMaxLength"
+                            data-card-field
+                            autocomplete="off"
+                        />
+
+                        <div class="text-red text-sm mt-1 block" v-if="validations.card_number" v-html="validations.card_number[0]"></div>
                     </div>
-                    <input
-                        type="text"
-                        :id="fields.cardName"
-                        v-letter-only
-                        @input="changeName"
-                        class="form-control"
-                        :placeholder="placeholderCardName"
-                        :value="formData.cardName"
-                        data-card-field
-                        autocomplete="off"
-                    />
-                </div>
-                <div class="invalid-feedback d-block" v-if="validations.card_name" v-html="validations.card_name[0]"></div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-7">
-                    <label for="cardMonth" class="form-control-label">{{ textExpirationDate }}</label>
-                    <div class="form-group d-flex">
-                        <div class="input-group input-group-merge">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </span>
-                            </div>
-                            <select
-                                class="form-control w-50"
-                                :id="fields.cardMonth"
-                                v-model="formData.cardMonth"
-                                @change="changeMonth"
-                                data-card-field
+                    <div class="sm:col-span-3">
+                        <label for="cardMonth" class="form-control-label text-black text-sm font-medium">
+                            {{ textExpirationDate }}
+                        </label>
+
+                        <select
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :id="fields.cardMonth"
+                            v-model="formData.cardMonth"
+                            @change="changeMonth"
+                            data-card-field
+                        >
+                            <option value disabled selected>{{ textMonth }}</option>
+                            <option
+                                v-bind:value="n < 10 ? '0' + n : n"
+                                v-for="n in 12"
+                                v-bind:disabled="n < minCardMonth"
+                                v-bind:key="n"
+                            >{{generateMonthValue(n)}}</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-3 flex items-end">
+                        <select
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :id="fields.cardYear"
+                            v-model="formData.cardYear"
+                            @change="changeYear"
+                            data-card-field
+                        >
+                            <option value="" disabled>{{ textYear }}</option>
+                            <option
+                                v-bind:value="$index + minCardYear"
+                                v-for="(n, $index) in 12"
+                                v-bind:key="n"
+                            >{{$index + minCardYear}}</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label for="cardCvv" class="form-control-label text-black text-sm font-medium">
+                            {{ textCvv }}
+                        </label>
+
+                        <input
+                            type="tel"
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :placeholder="placeholderCvv"
+                            v-number-only
+                            :id="fields.cardCvv"
+                            maxlength="4"
+                            :value="formData.cardCvv"
+                            @input="changeCvv"
+                            data-card-field
+                            autocomplete="off"
+                        />
+
+                        <div class="text-red text-sm mt-1 block" v-if="validations.card_cvv" v-html="validations.card_cvv[0]"></div>
+                    </div>
+
+                    <div class="sm:col-span-8 flex" :class="storeCard ? 'justify-between' : 'justify-end'">
+                        <div class="flex items-center" v-if="storeCard">
+                            <input @input="changeStoreCard" :id="'store_card' + _uid" name="store_card" type="checkbox" value="true" class="rounded-sm text-purple border-gray-300 cursor-pointer disabled:bg-gray-200 focus:outline-none focus:ring-transparent">
+
+                            <label :for="'store_card' + _uid" class="form-control-label ltr:ml-2 rtl:ml-2">
+                                <strong>{{ textStoreCard }}</strong>
+                            </label>
+                        </div>
+
+                        <button class="relative flex items-center justify-center px-6 py-1.5 bg-green hover:bg-green-700 text-white rounded-lg" v-on:click="invaildCard" :disabled="loading">
+                            <i
+                                v-if="loading"
+                                class="animate-submit delay-[0.28s] absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto before:absolute before:w-2 before:h-2 before:rounded-full before:animate-submit before:delay-[0.14s] after:absolute after:w-2 after:h-2 after:rounded-full after:animate-submit before:-left-3.5 after:-right-3.5 after:delay-[0.42s]"
                             >
-                                <option value="" disabled>{{ textMonth }}</option>
-                                <option
-                                    v-bind:value="n < 10 ? '0' + n : n"
-                                    v-for="n in 12"
-                                    v-bind:disabled="n < minCardMonth"
-                                    v-bind:key="n"
-                                    :selected="selected == value"
-                                >{{generateMonthValue(n)}}</option>
-                            </select>
-                        </div>
-                        <div class="input-group input-group-merge ml-4">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">
-                                    <i class="fas fa-calendar-alt"></i>
-                                </span>
-                            </div>
-                            <select
-                                class="form-control w-50"
-                                :id="fields.cardYear"
-                                v-model="formData.cardYear"
-                                @change="changeYear"
-                                data-card-field
-                                >
-                                    <option value="" disabled>{{ textYear }}</option>
-                                    <option
-                                        v-bind:value="$index + minCardYear"
-                                        v-for="(n, $index) in 12"
-                                        v-bind:key="n"
-                                        :selected="selected == value"
-                                    >{{$index + minCardYear}}</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                            </i>
 
-                <div class="col-md-5">
-                    <div class="form-group">
-                        <label for="cardCvv" class="form-control-label">{{ textCvv }}</label>
-                        <div class="input-group input-group-merge">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">
-                                    <i class="fas fa-key"></i>
-                                </span>
-                            </div>
-                            <input
-                                type="tel"
-                                class="form-control"
-                                :placeholder="placeholderCvv"
-                                v-number-only
-                                :id="fields.cardCvv"
-                                maxlength="4"
-                                :value="formData.cardCvv"
-                                @input="changeCvv"
-                                data-card-field
-                                autocomplete="off"
-                            />
-                        </div>
-                        <div class="invalid-feedback d-block" v-if="validations.card_cvv" v-html="validations.card_cvv[0]"></div>
+                            <span :class="[{'opacity-0': loading}]">
+                                {{ textButton }}
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <button class="btn btn-icon btn-success" v-on:click="invaildCard" :disabled="loading">
-                <div v-if="loading" class="aka-loader-frame">
-                    <div class="aka-loader"></div>
-                </div>
-                <span v-if="!loading" class="btn-inner--icon">
-                    <i class="fas fa-check"></i>
-                </span>
-                <span v-if="!loading" class="btn-inner--text">{{ textButton }}</span>
-            </button>
         </div>
 
-        <div class="col-md-6 mt--3">
+        <div class="flex flex-col" v-if="! Object.keys(cards).length">
             <Card
                 :fields="fields"
                 :labels="formData"
@@ -278,16 +197,141 @@
                 :randomBackgrounds="randomBackgrounds"
                 :backgroundImage="backgroundImage"
             />
+
+            <div class="grid sm:grid-cols-8 gap-x-4 gap-y-6 my-3.5">
+                <div class="sm:col-span-8">
+                    <label for="cardName" class="form-control-label text-black text-sm font-medium">
+                        {{ textCardName }}
+                    </label>
+
+                    <input
+                        type="text"
+                        :id="fields.cardName"
+                        v-letter-only
+                        @input="changeName"
+                        class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                        :placeholder="placeholderCardName"
+                        :value="formData.cardName"
+                        data-card-field
+                        autocomplete="off"
+                    />
+
+                    <div class="text-red text-sm mt-1 block" v-if="validations.card_name" v-html="validations.card_name[0]"></div>
+                </div>
+
+                <div class="sm:col-span-8">
+                    <label for="cardNumber" class="form-control-label text-black text-sm font-medium">
+                        {{ textCardNumber }}
+                    </label>
+
+                    <input
+                        type="tel"
+                        :id="fields.cardNumber"
+                        @input="changeNumber"
+                        @focus="focusCardNumber"
+                        @blur="blurCardNumber"
+                        class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                        :placeholder="placeholderCardNumber"
+                        :value="formData.cardNumber"
+                        :maxlength="cardNumberMaxLength"
+                        data-card-field
+                        autocomplete="off"
+                    />
+
+                    <div class="text-red text-sm mt-1 block" v-if="validations.card_number" v-html="validations.card_number[0]"></div>
+                </div>
+
+                <div class="sm:col-span-3">
+                    <label for="cardMonth" class="form-control-label text-black text-sm font-medium">
+                        {{ textExpirationDate }}
+                    </label>
+
+                    <div>
+                        <select
+                            class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                            :id="fields.cardMonth"
+                            v-model="formData.cardMonth"
+                            @change="changeMonth"
+                            data-card-field
+                        >
+                            <option value="" disabled>{{ textMonth }}</option>
+                            <option
+                                v-bind:value="n < 10 ? '0' + n : n"
+                                v-for="n in 12"
+                                v-bind:disabled="n < minCardMonth"
+                                v-bind:key="n"
+                            >{{generateMonthValue(n)}}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-3 flex items-end">
+                    <select
+                        class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                        :id="fields.cardYear"
+                        v-model="formData.cardYear"
+                        @change="changeYear"
+                        data-card-field
+                    >
+                        <option value="" disabled>{{ textYear }}</option>
+                        <option
+                            v-bind:value="$index + minCardYear"
+                            v-for="(n, $index) in 12"
+                            v-bind:key="n"
+                        >{{$index + minCardYear}}</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="cardCvv" class="form-control-label text-black text-sm font-medium">
+                        {{ textCvv }}
+                    </label>
+
+                    <input
+                        type="tel"
+                        class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
+                        :placeholder="placeholderCvv"
+                        v-number-only
+                        :id="fields.cardCvv"
+                        maxlength="4"
+                        :value="formData.cardCvv"
+                        @input="changeCvv"
+                        data-card-field
+                        autocomplete="off"
+                    />
+
+                    <div class="text-red text-sm mt-1 block" v-if="validations.card_cvv" v-html="validations.card_cvv[0]"></div>
+                </div>
+
+                <div class="sm:col-span-8 flex" :class="storeCard ? 'justify-between' : 'justify-end'">
+                    <div class="flex items-center" v-if="storeCard">
+                        <input @input="changeStoreCard" :id="'store_card' + _uid" name="store_card" type="checkbox" value="true" class="rounded-sm text-purple border-gray-300 cursor-pointer disabled:bg-gray-200 focus:outline-none focus:ring-transparent">
+
+                        <label :for="'store_card' + _uid" class="form-control-label ltr:ml-2 rtl:ml-2">
+                            <strong>{{ textStoreCard }}</strong>
+                        </label>
+                    </div>
+
+                    <button class="relative flex items-center justify-center px-6 py-1.5 bg-green hover:bg-green-700 text-white rounded-lg" v-on:click="invaildCard" :disabled="loading">
+                        <i
+                            v-if="loading"
+                            class="animate-submit delay-[0.28s] absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto before:absolute before:w-2 before:h-2 before:rounded-full before:animate-submit before:delay-[0.14s] after:absolute after:w-2 after:h-2 after:rounded-full after:animate-submit before:-left-3.5 after:-right-3.5 after:delay-[0.42s]"
+                        >
+                        </i>
+                        <span :class="[{'opacity-0': loading}]">
+                            {{ textButton }}
+                        </span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 </template>
 
 <script>
-import axios from 'axios';
 
+import axios from 'axios';
 import Card from './Card';
-import './../../../css/creditcard/style.scss';
 
 export default {
     name: 'CardForm',
@@ -308,6 +352,7 @@ export default {
                 el.addEventListener('keypress', checkValue);
             }
         },
+
         'letter-only': {
             bind (el) {
                 function checkValue (event) {
@@ -324,11 +369,17 @@ export default {
     },
 
     props: {
-        card: {
+        cards: {
+            type: [Array, Object],
+            default: [],
+            description: "Add Card Style"
+        },
+
+        storeCard: {
             type: Boolean,
             default: false,
             icon: '',
-            description: "Add Card Style"
+            description: "Save card"
         },
 
         path: {
@@ -347,6 +398,18 @@ export default {
             type: String,
             default: 'Enter Number',
             description: "Placeholder Card Number Text"
+        },
+
+        textCard: {
+            type: String,
+            default: 'Cards',
+            description: "Label Card Text"
+        },
+
+        textNewCard: {
+            type: String,
+            default: 'New Card',
+            description: "Label New Card Name Text"
         },
 
         textCardName: {
@@ -397,6 +460,12 @@ export default {
             description: "Add Card Style"
         },
 
+        textStoreCard: {
+            type: String,
+            default: 'Store Card',
+            description: "Selected store card"
+        },
+
         formData: {
             type: Object,
             default: () => {
@@ -405,11 +474,15 @@ export default {
                     cardNumber: '',
                     cardMonth: '',
                     cardYear: '',
-                    cardCvv: ''
+                    cardCvv: '',
+                    storeCard: false,
+                    card_id: 0,
                 }
             }
         },
+
         backgroundImage: [String, Object],
+
         randomBackgrounds: {
             type: Boolean,
             default: true
@@ -429,12 +502,17 @@ export default {
                 cardName: 'v-card-name',
                 cardMonth: 'v-card-month',
                 cardYear: 'v-card-year',
-                cardCvv: 'v-card-cvv'
+                cardCvv: 'v-card-cvv',
+                storeCard: 'v-card-store-card'
             },
             minCardYear: new Date().getFullYear(),
             isCardNumberMasked: true,
             mainCardNumber: this.cardNumber,
-            cardNumberMaxLength: 19
+            cardNumberMaxLength: 19,
+            card_id: 0,
+            new_card: false,
+            register_card: 0,
+            register_card_loading: false
         }
     },
 
@@ -461,6 +539,37 @@ export default {
     },
 
     methods: {
+        onRegisterCard(id) {
+            this.register_card = id;
+            this.new_card = false;
+            this.register_card_loading = true;
+
+            setTimeout(() => {
+                this.register_card_loading = false;
+            }, 800);
+        },
+
+        onAddNewCard() {
+            this.new_card = true;
+            this.register_card = null;
+        },
+
+
+        onSelectedCard(card_id) {
+            this.card_id = card_id;
+            this.formData.card_id = card_id;
+
+            this.invaildCard();
+        },
+
+        changeStoreCard(e) {
+            this.formData.storeCard = false;
+
+            if (e.target.checked) {
+                this.formData.storeCard = true;
+            }
+        },
+
         generateMonthValue(n) {
             return n < 10 ? `0${n}` : n;
         },
@@ -508,11 +617,11 @@ export default {
         invaildCard() {
             this.loading = true;
 
-            this.unMaskCardNumber();
-
             let number = this.formData.cardNumber;
             let sum = 0;
             let isOdd = true;
+
+            this.unMaskCardNumber();
 
             /*for (let i = number.length - 1; i >= 0; i--) {
                 let num = number.charAt(i);
@@ -531,6 +640,8 @@ export default {
 
                 isOdd = !isOdd;
             }*/
+
+            this.formData.card_id = this.card_id;
 
             if (sum % 10 !== 0) {
                 alert('invaild card number');
@@ -590,6 +701,9 @@ export default {
             } else {
                 this.unMaskCardNumber();
             }
+        },
+
+        showNewCard() {
         }
     }
 }

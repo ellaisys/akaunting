@@ -2,25 +2,71 @@
 
 namespace App\Models\Common;
 
+use App\Traits\Media;
 use App\Abstracts\Model;
-use Bkwld\Cloner\Cloneable;
 use App\Traits\Contacts;
 use App\Traits\Currencies;
-use App\Traits\Media;
+use App\Traits\Transactions;
+use App\Scopes\Contact as Scope;
+use App\Models\Document\Document;
+use App\Utilities\Date;
+use App\Utilities\Str;
+use Bkwld\Cloner\Cloneable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class Contact extends Model
 {
-    use Cloneable, Contacts, Currencies, Media, Notifiable;
+    use Cloneable, Contacts, Currencies, HasFactory, Media, Notifiable, Transactions;
+
+    public const CUSTOMER_TYPE = 'customer';
+    public const VENDOR_TYPE = 'vendor';
+    public const EMPLOYEE_TYPE = 'employee';
 
     protected $table = 'contacts';
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['location'];
 
     /**
      * Attributes that should be mass-assignable.
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'type', 'name', 'email', 'user_id', 'tax_number', 'phone', 'address', 'website', 'currency_code', 'reference', 'enabled'];
+    protected $fillable = [
+        'company_id',
+        'type',
+        'name',
+        'email',
+        'user_id',
+        'tax_number',
+        'phone',
+        'address',
+        'city',
+        'zip_code',
+        'state',
+        'country',
+        'website',
+        'currency_code',
+        'reference',
+        'enabled',
+        'created_from',
+        'created_by',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'enabled' => 'boolean',
+    ];
 
     /**
      * Sortable columns.
@@ -29,9 +75,26 @@ class Contact extends Model
      */
     public $sortable = ['name', 'email', 'phone', 'enabled'];
 
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        parent::booted();
+
+        static::addGlobalScope(new Scope);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany('App\Models\Document\Document');
+    }
+
     public function bills()
     {
-        return $this->hasMany('App\Models\Purchase\Bill');
+        return $this->documents()->where('documents.type', Document::BILL_TYPE);
     }
 
     public function currency()
@@ -41,17 +104,17 @@ class Contact extends Model
 
     public function expense_transactions()
     {
-        return $this->transactions()->where('type', 'expense');
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getExpenseTypes());
     }
 
     public function income_transactions()
     {
-        return $this->transactions()->where('type', 'income');
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getIncomeTypes());
     }
 
     public function invoices()
     {
-        return $this->hasMany('App\Models\Sale\Invoice');
+        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
     }
 
     public function transactions()
@@ -77,7 +140,7 @@ class Contact extends Model
             return $query;
         }
 
-        return $query->whereIn($this->table . '.type', (array) $types);
+        return $query->whereIn($this->qualifyColumn('type'), (array) $types);
     }
 
     /**
@@ -88,7 +151,7 @@ class Contact extends Model
      */
     public function scopeVendor($query)
     {
-        return $query->whereIn($this->table . '.type', (array) $this->getVendorTypes());
+        return $query->whereIn($this->qualifyColumn('type'), (array) $this->getVendorTypes());
     }
 
     /**
@@ -99,7 +162,7 @@ class Contact extends Model
      */
     public function scopeCustomer($query)
     {
-        return $query->whereIn($this->table . '.type', (array) $this->getCustomerTypes());
+        return $query->whereIn($this->qualifyColumn('type'), (array) $this->getCustomerTypes());
     }
 
     public function scopeEmail($query, $email)
@@ -111,6 +174,11 @@ class Contact extends Model
     {
         $this->email = null;
         $this->user_id = null;
+    }
+
+    public function getInitialsAttribute($value)
+    {
+        return Str::getInitials($this->name);
     }
 
     /**
@@ -133,14 +201,138 @@ class Contact extends Model
     {
         $amount = 0;
 
-        $collection = in_array($this->type, $this->getCustomerTypes()) ? 'invoices' : 'bills';
+        $collection = $this->isCustomer() ? 'invoices' : 'bills';
 
-        $this->$collection()->accrued()->notPaid()->each(function ($item) use (&$amount) {
-            $unpaid = $item->amount - $item->paid;
-
-            $amount += $this->convertToDefault($unpaid, $item->currency_code, $item->currency_rate);
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->each(function ($item) use (&$amount) {
+            $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
         });
 
         return $amount;
+    }
+
+    public function getOpenAttribute()
+    {
+        $amount = 0;
+        $today = Date::today()->toDateString();
+
+        $collection = $this->isCustomer() ? 'invoices' : 'bills';
+
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->where('due_at', '>=', $today)->each(function ($item) use (&$amount) {
+            $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
+        });
+
+        return $amount;
+    }
+
+    public function getOverdueAttribute()
+    {
+        $amount = 0;
+        $today = Date::today()->toDateString();
+
+        $collection = $this->isCustomer() ? 'invoices' : 'bills';
+
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->where('due_at', '<', $today)->each(function ($item) use (&$amount) {
+            $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
+        });
+
+        return $amount;
+    }
+
+    public function getLocationAttribute()
+    {
+        $location = [];
+
+        if ($this->city) {
+            $location[] = $this->city;
+        }
+
+        if ($this->zip_code) {
+            $location[] = $this->zip_code;
+        }
+
+        if ($this->state) {
+            $location[] = $this->state;
+        }
+
+        if ($this->country) {
+            $location[] = trans('countries.' . $this->country);
+        }
+
+        return implode(', ', $location);
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $group = config('type.contact.' . $this->type . '.group');
+        $prefix = config('type.contact.' . $this->type . '.route.prefix');
+        $permission_prefix = config('type.contact.' . $this->type . '.permission.prefix');
+        $translation_prefix = config('type.contact.' . $this->type . '.translation.prefix');
+
+        if (empty($prefix)) {
+            if (in_array($this->type, (array) $this->getCustomerTypes())) {
+                $prefix = config('type.contact.customer.route.prefix');
+            } elseif (in_array($this->type, (array) $this->getVendorTypes())) {
+                $prefix = config('type.contact.vendor.route.prefix');
+            } else {
+                return $actions;
+            }
+        }
+
+        try {
+            $actions[] = [
+                'title' => trans('general.show'),
+                'icon' => 'visibility',
+                'url' => route($prefix . '.show', $this->id),
+                'permission' => 'read-' . $group . '-' . $permission_prefix,
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'title' => trans('general.edit'),
+                'icon' => 'edit',
+                'url' => route($prefix . '.edit', $this->id),
+                'permission' => 'update-' . $group . '-' . $permission_prefix,
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'title' => trans('general.duplicate'),
+                'icon' => 'file_copy',
+                'url' => route($prefix . '.duplicate', $this->id),
+                'permission' => 'create-' . $group . '-' . $permission_prefix,
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'type' => 'delete',
+                'icon' => 'delete',
+                'title' => $translation_prefix,
+                'route' => $prefix . '.destroy',
+                'permission' => 'delete-' . $group . '-' . $permission_prefix,
+                'model' => $this,
+            ];
+        } catch (\Exception $e) {}
+
+        return $actions;
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Contact::new();
     }
 }

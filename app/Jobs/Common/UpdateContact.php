@@ -3,60 +3,52 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
+use App\Jobs\Auth\CreateUser;
+use App\Models\Auth\Role;
 use App\Models\Auth\User;
 use App\Models\Common\Contact;
+use Illuminate\Support\Str;
 
-class UpdateContact extends Job
+class UpdateContact extends Job implements ShouldUpdate
 {
-    protected $contact;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $contact
-     * @param  $request
-     */
-    public function __construct($contact, $request)
-    {
-        $this->contact = $contact;
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Contact
-     */
-    public function handle()
+    public function handle(): Contact
     {
         $this->authorize();
 
-        if ($this->request->get('create_user', 'false') === 'true') {
-            $this->createUser();
-        }
+        \DB::transaction(function () {
+            if ($this->request->get('create_user', 'false') === 'true') {
+                $this->createUser();
+            } elseif ($this->model->user) {
+                $this->model->user->update($this->request->all());
+            }
 
-        $this->contact->update($this->request->all());
+            // Upload logo
+            if ($this->request->file('logo')) {
+                $media = $this->getMedia($this->request->file('logo'), Str::plural($this->model->type));
 
-        return $this->contact;
+                $this->model->attachMedia($media, 'logo');
+            }
+
+            $this->model->update($this->request->all());
+        });
+
+        return $this->model;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
         if (($this->request['enabled'] == 0) && ($relationships = $this->getRelationships())) {
-            $message = trans('messages.warning.disabled', ['name' => $this->contact->name, 'text' => implode(', ', $relationships)]);
+            $message = trans('messages.warning.disabled', ['name' => $this->model->name, 'text' => implode(', ', $relationships)]);
 
             throw new \Exception($message);
         }
     }
 
-    public function createUser()
+    public function createUser(): void
     {
         // Check if user exist
         if ($user = User::where('email', $this->request['email'])->first()) {
@@ -65,29 +57,33 @@ class UpdateContact extends Job
             throw new \Exception($message);
         }
 
-        $data = $this->request->all();
-        $data['locale'] = setting('default.locale', 'en-GB');
+        $customer_role = Role::all()->filter(function ($role) {
+            return $role->hasPermission('read-client-portal');
+        })->pluck('id')->toArray();
 
-        $user = User::create($data);
-        $user->roles()->attach(['3']);
-        $user->companies()->attach([session('company_id')]);
+        $this->request->merge([
+            'locale' => setting('default.locale', 'en-GB'),
+            'roles' => $customer_role,
+            'companies' => [$this->request->get('company_id')],
+        ]);
 
-        // St user id to request
+        $user = $this->dispatch(new CreateUser($this->request));
+
         $this->request['user_id'] = $user->id;
     }
 
-    public function getRelationships()
+    public function getRelationships(): array
     {
         $rels = [
             'transactions' => 'transactions',
         ];
 
-        if ($this->contact->type == 'customer') {
+        if ($this->model->type == 'customer') {
             $rels['invoices'] = 'invoices';
         } else {
             $rels['bills'] = 'bills';
         }
 
-        return $this->countRelationships($this->contact, $rels);
+        return $this->countRelationships($this->model, $rels);
     }
 }

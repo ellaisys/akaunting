@@ -10,55 +10,69 @@ class Reconciliations extends BulkAction
 {
     public $model = Reconciliation::class;
 
+    public $text = 'general.reconciliations';
+
+    public $path = [
+        'group' => 'banking',
+        'type' => 'reconciliations',
+    ];
+
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-banking-reconciliations',
+        'reconcile'     => [
+            'icon'          => 'published_with_changes',
+            'name'          => 'reconciliations.reconcile',
+            'message'       => 'bulk_actions.message.reconcile',
+            'permission'    => 'update-banking-reconciliations',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-banking-reconciliations',
+        'unreconcile'   => [
+            'icon'          => 'layers_clear',
+            'name'          => 'reconciliations.unreconcile',
+            'message'       => 'bulk_actions.message.unreconcile',
+            'permission'    => 'update-banking-reconciliations',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-banking-reconciliations',
+        'delete'        => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-banking-reconciliations',
         ],
     ];
 
-    public function enable($request)
+    public function reconcile($request)
     {
         $reconciliations = $this->getSelectedRecords($request);
 
         foreach ($reconciliations as $reconciliation) {
-            $reconciliation->enabled = 1;
-            $reconciliation->save();
+            \DB::transaction(function () use ($reconciliation) {
+                $reconciliation->reconciled = 1;
+                $reconciliation->save();
 
-            Transaction::where('account_id', $reconciliation->account_id)
-                ->reconciled()
-                ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
-                    $item->reconciled = 1;
-                    $item->save();
-                });
+                Transaction::where('account_id', $reconciliation->account_id)
+                    ->isNotReconciled()
+                    ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
+                        $item->reconciled = 1;
+                        $item->save();
+                    });
+            });
         }
     }
 
-    public function disable($request)
+    public function unreconcile($request)
     {
         $reconciliations = $this->getSelectedRecords($request);
 
         foreach ($reconciliations as $reconciliation) {
-            $reconciliation->enabled = 0;
-            $reconciliation->save();
+            \DB::transaction(function () use ($reconciliation) {
+                $reconciliation->reconciled = 0;
+                $reconciliation->save();
 
-            Transaction::where('account_id', $reconciliation->account_id)
-                ->reconciled()
-                ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
-                    $item->reconciled = 0;
-                    $item->save();
-                });
+                Transaction::where('account_id', $reconciliation->account_id)
+                    ->isReconciled()
+                    ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
+                        $item->reconciled = 0;
+                        $item->save();
+                    });
+            });
         }
     }
 
@@ -67,14 +81,16 @@ class Reconciliations extends BulkAction
         $reconciliations = $this->getSelectedRecords($request);
 
         foreach ($reconciliations as $reconciliation) {
-            $reconciliation->delete();
+            \DB::transaction(function () use ($reconciliation) {
+                $reconciliation->delete();
 
-            Transaction::where('account_id', $reconciliation->account_id)
-                ->reconciled()
-                ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
-                    $item->reconciled = 0;
-                    $item->save();
-                });
+                Transaction::where('account_id', $reconciliation->account_id)
+                    ->isReconciled()
+                    ->whereBetween('paid_at', [$reconciliation->started_at, $reconciliation->ended_at])->each(function ($item) {
+                        $item->reconciled = 0;
+                        $item->save();
+                    });
+            });
         }
     }
 }

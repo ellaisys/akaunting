@@ -33,9 +33,10 @@ class CreateModuleUpdatedHistory
         ModuleHistory::create([
             'company_id' => $model->company_id,
             'module_id' => $model->id,
-            'category' => $module->get('category', 'payment-method'),
             'version' => $event->new,
-            'description' => trans('modules.history.updated', ['module' => $module->getAlias()]),
+            'description' => trans('modules.updated_2', ['module' => $module->getAlias()]),
+            'created_from' => source_name(),
+            'created_by' => user_id(),
         ]);
     }
 }

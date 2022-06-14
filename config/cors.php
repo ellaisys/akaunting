@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'paths' => ['api/*'],
+    'paths' => [env('API_PREFIX', 'api') . '/*'],
 
     'allowed_methods' => ['*'],
 

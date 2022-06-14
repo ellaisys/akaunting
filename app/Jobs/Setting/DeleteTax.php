@@ -3,50 +3,34 @@
 namespace App\Jobs\Setting;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldDelete;
 
-class DeleteTax extends Job
+class DeleteTax extends Job implements ShouldDelete
 {
-    protected $tax;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $tax
-     */
-    public function __construct($tax)
-    {
-        $this->tax = $tax;
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
+    public function handle(): bool
     {
         $this->authorize();
 
-        $this->tax->delete();
+        \DB::transaction(function () {
+            $this->model->delete();
+        });
 
         return true;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
         if ($relationships = $this->getRelationships()) {
-            $message = trans('messages.warning.deleted', ['name' => $this->tax->name, 'text' => implode(', ', $relationships)]);
+            $message = trans('messages.warning.deleted', ['name' => $this->model->name, 'text' => implode(', ', $relationships)]);
 
             throw new \Exception($message);
         }
     }
 
-    public function getRelationships()
+    public function getRelationships(): array
     {
         $rels = [
             'items' => 'items',
@@ -54,6 +38,6 @@ class DeleteTax extends Job
             'bill_items' => 'bills',
         ];
 
-        return $this->countRelationships($this->tax, $rels);
+        return $this->countRelationships($this->model, $rels);
     }
 }

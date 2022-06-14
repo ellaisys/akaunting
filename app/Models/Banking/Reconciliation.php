@@ -3,9 +3,12 @@
 namespace App\Models\Banking;
 
 use App\Abstracts\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Reconciliation extends Model
 {
+    use HasFactory;
+
     protected $table = 'reconciliations';
 
     protected $dates = ['deleted_at', 'started_at', 'ended_at'];
@@ -15,7 +18,17 @@ class Reconciliation extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'account_id', 'started_at', 'ended_at', 'closing_balance', 'reconciled'];
+    protected $fillable = ['company_id', 'account_id', 'started_at', 'ended_at', 'closing_balance', 'reconciled', 'created_from', 'created_by'];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'closing_balance' => 'double',
+        'reconciled' => 'boolean',
+    ];
 
     /**
      * Sortable columns.
@@ -30,13 +43,39 @@ class Reconciliation extends Model
     }
 
     /**
-     * Convert closing balance to double.
+     * Get the line actions.
      *
-     * @param  string  $value
-     * @return void
+     * @return array
      */
-    public function setClosingBalanceAttribute($value)
+    public function getLineActionsAttribute()
     {
-        $this->attributes['closing_balance'] = (double) $value;
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('reconciliations.edit', $this->id),
+            'permission' => 'update-banking-reconciliations',
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'reconciliations.destroy',
+            'permission' => 'delete-banking-reconciliations',
+            'model' => $this,
+        ];
+
+        return $actions;
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Reconciliation::new();
     }
 }

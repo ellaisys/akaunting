@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Abstracts\Http\Controller;
+use App\Exports\Settings\Taxes as Export;
+use App\Http\Requests\Common\Import as ImportRequest;
 use App\Http\Requests\Setting\Tax as Request;
+use App\Imports\Settings\Taxes as Import;
 use App\Jobs\Setting\CreateTax;
 use App\Jobs\Setting\DeleteTax;
 use App\Jobs\Setting\UpdateTax;
@@ -11,7 +14,6 @@ use App\Models\Setting\Tax;
 
 class Taxes extends Controller
 {
-
     /**
      * Display a listing of the resource.
      *
@@ -25,10 +27,11 @@ class Taxes extends Controller
             'fixed' => trans('taxes.fixed'),
             'normal' => trans('taxes.normal'),
             'inclusive' => trans('taxes.inclusive'),
+            'withholding' => trans('taxes.withholding'),
             'compound' => trans('taxes.compound'),
         ];
 
-        return view('settings.taxes.index', compact('taxes', 'types'));
+        return $this->response('settings.taxes.index', compact('taxes', 'types'));
     }
 
     /**
@@ -52,10 +55,17 @@ class Taxes extends Controller
             'fixed' => trans('taxes.fixed'),
             'normal' => trans('taxes.normal'),
             'inclusive' => trans('taxes.inclusive'),
+            'withholding' => trans('taxes.withholding'),
             'compound' => trans('taxes.compound'),
         ];
 
-        return view('settings.taxes.create', compact('types'));
+        $disable_options = [];
+
+        if ($compound = Tax::compound()->first()) {
+            $disable_options = ['compound'];
+        }
+
+        return view('settings.taxes.create', compact('types', 'disable_options'));
     }
 
     /**
@@ -80,7 +90,31 @@ class Taxes extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Import the specified resource.
+     *
+     * @param  ImportRequest  $request
+     *
+     * @return Response
+     */
+    public function import(ImportRequest $request)
+    {
+        $response = $this->importExcel(new Import, $request, trans_choice('general.taxes', 2));
+
+        if ($response['success']) {
+            $response['redirect'] = route('taxes.index');
+
+            flash($response['message'])->success();
+        } else {
+            $response['redirect'] = route('import.create', ['settings', 'taxes']);
+
+            flash($response['message'])->error()->important();
         }
 
         return response()->json($response);
@@ -99,10 +133,17 @@ class Taxes extends Controller
             'fixed' => trans('taxes.fixed'),
             'normal' => trans('taxes.normal'),
             'inclusive' => trans('taxes.inclusive'),
+            'withholding' => trans('taxes.withholding'),
             'compound' => trans('taxes.compound'),
         ];
 
-        return view('settings.taxes.edit', compact('tax', 'types'));
+        $disable_options = [];
+
+        if ($tax->type != 'compound' && $compound = Tax::compound()->first()) {
+            $disable_options = ['compound'];
+        }
+
+        return view('settings.taxes.edit', compact('tax', 'types', 'disable_options'));
     }
 
     /**
@@ -128,7 +169,7 @@ class Taxes extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -190,9 +231,19 @@ class Taxes extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
+    }
+    
+    /**
+     * Export the specified resource.
+     *
+     * @return Response
+     */
+    public function export()
+    {
+        return $this->exportExcel(new Export, trans_choice('general.taxes', 2));
     }
 }

@@ -2,10 +2,16 @@
 
 namespace App\Traits;
 
-use App\Utilities\Chartjs;
+use Akaunting\Apexcharts\Charts as Apexcharts;
 
 trait Charts
 {
+    public $bar = [
+        'colors' => [],
+        'labels' => [],
+        'values' => [],
+    ];
+
     public $donut = [
         'colors' => [],
         'labels' => [],
@@ -30,7 +36,7 @@ trait Charts
         $this->addToDonut($color, $label, $amount);
     }
 
-    public function getDonutChart($name, $width = 0, $height = 160, $limit = 10)
+    public function getDonutChart($name, $width = '100%', $height = 300, $limit = 10)
     {
         // Show donut prorated if there is no value
         if (array_sum($this->donut['values']) == 0) {
@@ -48,93 +54,39 @@ trait Charts
             $labels[$id] = $this->donut['labels'][$id];
         }
 
-        $chart = new Chartjs();
+        $chart = new Apexcharts();
 
-        $chart->type('doughnut')
-            ->width($width)
-            ->height($height)
-            ->options($this->getDonutChartOptions($colors))
-            ->labels(array_values($labels));
-
-        $chart->dataset($name, 'doughnut', array_values($values))
-        ->backgroundColor(array_values($colors));
+        $chart->setType('donut')
+            ->setWidth($width)
+            ->setHeight($height)
+            ->setLabels(array_values($labels))
+            ->setColors(array_values($colors))
+            ->setDataset($name, 'donut', array_values($values));
 
         return $chart;
     }
 
-    public function getDonutChartOptions($colors)
+    public function addToBar($color, $label, $value)
     {
-        return [
-            'color' => array_values($colors),
-            'cutoutPercentage' => 80,
-            'legend' => [
-                'position' => 'right',
-            ],
-            'tooltips' => [
-                'backgroundColor' => '#000000',
-                'titleFontColor' => '#ffffff',
-                'bodyFontColor' => '#e5e5e5',
-                'bodySpacing' => 4,
-                'xPadding' => 12,
-                'mode' => 'nearest',
-                'intersect' => 0,
-                'position' => 'nearest',
-            ],
-            'scales' => [
-                'yAxes' => [
-                    'display' => false,
-                ],
-                'xAxes' => [
-                    'display' => false,
-                ],
-            ],
-        ];
+        $this->bar['colors'][] = $color;
+        $this->bar['labels'][] = $label;
+        $this->bar['values'][] = (int) $value;
     }
 
-    public function getLineChartOptions()
+    public function getBarChart($name, $width = '100%', $height = 160)
     {
-        return [
-            'tooltips' => [
-                'backgroundColor' => '#000000',
-                'titleFontColor' => '#ffffff',
-                'bodyFontColor' => '#e5e5e5',
-                'bodySpacing' => 4,
-                'YrPadding' => 12,
-                'mode' => 'nearest',
-                'intersect' => 0,
-                'position' => 'nearest',
-            ],
-            'responsive' => true,
-            'scales' => [
-                'yAxes' => [[
-                    'barPercentage' => 1.6,
-                    'ticks' => [
-                        'padding' => 10,
-                        'fontColor' => '#9e9e9e',
-                    ],
-                    'gridLines' => [
-                        'drawBorder' => false,
-                        'color' => 'rgba(29,140,248,0.1)',
-                        'zeroLineColor' => 'transparent',
-                        'borderDash' => [2],
-                        'borderDashOffset' => [2],
-                    ],
-                ]],
-                'xAxes' => [[
-                    'barPercentage' => 1.6,
-                    'ticks' => [
-                        'suggestedMin' => 60,
-                        'suggestedMax' => 125,
-                        'padding' => 20,
-                        'fontColor' => '#9e9e9e',
-                    ],
-                    'gridLines' => [
-                        'drawBorder' => false,
-                        'color' => 'rgba(29,140,248,0.0)',
-                        'zeroLineColor' => 'transparent',
-                    ],
-                ]],
-            ],
-        ];
+        $chart = new Apexcharts();
+
+        $chart->setType('bar')
+            ->setWidth($width)
+            ->setHeight($height)
+            ->setLabels(array_values($this->bar['labels']))
+            ->setColors($this->bar['colors']);
+
+        foreach ($this->bar['values'] as $key => $value) {
+            $chart->setDataset($this->bar['labels'][$key], 'bar', $value);
+        }
+
+        return $chart;
     }
 }

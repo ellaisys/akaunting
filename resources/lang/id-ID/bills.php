@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Nomor Tagihan',
     'bill_date'             => 'Tanggal Tagihan',
+    'bill_amount'           => 'Jumlah Tagihan',
     'total_price'           => 'Total Harga',
     'due_date'              => 'Tanggal Jatuh Tempo',
     'order_number'          => 'Nomor Pesanan',
@@ -17,12 +18,14 @@ return [
     'tax_total'             => 'Total Pajak',
     'total'                 => 'Total',
 
-    'item_name'             => 'Nama Barang | Nama Barang',
+    'item_name'             => 'Nama Item|Nama Item',
+    'recurring_bills'       => 'Tagihan Rutin|Tagihan Rutin',
 
     'show_discount'         => 'Diskon :discount%',
     'add_discount'          => 'Tambahkan diskon',
     'discount_desc'         => 'dari sub-total',
 
+    'payment_made'          => 'Pembayaran Dibuat',
     'payment_due'           => 'Pembayaran Jatuh Tempo',
     'amount_due'            => 'Jumlah Jatuh Tempo',
     'paid'                  => 'Dibayar',
@@ -38,20 +41,11 @@ return [
     'receive_bill'          => 'Menerima Tagihan',
     'make_payment'          => 'Melakukan Pembayaran',
 
-    'statuses' => [
-        'draft'             => 'Konsep',
-        'received'          => 'Diterima',
-        'partial'           => 'Sebagian',
-        'paid'              => 'Dibayar',
-        'overdue'           => 'Jatuh Tempo',
-        'unpaid'            => 'Belum Dibayar',
-        'cancelled'         => 'Dibatalkan',
+    'form_description' => [
+        'billing'           => 'Detail penagihan muncul di tagihan Anda. Tanggal Tagihan digunakan di dasbor dan laporan. Pilih tanggal yang Anda harapkan untuk membayar sebagai Tanggal Jatuh Tempo.',
     ],
 
     'messages' => [
-        'marked_received'   => 'Tagihan sudah diterima',
-        'marked_paid'       => 'Tagihan sudah dibayar',
-        'marked_cancelled'  => 'Tagihan dibatalkan',
         'draft'             => 'Ini adalah <b>DRAFT</b> tagihan dan akan terlihat di grafik setelah dibayarkan.',
 
         'status' => [

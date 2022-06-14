@@ -11,37 +11,53 @@ class Items extends BulkAction
 {
     public $model = Item::class;
 
+    public $text = 'general.items';
+
+    public $path = [
+        'group' => 'common',
+        'type' => 'items',
+    ];
+
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-common-items',
+        'enable'    => [
+            'icon'          => 'check_circle',
+            'name'          => 'general.enable',
+            'message'       => 'bulk_actions.message.enable',
+            'path'          => ['group' => 'common', 'type' => 'items'],
+            'type'          => '*',
+            'permission'    => 'update-common-items',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-common-items',
+        'disable'   => [
+            'icon'          => 'hide_source',
+            'name'          => 'general.disable',
+            'message'       => 'bulk_actions.message.disable',
+            'path'          => ['group' => 'common', 'type' => 'items'],
+            'type'          => '*',
+            'permission'    => 'update-common-items',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-common-items',
+        'delete'    => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-common-items',
         ],
-        'export' => [
-            'name' => 'general.export',
-            'message' => 'bulk_actions.message.export',
+        'export'    => [
+            'icon'          => 'file_download',
+            'name'          => 'general.export',
+            'message'       => 'bulk_actions.message.export',
+            'type'          => 'download',
         ],
     ];
 
     public function destroy($request)
     {
-        $items = $this->getSelectedRecords($request);
+        $items = $this->getSelectedRecords($request, 'taxes');
 
         foreach ($items as $item) {
             try {
                 $this->dispatch(new DeleteItem($item));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -50,6 +66,6 @@ class Items extends BulkAction
     {
         $selected = $this->getSelectedInput($request);
 
-        return \Excel::download(new Export($selected), trans_choice('general.items', 2) . '.xlsx');
+        return $this->exportExcel(new Export($selected), trans_choice('general.items', 2));
     }
 }

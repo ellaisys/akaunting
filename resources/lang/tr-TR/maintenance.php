@@ -6,6 +6,6 @@ return [
 
     'message' => 'Üzgünüz, bakım için kapalıyız. Lütfen, daha sonra tekrar deneyin!',
 
-    'last-updated' => 'Bu mesaj en son :timestamp güncellendi.',
+    'read_only' => 'Salt okunur mod etkinleştirildi.  Görüntülemenize izin verilir, ancak hiçbir şeyi değiştiremezsiniz!',
 
 ];

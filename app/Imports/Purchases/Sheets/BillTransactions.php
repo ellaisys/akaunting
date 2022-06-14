@@ -3,8 +3,8 @@
 namespace App\Imports\Purchases\Sheets;
 
 use App\Abstracts\Import;
-use App\Models\Banking\Transaction as Model;
 use App\Http\Requests\Banking\Transaction as Request;
+use App\Models\Banking\Transaction as Model;
 
 class BillTransactions extends Import
 {
@@ -26,6 +26,7 @@ class BillTransactions extends Import
         $row['category_id'] = $this->getCategoryId($row, 'expense');
         $row['contact_id'] = $this->getContactId($row, 'vendor');
         $row['document_id'] = $this->getDocumentId($row);
+        $row['number'] = $row['transaction_number'];
 
         return $row;
     }

@@ -3,31 +3,19 @@
 namespace App\Jobs\Setting;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Models\Setting\Category;
 
-class CreateCategory extends Job
+class CreateCategory extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
+    public function handle(): Category
     {
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $this->model = Category::create($this->request->all());
+        });
 
-    /**
-     * Execute the job.
-     *
-     * @return Category
-     */
-    public function handle()
-    {
-        $category = Category::create($this->request->all());
-
-        return $category;
+        return $this->model;
     }
 }

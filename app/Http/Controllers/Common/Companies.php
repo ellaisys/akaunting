@@ -8,10 +8,8 @@ use App\Jobs\Common\CreateCompany;
 use App\Jobs\Common\DeleteCompany;
 use App\Jobs\Common\UpdateCompany;
 use App\Models\Common\Company;
-use App\Models\Setting\Currency;
 use App\Traits\Uploads;
 use App\Traits\Users;
-use App\Utilities\Overrider;
 
 class Companies extends Controller
 {
@@ -24,9 +22,9 @@ class Companies extends Controller
      */
     public function index()
     {
-        $companies = Company::collect();
+        $companies = user()->companies()->collect();
 
-        return view('common.companies.index', compact('companies'));
+        return $this->response('common.companies.index', compact('companies'));
     }
 
     /**
@@ -46,9 +44,7 @@ class Companies extends Controller
      */
     public function create()
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
-        return view('common.companies.create', compact('currencies'));
+        return view('common.companies.create');
     }
 
     /**
@@ -60,7 +56,7 @@ class Companies extends Controller
      */
     public function store(Request $request)
     {
-        $company_id = session('company_id');
+        $current_company_id = company_id();
 
         $response = $this->ajaxDispatch(new CreateCompany($request));
 
@@ -75,12 +71,10 @@ class Companies extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
-        session(['company_id' => $company_id]);
-
-        Overrider::load('settings');
+        company($current_company_id)->makeCurrent();
 
         return response()->json($response);
     }
@@ -94,13 +88,11 @@ class Companies extends Controller
      */
     public function edit(Company $company)
     {
-        if (!$this->isUserCompany($company->id)) {
+        if ($this->isNotUserCompany($company->id)) {
             return redirect()->route('companies.index');
         }
 
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
-        return view('common.companies.edit', compact('company', 'currencies'));
+        return view('common.companies.edit', compact('company'));
     }
 
     /**
@@ -113,9 +105,9 @@ class Companies extends Controller
      */
     public function update(Company $company, Request $request)
     {
-        $company_id = session('company_id');
+        $current_company_id = company_id();
 
-        $response = $this->ajaxDispatch(new UpdateCompany($company, $request));
+        $response = $this->ajaxDispatch(new UpdateCompany($company, $request, company_id()));
 
         if ($response['success']) {
             $response['redirect'] = route('companies.index');
@@ -128,12 +120,10 @@ class Companies extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
-        session(['company_id' => $company_id]);
-
-        Overrider::load('settings');
+        company($current_company_id)->makeCurrent();
 
         return response()->json($response);
     }
@@ -194,7 +184,7 @@ class Companies extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -210,21 +200,39 @@ class Companies extends Controller
     public function switch(Company $company)
     {
         if ($this->isUserCompany($company->id)) {
-            $old_company_id = session('company_id');
+            $old_company_id = company_id();
 
-            session(['company_id' => $company->id]);
-            session(['dashboard_id' => $company->dashboards()->pluck('id')->first()]);
+            $company->makeCurrent();
 
-            Overrider::load('settings');
+            session(['dashboard_id' => user()->dashboards()->enabled()->pluck('id')->first()]);
 
             event(new \App\Events\Common\CompanySwitched($company, $old_company_id));
 
             // Check wizard
-            if (!setting('wizard.completed', false)) {
-                return redirect()->route('wizard.edit');
+            if (! setting('wizard.completed', false)) {
+                return redirect()->route('wizard.edit', ['company_id' => $company->id]);
             }
         }
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard', ['company_id' => $company->id]);
+    }
+
+    public function autocomplete()
+    {
+        $query = request('query');
+
+        $autocomplete = Company::autocomplete([
+            'name' => $query
+        ]);
+
+        $companies = $autocomplete->get()->sortBy('name')->pluck('name', 'id');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Get all companies.',
+            'errors' => [],
+            'count' => $companies->count(),
+            'data' => ($companies->count()) ? $companies : null,
+        ]);
     }
 }

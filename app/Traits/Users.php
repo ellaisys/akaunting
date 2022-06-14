@@ -2,6 +2,8 @@
 
 namespace App\Traits;
 
+use App\Models\Auth\UserInvitation;
+
 trait Users
 {
     /**
@@ -29,9 +31,16 @@ trait Users
             return false;
         }
 
-        $company = $user->companies()->where('id', $id)->first();
+        $company = $user->withoutEvents(function () use ($user, $id) {
+            return $user->companies()->where('id', $id)->first();
+        });
 
         return !empty($company);
+    }
+
+    public function isNotUserCompany($id)
+    {
+        return !$this->isUserCompany($id);
     }
 
     /**
@@ -46,11 +55,87 @@ trait Users
         $user = user();
 
         if (empty($user)) {
-            return false;
+            return app()->runningInConsole() ? true : false;
         }
 
-        $dashboard = $user->dashboards()->where('id', $id)->first();
+        $dashboard = $user->withoutEvents(function () use ($user, $id) {
+            return $user->dashboards()->where('id', $id)->first();
+        });
 
         return !empty($dashboard);
+    }
+
+    public function isNotUserDashboard($id)
+    {
+        return !$this->isUserDashboard($id);
+    }
+
+    /**
+     * Get the fist company of active user
+     *
+     * @return null|\App\Models\Common\Company
+     */
+    public function getFirstCompanyOfUser()
+    {
+        $user = user();
+
+        if (empty($user)) {
+            return null;
+        }
+
+        $company = $user->withoutEvents(function () use ($user) {
+            return $user->companies()->enabled()->first();
+        });
+
+        if (empty($company)) {
+            return null;
+        }
+
+        return $company;
+    }
+
+    public function getLandingPageOfUser()
+    {
+        $user = user();
+
+        if (empty($user)) {
+            return route('login');
+        }
+
+        $route_name = $user->isCustomer() ? 'portal.dashboard' : $user->landing_page;
+
+        $company_id = company_id() ?: $this->getFirstCompanyOfUser()?->id;
+
+        return route($route_name, ['company_id' => $company_id]);
+    }
+
+    /**
+     * Checks if the given user has a pending invitation for the
+     * provided Company.
+     *
+     * @return bool
+     */
+    public function hasPendingInvitation($company_id = null)
+    {
+        $company_id = $company_id ?: company_id();
+
+        $invitation = UserInvitation::where('user_id', $this->id)->where('company_id', $company_id)->first();
+
+        return $invitation ? true : false;
+    }
+
+    /**
+     * Returns if the given user has a pending invitation for the
+     * provided Company.
+     *
+     * @return null|UserInvitation
+     */
+    public function getPendingInvitation($company_id = null)
+    {
+        $company_id = $company_id ?: company_id();
+
+        $invitation = UserInvitation::where('user_id', $this->id)->where('company_id', $company_id)->first();
+
+        return $invitation;
     }
 }

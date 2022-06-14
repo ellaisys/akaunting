@@ -12,16 +12,26 @@ class CurrenciesTest extends FeatureTestCase
         $this->loginAs()
             ->get(route('wizard.currencies.index'))
             ->assertStatus(200)
-            ->assertSeeText(trans('demo.currencies.usd'));
+            ->assertSeeText(trans('general.wizard'));
     }
 
     public function testItShouldCreateCurrency()
     {
-        $this->loginAs()
-            ->post(route('wizard.currencies.store'), $this->getRequest())
-            ->assertStatus(200);
+        $request = $this->getRequest();
 
-        $this->assertFlashLevel('success');
+        $message = trans('messages.success.added', ['type' => trans_choice('general.currencies', 1)]);
+
+        $this->loginAs()
+            ->post(route('wizard.currencies.store'), $request)
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
+
+        $this->assertDatabaseHas('currencies', [
+            'code' => $request['code'],
+        ]);
     }
 
     public function testItShouldUpdateCurrency()
@@ -32,26 +42,44 @@ class CurrenciesTest extends FeatureTestCase
 
         $request['name'] = $this->faker->text(15);
 
+        $message = trans('messages.success.updated', ['type' => $request['name']]);
+
         $this->loginAs()
             ->patch(route('wizard.currencies.update', $currency->id), $request)
-            ->assertStatus(200);
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
 
-        $this->assertFlashLevel('success');
+        $this->assertDatabaseHas('currencies', [
+            'code' => $request['code'],
+        ]);
     }
 
     public function testItShouldDeleteCurrency()
     {
-        $currency = $this->dispatch(new CreateCurrency($this->getRequest()));
+        $request = $this->getRequest();
+
+        $currency = $this->dispatch(new CreateCurrency($request));
+
+        $message = trans('messages.success.deleted', ['type' => $currency->name]);
 
         $this->loginAs()
             ->delete(route('wizard.currencies.destroy', $currency->id))
-            ->assertStatus(200);
+            ->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => $message,
+            ]);
 
-        $this->assertFlashLevel('success');
+        $this->assertSoftDeleted('currencies', [
+            'code' => $request['code'],
+        ]);
     }
 
     public function getRequest()
     {
-        return factory(Currency::class)->states('enabled')->raw();
+        return Currency::factory()->enabled()->raw();
     }
 }

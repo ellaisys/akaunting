@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Modals;
 use App\Abstracts\Http\Controller;
 use App\Http\Requests\Banking\Account as Request;
 use App\Jobs\Banking\CreateAccount;
-use App\Models\Banking\Account;
 use App\Models\Setting\Currency;
 
 class Accounts extends Controller
@@ -16,9 +15,9 @@ class Accounts extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-banking-accounts')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-banking-accounts')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-banking-accounts')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-banking-accounts')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-banking-accounts')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-banking-accounts')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-banking-accounts')->only('destroy');
     }
 
@@ -29,11 +28,9 @@ class Accounts extends Controller
      */
     public function create()
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
         $currency = Currency::where('code', '=', setting('default.currency'))->first();
 
-        $html = view('modals.accounts.create', compact('currencies', 'currency'))->render();
+        $html = view('modals.accounts.create', compact('currency'))->render();
 
         return response()->json([
             'success' => true,

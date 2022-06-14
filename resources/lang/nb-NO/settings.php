@@ -3,18 +3,24 @@
 return [
 
     'company' => [
-        'description'       => 'Endre bedriftsnavn, e-post, adresse, momsavgifter mm',
-        'name'              => 'Navn',
-        'email'             => 'E-post',
-        'phone'             => 'Telefon',
-        'address'           => 'Adresse',
-        'logo'              => 'Logo',
+        'description'                => 'Endre bedriftsnavn, e-post, adresse, momsavgifter mm',
+        'name'                       => 'Navn',
+        'email'                      => 'E-post',
+        'phone'                      => 'Telefon',
+        'address'                    => 'Adresse',
+        'edit_your_business_address' => 'Rediger forretningsadressen din',
+        'logo'                       => 'Logo',
     ],
 
     'localisation' => [
         'description'       => 'Sett regnskapsår, tidssone, datoformat og mer',
         'financial_start'   => 'Start på regnskapsår',
         'timezone'          => 'Tidssone',
+        'financial_denote' => [
+            'title'         => 'Betegnelse regnskapsår',
+            'begins'        => 'Til starten av året',
+            'ends'          => 'Til slutten av året',
+        ],
         'date' => [
             'format'        => 'Datoformat',
             'separator'     => 'Datoseparator',
@@ -62,12 +68,27 @@ return [
         'default'           => 'Standard',
         'classic'           => 'Klassisk',
         'modern'            => 'Moderne',
+        'hide'              => [
+            'item_name'         => 'Skjul elementnavn',
+            'item_description'  => 'Skjul elementbeskrivelse',
+            'quantity'          => 'Skjul antall',
+            'price'             => 'Skjul pris',
+            'amount'            => 'Skjul beløp',
+        ],
+    ],
+
+    'transfer' => [
+        'choose_template'   => 'Velg overføringsmal',
+        'second'            => 'Sekund',
+        'third'             => 'Tredje',
     ],
 
     'default' => [
         'description'       => 'Standard konto, valuta, språk for ditt foretak',
         'list_limit'        => 'Oppføringer per side',
         'use_gravatar'      => 'Bruk Gravatar',
+        'income_category'   => 'Inntektskategori',
+        'expense_category'  => 'Utgiftskategori',
     ],
 
     'email' => [
@@ -100,6 +121,7 @@ return [
             'invoice_payment_admin'     => 'Mottatt betalingsmal (sendt til admin)',
             'bill_remind_admin'         => 'Fakturapåminnelsesmal (sendt til admin)',
             'bill_recur_admin'          => 'Gjentagende fakturamal (sendt til admin)',
+            'revenue_new_customer'      => 'Mal mottatte inntekter (sendt til kunde)',
         ],
     ],
 

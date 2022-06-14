@@ -2,20 +2,14 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Abstracts\Http\Controller;
-use App\Models\Setting\Setting;
+use App\Abstracts\Http\SettingController;
 
-class Invoice extends Controller
+class Invoice extends SettingController
 {
     public function edit()
     {
-        $setting = Setting::prefix('invoice')->get()->transform(function ($s) {
-            $s->key = str_replace('invoice.', '', $s->key);
-
-            return $s;
-        })->pluck('value', 'key');
-
         $item_names = [
+            'hide' => trans('settings.invoice.hide.item_name'),
             'settings.invoice.item' => trans('settings.invoice.item'),
             'settings.invoice.product' => trans('settings.invoice.product'),
             'settings.invoice.service' =>  trans('settings.invoice.service'),
@@ -23,12 +17,14 @@ class Invoice extends Controller
         ];
 
         $price_names = [
+            'hide' => trans('settings.invoice.hide.price'),
             'settings.invoice.price' => trans('settings.invoice.price'),
             'settings.invoice.rate' => trans('settings.invoice.rate'),
             'custom' => trans('settings.invoice.custom'),
         ];
 
         $quantity_names = [
+            'hide' => trans('settings.invoice.hide.quantity'),
             'settings.invoice.quantity' => trans('settings.invoice.quantity'),
             'custom' => trans('settings.invoice.custom'),
         ];
@@ -43,7 +39,6 @@ class Invoice extends Controller
         ];
 
         return view('settings.invoice.edit', compact(
-            'setting',
             'item_names',
             'price_names',
             'quantity_names',

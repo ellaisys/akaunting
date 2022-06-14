@@ -4,21 +4,21 @@ return [
 
     'name'      =>  'Akaunting',
 
-    'code'      =>  'Argon',
+    'code'      =>  'Tailwind',
 
-    'major'     =>  '2',
+    'major'     =>  '3',
 
     'minor'     =>  '0',
 
-    'patch'     =>  '10',
+    'patch'     =>  '1',
 
     'build'     =>  '',
 
     'status'    =>  'Stable',
 
-    'date'      =>  '24-April-2020',
+    'date'      =>  '11-June-2022',
 
-    'time'      =>  '22:00',
+    'time'      =>  '10:00',
 
     'zone'      =>  'GMT +3',
 

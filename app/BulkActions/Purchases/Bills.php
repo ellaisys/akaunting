@@ -3,36 +3,49 @@
 namespace App\BulkActions\Purchases;
 
 use App\Abstracts\BulkAction;
-use App\Events\Purchase\BillCancelled;
-use App\Events\Purchase\BillReceived;
+use App\Events\Document\DocumentCancelled;
+use App\Events\Document\DocumentReceived;
 use App\Exports\Purchases\Bills as Export;
-use App\Jobs\Purchase\CreateBillHistory;
-use App\Jobs\Purchase\DeleteBill;
-use App\Models\Purchase\Bill;
+use App\Jobs\Banking\CreateBankingDocumentTransaction;
+use App\Jobs\Document\CreateDocumentHistory;
+use App\Jobs\Document\DeleteDocument;
+use App\Models\Document\Document;
 
 class Bills extends BulkAction
 {
-    public $model = Bill::class;
+    public $model = Document::class;
+
+    public $text = 'general.bills';
+
+    public $path = [
+        'group' => 'purchases',
+        'type' => 'bills',
+    ];
 
     public $actions = [
-        'received' => [
-            'name' => 'bills.mark_received',
-            'message' => 'bulk_actions.message.received',
-            'permission' => 'update-purchases-bills',
+        'received'  => [
+            'icon'          => 'send',
+            'name'          => 'bills.mark_received',
+            'message'       => 'bulk_actions.message.received',
+            'permission'    => 'update-purchases-bills',
         ],
         'cancelled' => [
-            'name' => 'general.cancel',
-            'message' => 'bulk_actions.message.cancelled',
-            'permission' => 'update-purchases-bills',
+            'icon'          => 'cancel',
+            'name'          => 'general.cancel',
+            'message'       => 'bulk_actions.message.cancelled',
+            'permission'    => 'update-purchases-bills',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-purchases-bills',
+        'delete'    => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-purchases-bills',
         ],
-        'export' => [
-            'name' => 'general.export',
-            'message' => 'bulk_actions.message.export',
+        'export'    => [
+            'icon'          => 'file_download',
+            'name'          => 'general.export',
+            'message'       => 'bulk_actions.message.export',
+            'type'          => 'download',
         ],
     ];
 
@@ -41,7 +54,11 @@ class Bills extends BulkAction
         $bills = $this->getSelectedRecords($request);
 
         foreach ($bills as $bill) {
-            event(new BillReceived($bill));
+            if ($bill->status == 'received') {
+                continue;
+            }
+
+            event(new DocumentReceived($bill));
         }
     }
 
@@ -50,7 +67,11 @@ class Bills extends BulkAction
         $bills = $this->getSelectedRecords($request);
 
         foreach ($bills as $bill) {
-            event(new BillCancelled($bill));
+            if ($bill->status == 'cancelled') {
+                continue;
+            }
+
+            event(new DocumentCancelled($bill));
         }
     }
 
@@ -61,21 +82,23 @@ class Bills extends BulkAction
         foreach ($bills as $bill) {
             $clone = $bill->duplicate();
 
-            $description = trans('messages.success.added', ['type' => $clone->bill_number]);
+            $description = trans('messages.success.added', ['type' => $clone->document_number]);
 
-            $this->dispatch(new CreateBillHistory($clone, 0, $description));
+            $this->dispatch(new CreateDocumentHistory($clone, 0, $description));
         }
     }
 
     public function destroy($request)
     {
-        $bills = $this->getSelectedRecords($request);
+        $bills = $this->getSelectedRecords($request, [
+            'items', 'item_taxes', 'histories', 'transactions', 'recurring', 'totals'
+        ]);
 
         foreach ($bills as $bill) {
             try {
-                $this->dispatch(new DeleteBill($bill));
+                $this->dispatch(new DeleteDocument($bill));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -84,6 +107,6 @@ class Bills extends BulkAction
     {
         $selected = $this->getSelectedInput($request);
 
-        return \Excel::download(new Export($selected), \Str::filename(trans_choice('general.bills', 2)) . '.xlsx');
+        return $this->exportExcel(new Export($selected), trans_choice('general.bills', 2));
     }
 }

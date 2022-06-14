@@ -4,32 +4,29 @@ namespace App\Exports\Purchases\Sheets;
 
 use App\Abstracts\Export;
 use App\Models\Banking\Transaction as Model;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class BillTransactions extends Export
+class BillTransactions extends Export implements WithColumnFormatting
 {
     public function collection()
     {
-        $model = Model::with(['account', 'category', 'contact', 'bill'])->type('expense')->isDocument()->usingSearchString(request('search'));
-
-        if (!empty($this->ids)) {
-            $model->whereIn('document_id', (array) $this->ids);
-        }
-
-        return $model->cursor();
+        return Model::with('account', 'category', 'contact', 'document')->expense()->isDocument()->collectForExport($this->ids, ['paid_at' => 'desc'], 'document_id');
     }
 
     public function map($model): array
     {
-        $bill = $model->bill;
+        $document = $model->document;
 
-        if (empty($bill)) {
+        if (empty($document)) {
             return [];
         }
 
-        $model->bill_number = $bill->bill_number;
+        $model->bill_number = $document->document_number;
         $model->account_name = $model->account->name;
         $model->category_name = $model->category->name;
         $model->contact_email = $model->contact->email;
+        $model->transaction_number = $model->number;
 
         return parent::map($model);
     }
@@ -38,6 +35,7 @@ class BillTransactions extends Export
     {
         return [
             'bill_number',
+            'transaction_number',
             'paid_at',
             'amount',
             'currency_code',
@@ -49,6 +47,13 @@ class BillTransactions extends Export
             'payment_method',
             'reference',
             'reconciled',
+        ];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'B' => NumberFormat::FORMAT_DATE_YYYYMMDD,
         ];
     }
 }

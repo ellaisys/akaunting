@@ -9,7 +9,6 @@ return [
     'new'                   => '新しい',
     'top_free'              => '無料トップ',
     'free'                  => '無料',
-    'search'                => '探索',
     'install'               => 'インストール',
     'buy_now'               => '今すぐ購入',
     'get_api_key'           => '<a href=":url" target="_blank">ここをクリック</a> APIキーを取得します。',
@@ -51,7 +50,7 @@ return [
 
     'errors' => [
         'download'          => 'ダウンロードできません :module',
-        'zip'               => '作成できません :module zip ファイル',
+        'zip'               => '作成できません :module zip ファイル',
         'unzip'             => '解凍できません :module',
         'file_copy'         => 'コピーできません :module ファイル',
         'finish'            => 'ファイナライズできません :module のインストール',

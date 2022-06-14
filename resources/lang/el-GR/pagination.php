@@ -4,7 +4,6 @@ return [
 
     'previous'              => '&laquo; Προηγούμενη',
     'next'                  => 'Επόμενη &raquo;',
-    'showing'               => ':first-:last of :total records.',
+    'showing'               => ':first-:last από :total εγγραφές.',
     'page'                  => 'ανά σελίδα.',
-
 ];

@@ -1,43 +1,104 @@
 <?php
 
-use App\Models\Auth\User;
-use App\Models\Banking\Transaction;
-use Faker\Generator as Faker;
+namespace Database\Factories;
 
-$user = User::first();
-$company = $user->companies()->first();
+use App\Abstracts\Factory;
+use App\Models\Banking\Transaction as Model;
+use App\Traits\Transactions;
+use App\Utilities\Date;
 
-$factory->define(Transaction::class, function (Faker $faker) use ($company) {
-	setting()->setExtraColumns(['company_id' => $company->id]);
+class Transaction extends Factory
+{
+    use Transactions;
 
-	$types = ['income', 'expense'];
-	$type = $faker->randomElement($types);
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = Model::class;
 
-	return [
-		'company_id' => $company->id,
-		'type' => $type,
-		'account_id' => setting('default.account'),
-		'paid_at' => $faker->dateTimeBetween(now()->startOfYear(), now()->endOfYear())->format('Y-m-d'),
-		'amount' => $faker->randomFloat(2, 1, 1000),
-		'currency_code' => setting('default.currency'),
-		'currency_rate' => '1',
-		'description' => $faker->text(5),
-		'category_id' => $company->categories()->type($type)->get()->random(1)->pluck('id')->first(),
-		'reference' => $faker->text(5),
-		'payment_method' => setting('default.payment_method'),
-	];
-});
+    /**
+     * The type of the model.
+     *
+     * @var string
+     */
+    protected $type = 'income';
 
-$factory->state(Transaction::class, 'income', function (Faker $faker) use ($company) {
-    return [
-		'type' => 'income',
-		'category_id' => $company->categories()->type('income')->get()->random(1)->pluck('id')->first(),
-    ];
-});
+    /**
+     * Define the model's default state.
+     *
+     * @return array
+     */
+    public function definition()
+    {
+        $types = array_merge($this->getIncomeTypes(), $this->getExpenseTypes());
+        $this->type = $this->faker->randomElement($types);
 
-$factory->state(Transaction::class, 'expense', function (Faker $faker) use ($company) {
-    return [
-		'type' => 'expense',
-		'category_id' => $company->categories()->type('expense')->get()->random(1)->pluck('id')->first(),
-    ];
-});
+        $category_type = in_array($this->type, $this->getIncomeTypes()) ? 'income' : 'expense';
+
+        return [
+            'company_id' => $this->company->id,
+            'type' => $this->type,
+            'number' => $this->getNextTransactionNumber(),
+            'account_id' => setting('default.account'),
+            'paid_at' => $this->faker->dateTimeBetween(now()->startOfYear(), now()->endOfYear())->format('Y-m-d H:i:s'),
+            'amount' => $this->faker->randomFloat(2, 1, 1000),
+            'currency_code' => setting('default.currency'),
+            'currency_rate' => '1.0',
+            'description' => $this->faker->text(5),
+            'category_id' => $this->company->categories()->$category_type()->get()->random(1)->pluck('id')->first(),
+            'reference' => $this->faker->text(5),
+            'payment_method' => setting('default.payment_method'),
+            'created_from' => 'core::factory',
+        ];
+    }
+
+    /**
+     * Indicate that the model type is income.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    public function income()
+    {
+        return $this->state([
+            'type' => 'income',
+            'category_id' => $this->company->categories()->income()->get()->random(1)->pluck('id')->first(),
+        ]);
+    }
+
+    /**
+     * Indicate that the model type is expense.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    public function expense()
+    {
+        return $this->state([
+            'type' => 'expense',
+            'category_id' => $this->company->categories()->expense()->get()->random(1)->pluck('id')->first(),
+        ]);
+    }
+
+    /**
+     * Indicate that the model is recurring.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    public function recurring()
+    {
+        return $this->state([
+            'type' => $this->getRawAttribute('type') . '-recurring',
+            'number' => $this->getNextTransactionNumber('-recurring'),
+            'recurring_started_at' => $this->getRawAttribute('paid_at'),
+            'recurring_frequency' => 'daily',
+            'recurring_custom_frequency' => 'daily',
+            'recurring_interval' => '1',
+            'recurring_limit' => 'date',
+            'recurring_limit_date' => Date::now()->addDay(7)->format('Y-m-d'),
+            'disabled_transaction_paid' => "Auto-generated",
+            'disabled_transaction_number' => "Auto-generated",
+            'real_type' => $this->getRawAttribute('type'),
+        ]);
+    }
+}

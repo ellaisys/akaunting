@@ -3,9 +3,13 @@
 namespace App\Models\Setting;
 
 use App\Abstracts\Model;
+use App\Models\Document\Document;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Tax extends Model
 {
+    use HasFactory;
+
     protected $table = 'taxes';
 
     /**
@@ -20,7 +24,17 @@ class Tax extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'rate', 'type', 'enabled'];
+    protected $fillable = ['company_id', 'name', 'rate', 'type', 'enabled', 'created_from', 'created_by'];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'rate' => 'double',
+        'enabled' => 'boolean',
+    ];
 
     /**
      * Sortable columns.
@@ -31,17 +45,22 @@ class Tax extends Model
 
     public function items()
     {
-        return $this->hasMany('App\Models\Common\Item');
+        return $this->hasMany('App\Models\Common\ItemTax');
+    }
+
+    public function document_items()
+    {
+        return $this->hasMany('App\Models\Document\DocumentItemTax');
     }
 
     public function bill_items()
     {
-        return $this->hasMany('App\Models\Purchase\BillItemTax');
+        return $this->document_items()->where('document_item_taxes.type', Document::BILL_TYPE);
     }
 
     public function invoice_items()
     {
-        return $this->hasMany('App\Models\Sale\InvoiceItemTax');
+        return $this->document_items()->where('document_item_taxes.type', Document::INVOICE_TYPE);
     }
 
     public function scopeName($query, $name)
@@ -54,15 +73,48 @@ class Tax extends Model
         return $query->where('rate', '=', $rate);
     }
 
-    /**
-     * Convert rate to double.
-     *
-     * @param  string  $value
-     * @return void
-     */
-    public function setRateAttribute($value)
+    public function scopeNotRate($query, $rate)
     {
-        $this->attributes['rate'] = (double) $value;
+        return $query->where('rate', '<>', $rate);
+    }
+
+    public function scopeType($query, $types)
+    {
+        if (empty($types)) {
+            return $query;
+        }
+
+        return $query->whereIn($this->qualifyColumn('type'), (array) $types);
+    }
+
+    public function scopeFixed($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '=', 'fixed');
+    }
+
+    public function scopeNormal($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '=', 'normal');
+    }
+
+    public function scopeInclusive($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '=', 'inclusive');
+    }
+
+    public function scopeCompound($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '=', 'compound');
+    }
+
+    public function scopeWithholding($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '=', 'withholding');
+    }
+
+    public function scopeNotWithholding($query)
+    {
+        return $query->where($this->qualifyColumn('type'), '<>', 'withholding');
     }
 
     /**
@@ -82,5 +134,42 @@ class Tax extends Model
         $title .= ')';
 
         return $title;
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('taxes.edit', $this->id),
+            'permission' => 'update-settings-taxes',
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'taxes.destroy',
+            'permission' => 'delete-settings-taxes',
+            'model' => $this,
+        ];
+
+        return $actions;
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Tax::new();
     }
 }

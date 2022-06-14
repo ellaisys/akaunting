@@ -2,12 +2,32 @@
 
 namespace App\Providers;
 
-use Blade;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider as Provider;
-use Schema;
+use Laravel\Sanctum\Sanctum;
 
 class App extends Provider
 {
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        if (config('app.installed') && config('app.debug')) {
+            $this->app->register(\Barryvdh\Debugbar\ServiceProvider::class);
+        }
+
+        if (! env_is_production()) {
+            $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
+        }
+
+        Sanctum::ignoreMigrations();
+    }
+
     /**
      * Bootstrap any application services.
      *
@@ -18,25 +38,14 @@ class App extends Provider
         // Laravel db fix
         Schema::defaultStringLength(191);
 
-        // @todo Remove the if control after 1.3 update
-        if (method_exists('Blade', 'withoutDoubleEncoding')) {
-            Blade::withoutDoubleEncoding();
-        }
-    }
+        Paginator::useBootstrap();
 
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        if (env('APP_INSTALLED') && env('APP_DEBUG')) {
-            $this->app->register(\Barryvdh\Debugbar\ServiceProvider::class);
-        }
+        Model::preventLazyLoading(config('app.eager_load'));
 
-        if (env('APP_ENV') !== 'production') {
-            $this->app->register(\Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
-        }
+        Model::handleLazyLoadingViolationUsing(function ($model, $relation) {
+            $class = get_class($model);
+
+            report("Attempted to lazy load [{$relation}] on model [{$class}].");
+        });
     }
 }

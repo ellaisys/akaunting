@@ -2,10 +2,22 @@
 
 namespace $NAMESPACE$;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider as Provider;
 
 class $NAME$ extends Provider
 {
+    /**
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        //$this->loadConfig();
+        $this->loadRoutes();
+    }
+
     /**
      * Boot the application events.
      *
@@ -14,20 +26,9 @@ class $NAME$ extends Provider
     public function boot()
     {
         $this->loadViews();
+        $this->loadViewComponents();
         $this->loadTranslations();
         $this->loadMigrations();
-        $this->loadFactories();
-        //$this->loadConfig();
-    }
-
-    /**
-     * Register the service provider.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        $this->loadRoutes();
     }
 
     /**
@@ -38,6 +39,16 @@ class $NAME$ extends Provider
     public function loadViews()
     {
         $this->loadViewsFrom(__DIR__ . '/../Resources/views', '$ALIAS$');
+    }
+
+    /**
+     * Load view components.
+     *
+     * @return void
+     */
+    public function loadViewComponents()
+    {
+        Blade::componentNamespace('$COMPONENT_NAMESPACE$', '$ALIAS$');
     }
 
     /**
@@ -58,20 +69,6 @@ class $NAME$ extends Provider
     public function loadMigrations()
     {
         $this->loadMigrationsFrom(__DIR__ . '/../$MIGRATIONS_PATH$');
-    }
-
-    /**
-     * Load factories.
-     *
-     * @return void
-     */
-    public function loadFactories()
-    {
-        if (app()->environment('production') || !app()->runningInConsole()) {
-            return;
-        }
-
-        $this->loadFactoriesFrom(__DIR__ . '/../$FACTORIES_PATH$');
     }
 
     /**

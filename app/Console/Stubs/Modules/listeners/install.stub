@@ -4,8 +4,9 @@ namespace $MODULE_NAMESPACE$\$STUDLY_NAME$\Listeners;
 
 use App\Events\Module\Installed as Event;
 use App\Traits\Permissions;
+use Artisan;
 
-class InstallModule
+class FinishInstallation
 {
     use Permissions;
 
@@ -24,6 +25,8 @@ class InstallModule
         }
 
         $this->updatePermissions();
+
+        //$this->callSeeds();
     }
 
     protected function updatePermissions()
@@ -31,6 +34,14 @@ class InstallModule
         // c=create, r=read, u=update, d=delete
         $this->attachPermissionsToAdminRoles([
             $this->alias . '-main' => 'c,r,u,d',
+        ]);
+    }
+
+    protected function callSeeds()
+    {
+        Artisan::call('company:seed', [
+            'company' => company_id(),
+            '--class' => 'Modules\$STUDLY_NAME$\Database\Seeds\$STUDLY_NAME$DatabaseSeeder',
         ]);
     }
 }

@@ -2,10 +2,11 @@
 
 return [
 
-    'bill_number'           => 'Numarul facturii',
+    'bill_number'           => 'Numărul facturii',
     'bill_date'             => 'Data facturii',
+    'bill_amount'           => 'Suma facturată',
     'total_price'           => 'Preț total',
-    'due_date'              => 'Scadenta',
+    'due_date'              => 'Scadența',
     'order_number'          => 'Număr de comandă',
     'bill_from'             => 'Factura de la',
 
@@ -13,6 +14,7 @@ return [
     'price'                 => 'Preț',
     'sub_total'             => 'Subtotal',
     'discount'              => 'Reducere',
+    'item_discount'         => 'Linie discount',
     'tax_total'             => 'Total taxe',
     'total'                 => 'Total',
 
@@ -29,25 +31,17 @@ Nume articol|Nume articole',
     'histories'             => 'Istoric',
     'payments'              => 'Plăți',
     'add_payment'           => 'Adauga plata',
+    'mark_paid'             => 'Marchează plătit',
     'mark_received'         => 'Marcheaza ca Primit/a',
+    'mark_cancelled'        => 'Marchează anulat',
     'download_pdf'          => 'Descarca PDF',
     'send_mail'             => 'Trimite Email',
     'create_bill'           => 'Creați factură',
-    'receive_bill'          => 'Receive Bill',
+    'receive_bill'          => 'Primește factura',
     'make_payment'          => 'Plătește',
 
-    'statuses' => [
-        'draft'             => 'Ciornă',
-        'received'          => 'Primit
-Primite',
-        'partial'           => 'Parţial
-Parţială',
-        'paid'              => 'Plătit',
-    ],
-
     'messages' => [
-        'received'          => 'Factura marcata ca si Primita!',
-        'draft'             => 'This is a <b>DRAFT</b> bill and will be reflected to charts after it gets received.',
+        'draft'             => 'Acesta este o <b>CIORNĂ</b> și va putea fi vizualizată la grafice după ce este primită.',
 
         'status' => [
             'created'       => 'Creat pe data de :date',

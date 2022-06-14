@@ -11,33 +11,43 @@ class Users extends BulkAction
 {
     public $model = User::class;
 
+    public $text = 'general.users';
+
+    public $path = [
+        'group' => 'auth',
+        'type' => 'users',
+    ];
+
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-auth-users',
+        'enable'    => [
+            'icon'          => 'check_circle',
+            'name'          => 'general.enable',
+            'message'       => 'bulk_actions.message.enable',
+            'permission'    => 'update-auth-users',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-auth-users',
+        'disable'   => [
+            'icon'          => 'hide_source',
+            'name'          => 'general.disable',
+            'message'       => 'bulk_actions.message.disable',
+            'permission'    => 'update-auth-users',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-auth-users',
+        'delete'    => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-auth-users',
         ],
     ];
 
     public function disable($request)
     {
-        $users = $this->getSelectedRecords($request);
+        $users = $this->getSelectedRecords($request, 'contact');
 
         foreach ($users as $user) {
             try {
                 $this->dispatch(new UpdateUser($user, $request->merge(['enabled' => 0])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -50,7 +60,7 @@ class Users extends BulkAction
             try {
                 $this->dispatch(new DeleteUser($user));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }

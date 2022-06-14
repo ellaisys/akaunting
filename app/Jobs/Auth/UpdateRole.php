@@ -3,42 +3,27 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
+use App\Events\Auth\RoleUpdated;
+use App\Events\Auth\RoleUpdating;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Auth\Role;
-use Artisan;
 
-class UpdateRole extends Job
+class UpdateRole extends Job implements ShouldUpdate
 {
-    protected $role;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $role
-     * @param  $request
-     */
-    public function __construct($role, $request)
+    public function handle(): Role
     {
-        $this->role = $role;
-        $this->request = $this->getRequestInstance($request);
-    }
+        event(new RoleUpdating($this->model, $this->request));
 
-    /**
-     * Execute the job.
-     *
-     * @return Role
-     */
-    public function handle()
-    {
-        $this->role->update($this->request->all());
+        \DB::transaction(function () {
+            $this->model->update($this->request->all());
 
-        if ($this->request->has('permissions')) {
-            $this->role->permissions()->sync($this->request->get('permissions'));
-        }
+            if ($this->request->has('permissions')) {
+                $this->model->permissions()->sync($this->request->get('permissions'));
+            }
+        });
 
-        Artisan::call('cache:clear');
+        event(new RoleUpdated($this->model, $this->request));
 
-        return $this->role;
+        return $this->model;
     }
 }

@@ -3,56 +3,39 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
 
-class CreateReconciliation extends Job
+class CreateReconciliation extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
+    public function handle(): Reconciliation
     {
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $reconcile = (int) $this->request->get('reconcile');
+            $transactions = $this->request->get('transactions');
 
-    /**
-     * Execute the job.
-     *
-     * @return Reconciliation
-     */
-    public function handle()
-    {
-        $reconcile = $this->request->get('reconcile');
-        $transactions = $this->request->get('transactions');
+            $this->request->merge(['reconciled' => $reconcile]);
 
-        $reconciliation = Reconciliation::create([
-            'company_id' => $this->request['company_id'],
-            'account_id' => $this->request->get('account_id'),
-            'started_at' => $this->request->get('started_at'),
-            'ended_at' => $this->request->get('ended_at'),
-            'closing_balance' => $this->request->get('closing_balance'),
-            'reconciled' => $reconcile ? 1 : 0,
-        ]);
+            $this->model = Reconciliation::create($this->request->all());
 
-        if ($transactions) {
-            foreach ($transactions as $key => $value) {
-                if (empty($value)) {
-                    continue;
+            if ($reconcile && $transactions) {
+                foreach ($transactions as $key => $value) {
+                    if (empty($value)) {
+                        continue;
+                    }
+
+                    $t = explode('_', $key);
+
+                    $transaction = Transaction::find($t[1]);
+                    $transaction->reconciled = 1;
+                    $transaction->save();
                 }
-
-                $t = explode('_', $key);
-
-                $transaction = Transaction::find($t[1]);
-                $transaction->reconciled = 1;
-                $transaction->save();
             }
-        }
+        });
 
-        return $reconciliation;
+        return $this->model;
     }
 }

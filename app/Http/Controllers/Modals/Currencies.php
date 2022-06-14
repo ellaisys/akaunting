@@ -16,9 +16,9 @@ class Currencies extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-settings-currencies')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-settings-currencies')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-settings-currencies')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-settings-currencies')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-settings-currencies')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-settings-currencies')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-settings-currencies')->only('destroy');
     }
 
@@ -33,8 +33,9 @@ class Currencies extends Controller
         $current = Currency::pluck('code')->toArray();
 
         // Prepare codes
-        $codes = array();
+        $codes = [];
         $currencies = MoneyCurrency::getCurrencies();
+
         foreach ($currencies as $key => $item) {
             // Don't show if already available
             if (in_array($key, $current)) {

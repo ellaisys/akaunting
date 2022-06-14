@@ -2,12 +2,13 @@
 
 namespace App\Console\Commands;
 
-use App\Events\Sale\InvoiceReminded;
+use App\Events\Document\DocumentReminded;
 use App\Models\Common\Company;
-use App\Models\Sale\Invoice;
-use App\Utilities\Overrider;
-use Date;
+use App\Models\Document\Document;
+use App\Notifications\Sale\Invoice as Notification;
+use App\Utilities\Date;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 
 class InvoiceReminder extends Command
 {
@@ -35,21 +36,29 @@ class InvoiceReminder extends Command
         // Disable model cache
         config(['laravel-model-caching.enabled' => false]);
 
+        $today = Date::today();
+
+        $start_date = $today->copy()->subMonth()->toDateString() . ' 00:00:00';
+        $end_date = $today->copy()->addWeek()->toDateString() . ' 23:59:59';
+
         // Get all companies
-        $companies = Company::enabled()->cursor();
+        $companies = Company::whereHas('invoices', function (Builder $query) use ($start_date, $end_date) {
+                                $query->allCompanies();
+                                $query->whereBetween('due_at', [$start_date, $end_date]);
+                                $query->accrued();
+                                $query->notPaid();
+                            })
+                            ->enabled()
+                            ->cursor();
 
         foreach ($companies as $company) {
             $this->info('Sending invoice reminders for ' . $company->name . ' company.');
 
-            // Set company id
-            session(['company_id' => $company->id]);
-
-            // Override settings and currencies
-            Overrider::load('settings');
-            Overrider::load('currencies');
+            // Set company
+            $company->makeCurrent();
 
             // Don't send reminders if disabled
-            if (!setting('schedule.send_invoice_reminder')) {
+            if (! setting('schedule.send_invoice_reminder')) {
                 $this->info('Invoice reminders disabled by ' . $company->name . '.');
 
                 continue;
@@ -64,9 +73,7 @@ class InvoiceReminder extends Command
             }
         }
 
-        // Unset company_id
-        session()->forget('company_id');
-        setting()->forgetAll();
+        Company::forgetCurrent();
     }
 
     protected function remind($day)
@@ -75,10 +82,18 @@ class InvoiceReminder extends Command
         $date = Date::today()->subDays($day)->toDateString();
 
         // Get upcoming invoices
-        $invoices = Invoice::with('contact')->accrued()->notPaid()->due($date)->cursor();
+        $invoices = Document::with('contact')->invoice()->accrued()->notPaid()->due($date)->cursor();
 
         foreach ($invoices as $invoice) {
-            event(new InvoiceReminded($invoice));
+            $this->info($invoice->document_number . ' invoice reminded.');
+
+            try {
+                event(new DocumentReminded($invoice, Notification::class));
+            } catch (\Throwable $e) {
+                $this->error($e->getMessage());
+
+                report($e);
+            }
         }
     }
 }

@@ -2,8 +2,8 @@
 
 return [
 
-    'previous'              => '&laquo; Ankstesnis',
-    'next'                  => 'Sekantis &raquo;',
-    'showing'               => 'Rodoma nuo :first iki :last iš :total :type',
-
+    'previous'              => 'Ankstesnis',
+    'next'                  => 'Sekantis',
+    'showing'               => ':first-:last iš :total.',
+    'page'                  => 'puslapyje.',
 ];

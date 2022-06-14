@@ -9,7 +9,6 @@ return [
     'new'                   => 'Neu',
     'top_free'              => 'Top kostenlos',
     'free'                  => 'Kostenlos',
-    'search'                => 'Suchen',
     'install'               => 'Installieren',
     'buy_now'               => 'Jetzt kaufen',
     'get_api_key'           => '<a href=":url" target="_blank">Klicke hier</a> um Ihren API-Schlüssel zu erhalten.',
@@ -28,7 +27,7 @@ return [
 
     'installed'             => ':module installiert',
     'uninstalled'           => ':module deinstalliert',
-    //'updated'               => ':module updated',
+    'updated_2'             => ':module aktualisiert',
     'enabled'               => ':module aktiviert',
     'disabled'              => ':module deaktiviert',
 

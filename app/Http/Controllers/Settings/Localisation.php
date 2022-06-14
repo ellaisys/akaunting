@@ -2,22 +2,15 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Abstracts\Http\Controller;
-use App\Models\Setting\Setting;
+use App\Abstracts\Http\SettingController;
 use App\Traits\DateTime;
 
-class Localisation extends Controller
+class Localisation extends SettingController
 {
     use DateTime;
 
     public function edit()
     {
-        $setting = Setting::prefix('localisation')->get()->transform(function ($s) {
-            $s->key = str_replace('localisation.', '', $s->key);
-
-            return $s;
-        })->pluck('value', 'key');
-
         $timezones = $this->getTimezones();
 
         $date_formats = [
@@ -48,13 +41,18 @@ class Localisation extends Controller
             'both' => trans('settings.localisation.discount_location.both'),
         ];
 
+        $financial_denote_options = [
+            'begins' => trans('settings.localisation.financial_denote.begins'),
+            'ends' => trans('settings.localisation.financial_denote.ends'),
+        ];
+
         return view('settings.localisation.edit', compact(
-            'setting',
             'timezones',
             'date_formats',
             'date_separators',
             'percent_positions',
-            'discount_locations'
+            'discount_locations',
+            'financial_denote_options'
         ));
     }
 }

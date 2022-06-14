@@ -3,32 +3,23 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
-use Artisan;
+use App\Events\Auth\RoleDeleted;
+use App\Events\Auth\RoleDeleting;
+use App\Interfaces\Job\ShouldDelete;
 
-class DeleteRole extends Job
+class DeleteRole extends Job implements ShouldDelete
 {
-    protected $role;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $role
-     */
-    public function __construct($role)
+    public function handle(): bool
     {
-        $this->role = $role;
-    }
+        event(new RoleDeleting($this->model));
 
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
-    {
-        $this->role->delete();
+        \DB::transaction(function () {
+            $this->model->delete();
 
-        Artisan::call('cache:clear');
+            $this->model->flushCache();
+        });
+
+        event(new RoleDeleted($this->model));
 
         return true;
     }

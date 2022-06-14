@@ -13,6 +13,7 @@ return [
     'price'                 => 'Verð',
     'sub_total'             => 'Samtals',
     'discount'              => 'Afsláttur',
+    'item_discount'         => 'Línuafsláttur',
     'tax_total'             => 'VSK',
     'total'                 => 'Samtals',
 
@@ -28,22 +29,16 @@ return [
     'histories'             => 'Yfirlit',
     'payments'              => 'Greiðslur',
     'add_payment'           => 'Bæta við greiðslu',
+    'mark_paid'             => 'Merkt greitt',
     'mark_received'         => 'Móttekið',
+    'mark_cancelled'        => 'Merkt afturkallað',
     'download_pdf'          => 'Niðurhala PDF',
     'send_mail'             => 'Senda tölvupóst',
     'create_bill'           => 'Skapa reikning',
     'receive_bill'          => 'Taka á móti reikningi',
     'make_payment'          => 'Greiða',
 
-    'statuses' => [
-        'draft'             => 'Uppkast',
-        'received'          => 'Móttekið',
-        'partial'           => 'Hluta',
-        'paid'              => 'Greitt',
-    ],
-
     'messages' => [
-        'received'          => 'Reikningur merktur sem móttekinn!',
         'draft'             => 'Þetta er <b>PRUFU</b> reikningur sem sést á kortum eftir að hann er móttekinn.',
 
         'status' => [

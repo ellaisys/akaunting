@@ -2,43 +2,55 @@
 
 namespace App\Utilities;
 
-use Symfony\Component\Process\PhpExecutableFinder;
+use Illuminate\Console\Application;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class Console
 {
-    public static function run($string, $all_output = false, $timeout = 0)
+    public static function run($string, $timeout = 0)
     {
-        $command = static::formatCommandString($string);
+        $command = Application::formatCommandString($string);
 
-        $process = Process::fromShellCommandline($command, base_path());
-        $process->setTimeout($timeout);
+        logger('Console command:: ' . $command);
 
-        $process->run();
+        try {
+            $process = Process::fromShellCommandline($command, base_path());
+            $process->setTimeout($timeout);
 
-        if ($process->isSuccessful()) {
-            return true;
+            $process->mustRun();
+
+            $output = $process->getOutput();
+
+            if (static::isValidOutput($output)) {
+                return true;
+            }
+        } catch (Throwable $e) {
+            $output = $e->getMessage();
         }
 
-        $output = $all_output ? $process->getOutput() : $process->getErrorOutput();
+        logger('Console output:: ' . $output);
 
-        logger($output);
+        return static::formatOutput($output);
+    }
+
+    public static function formatOutput($output)
+    {
+        $output = nl2br($output);
+        $output = str_replace(['"', "'"], '', $output);
+        $output = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $output);
 
         return $output;
     }
 
-    public static function getPhpBinary()
+    public static function isValidOutput($output)
     {
-        return (new PhpExecutableFinder)->find(false) ?? 'php';
-    }
+        $errors = [
+            'Content-Type: application/json',
+            'CSRF token mismatch',
+        ];
 
-    public static function getArtisanBinary()
-    {
-        return defined('ARTISAN_BINARY') ? ARTISAN_BINARY : 'artisan';
-    }
-
-    public static function formatCommandString($string)
-    {
-        return sprintf('%s %s %s', static::getPhpBinary(), static::getArtisanBinary(), $string);
+        return !Str::contains($output, $errors);
     }
 }

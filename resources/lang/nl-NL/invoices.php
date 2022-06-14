@@ -4,6 +4,7 @@ return [
 
     'invoice_number'        => 'Factuurnummer',
     'invoice_date'          => 'Factuur datum',
+    'invoice_amount'        => 'Factuur bedrag',
     'total_price'           => 'Totaalprijs',
     'due_date'              => 'Vervaldatum',
     'order_number'          => 'Bestelnummer',
@@ -13,6 +14,7 @@ return [
     'price'                 => 'Prijs',
     'sub_total'             => 'Subtotaal',
     'discount'              => 'Korting',
+    'item_discount'         => 'Lijn korting',
     'tax_total'             => 'Totaal BTW',
     'total'                 => 'Totaal',
 
@@ -29,36 +31,23 @@ return [
     'add_payment'           => 'Een betaling toevoegen',
     'mark_paid'             => 'Als betaald markeren',
     'mark_sent'             => 'Als verstuurd markeren',
-    'mark_viewed'           => 'Mark Viewed',
+    'mark_viewed'           => 'Markeren als bekeken',
+    'mark_cancelled'        => 'Markeren als geannuleerd',
     'download_pdf'          => 'PDF downloaden',
     'send_mail'             => 'E-mail versturen',
     'all_invoices'          => 'Log in om alle facturen te bekijken',
     'create_invoice'        => 'Factuur maken',
     'send_invoice'          => 'Factuur sturen',
     'get_paid'              => 'Betaling afstemmen',
-    'accept_payments'       => 'Accept Online Payments',
-
-    'statuses' => [
-        'draft'             => 'Draft',
-        'sent'              => 'Sent',
-        'viewed'            => 'Viewed',
-        'approved'          => 'Approved',
-        'partial'           => 'Partial',
-        'paid'              => 'Paid',
-        'overdue'           => 'Overdue',
-        'unpaid'            => 'Unpaid',
-    ],
+    'accept_payments'       => 'Online betalingen accepteren',
 
     'messages' => [
-        'email_sent'        => 'Invoice email has been sent!',
-        'marked_sent'       => 'Invoice marked as sent!',
-        'marked_paid'       => 'Invoice marked as paid!',
         'email_required'    => 'Er is geen e-mailadres bekend van deze klant!',
         'draft'             => 'Dit is een <b>CONCEPT</b> factuur en zal terugkomen in de statistieken wanneer het verzonden is.',
 
         'status' => [
             'created'       => 'Gemaakt op :date',
-            'viewed'        => 'Viewed',
+            'viewed'        => 'Bekeken',
             'send' => [
                 'draft'     => 'Niet verstuurd',
                 'sent'      => 'Verzonden op :date',

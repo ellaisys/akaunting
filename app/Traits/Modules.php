@@ -2,17 +2,11 @@
 
 namespace App\Traits;
 
-use App\Models\Module\Module as Model;
 use App\Models\Module\Module;
 use App\Traits\SiteApi;
-use App\Utilities\Console;
+use App\Utilities\Date;
 use App\Utilities\Info;
-use Artisan;
-use Cache;
-use Date;
-use File;
-use Illuminate\Support\Str;
-use ZipArchive;
+use Illuminate\Support\Facades\Cache;
 
 trait Modules
 {
@@ -26,7 +20,7 @@ trait Modules
             ]
         ];
 
-        if (!$response = static::getResponse('POST', 'token/check', $data)) {
+        if (! $response = static::getResponse('POST', 'token/check', $data)) {
             return false;
         }
 
@@ -36,18 +30,19 @@ trait Modules
     }
 
     // Get All Modules
-    public function getModules()
+    public function getModules($data = [])
     {
-        // Get data from cache
-        $items = Cache::get('apps.items');
+        $key = 'apps.app.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($items)) {
+        $items = Cache::get($key);
+
+        if (! empty($items)) {
             return $items;
         }
 
         $items = static::getResponseData('GET', 'apps/items');
 
-        Cache::put('apps.items', $items, Date::now()->addHour());
+        Cache::put($key, $items, Date::now()->addHour());
 
         return $items;
     }
@@ -60,98 +55,170 @@ trait Modules
         return $item;
     }
 
-    public function getDocumentation($alias)
+    public function getModuleIsubscribe($alias)
     {
-        // Get data from cache
-        $documentation = Cache::get('apps.docs.' . $alias);
+        if (! $response = static::getResponse('GET', 'apps/' . $alias . '/isubscribe')) {
+            return [];
+        }
 
-        if (!empty($documentation)) {
+        $body = json_decode($response->getBody());
+
+        if (! is_object($body)) {
+            return [];
+        }
+
+        return $body;
+    }
+
+    public function getModuleDocumentation($alias, $data = [])
+    {
+        $key = 'apps.' . $alias . '.docs.' . $this->getDataKeyOfModules($data);
+
+        $documentation = Cache::get($key);
+
+        if (! empty($documentation)) {
             return $documentation;
         }
 
         $documentation = static::getResponseData('GET', 'apps/docs/' . $alias);
 
-        Cache::put('apps.docs.' . $alias, $documentation, Date::now()->addHour());
+        Cache::put($key, $documentation, Date::now()->addHour());
 
         return $documentation;
     }
 
+    public function getModuleReleases($alias, $data = [])
+    {
+        $key = 'apps.' . $alias . '.releases.' . $this->getDataKeyOfModules($data);
+
+        $releases = Cache::get($key);
+
+        if (! empty($releases)) {
+            return $releases;
+        }
+
+        $releases = static::getResponseData('GET', 'apps/' . $alias . '/releases', $data);
+
+        Cache::put($key, $releases, Date::now()->addHour());
+
+        return $releases;
+    }
+
     public function getModuleReviews($alias, $data = [])
     {
-        // Get data from cache
-        $reviews = Cache::get('apps.' . $alias . '.reviews');
+        $key = 'apps.' . $alias . '.reviews.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($reviews)) {
+        $reviews = Cache::get($key);
+
+        if (! empty($reviews)) {
             return $reviews;
         }
 
         $reviews = static::getResponseData('GET', 'apps/' . $alias . '/reviews', $data);
 
-        Cache::put('apps.' . $alias . '.reviews', $reviews, Date::now()->addHour());
+        Cache::put($key, $reviews, Date::now()->addHour());
 
         return $reviews;
     }
 
-    public function getCategories()
+    public function getModuleTestimonials($alias, $data = [])
     {
-        // Get data from cache
-        $categories = Cache::get('apps.categories');
+        $key = 'apps.' . $alias . '.testimonials.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($categories)) {
+        $testimonials = Cache::get($key);
+
+        if (! empty($testimonials)) {
+            return $testimonials;
+        }
+
+        $testimonials = static::getResponseData('GET', 'apps/' . $alias . '/testimonials', $data);
+
+        Cache::put($key, $testimonials, Date::now()->addHour());
+
+        return $testimonials;
+    }
+
+    public function getBannersOfModules($data = [])
+    {
+        $key = 'apps.banners.' . $this->getDataKeyOfModules($data);
+
+        $banners = Cache::get($key);
+
+        if (! empty($banners)) {
+            return $banners;
+        }
+
+        $banners = static::getResponseData('GET', 'apps/banners');
+
+        Cache::put($key, $banners, Date::now()->addHour());
+
+        return $banners;
+    }
+
+    public function getCategoriesOfModules($data = [])
+    {
+        $key = 'apps.categories.' . $this->getDataKeyOfModules($data);
+
+        $categories = Cache::get($key);
+
+        if (! empty($categories)) {
             return $categories;
         }
 
         $categories = static::getResponseData('GET', 'apps/categories');
 
-        Cache::put('apps.categories', $categories, Date::now()->addHour());
+        Cache::put($key, $categories, Date::now()->addHour());
 
         return $categories;
     }
 
     public function getModulesByCategory($alias, $data = [])
     {
-        // Get data from cache
-        $category = Cache::get('apps.categories.' . $alias);
+        $key = 'apps.categories.' . $alias . '.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($category)) {
+        $category = Cache::get($key);
+
+        if (! empty($category)) {
             return $category;
         }
 
         $category = static::getResponseData('GET', 'apps/categories/' . $alias, $data);
 
-        Cache::put('apps.categories.' . $alias, $category, Date::now()->addHour());
+        Cache::put($key, $category, Date::now()->addHour());
 
         return $category;
     }
 
-    public function getVendors()
+    public function getVendorsOfModules($data = [])
     {
-        // Get data from cache
-        $vendors = Cache::get('apps.vendors');
+        $key = 'apps.vendors.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($vendors)) {
+        $vendors = Cache::get($key);
+
+        if (! empty($vendors)) {
             return $vendors;
         }
 
         $vendors = static::getResponseData('GET', 'apps/vendors');
 
-        Cache::put('apps.vendors', $vendors, Date::now()->addHour());
+        Cache::put($key, $vendors, Date::now()->addHour());
 
         return $vendors;
     }
 
     public function getModulesByVendor($alias, $data = [])
     {
-        // Get data from cache
-        $vendor = Cache::get('apps.vendors.' . $alias);
+        $key = 'apps.vendors.' . $alias . '.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($vendor)) {
+        $vendor = Cache::get($key);
+
+        if (! empty($vendor)) {
             return $vendor;
         }
 
         $vendor = static::getResponseData('GET', 'apps/vendors/' . $alias, $data);
 
-        Cache::put('apps.vendors.' . $alias, $vendor, Date::now()->addHour());
+        Cache::put($key, $vendor, Date::now()->addHour());
 
         return $vendor;
     }
@@ -161,118 +228,133 @@ trait Modules
         return static::getResponseData('GET', 'apps/my', $data);
     }
 
-    public function getInstalledModules($data = [])
+    public function getInstalledModules()
     {
-        $company_id = session('company_id');
+        $key = 'apps.installed.' . company_id();
 
-        $cache = 'installed.' . $company_id . '.module';
-
-        $installed = Cache::get($cache);
-
-        if ($installed) {
+        if ($installed = Cache::get($key)) {
             return $installed;
         }
 
         $installed = [];
 
-        $modules = Module::all();
-        $installed_modules = Model::where('company_id', '=', session('company_id'))->pluck('enabled', 'alias')->toArray();
-
-        foreach ($modules as $module) {
-            if (!array_key_exists($module->alias, $installed_modules)) {
-                continue;
+        Module::all()->each(function($module) use (&$installed) {
+            if (! $this->moduleExists($module->alias)) {
+                return;
             }
 
-            $result = $this->getModule($module->alias);
-
-            if ($result) {
-                $installed[] = $result;
+            if (! $result = $this->getModule($module->alias)) {
+                return;
             }
-        }
 
-        Cache::put($cache, $installed, Date::now()->addHour(6));
+            $installed[] = $result;
+        });
+
+        Cache::put($key, $installed, Date::now()->addHour(6));
 
         return $installed;
     }
 
     public function getPreSaleModules($data = [])
     {
-        // Get data from cache
-        $pre_sale = Cache::get('apps.pre_sale');
+        $key = 'apps.pre_sale.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($pre_sale)) {
+        $pre_sale = Cache::get($key);
+
+        if (! empty($pre_sale)) {
             return $pre_sale;
         }
 
         $pre_sale = static::getResponseData('GET', 'apps/pre_sale', $data);
 
-        Cache::put('apps.pre_sale', $pre_sale, Date::now()->addHour());
+        Cache::put($key, $pre_sale, Date::now()->addHour());
 
         return $pre_sale;
     }
 
     public function getPaidModules($data = [])
     {
-        // Get data from cache
-        $paid = Cache::get('apps.paid');
+        $key = 'apps.paid.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($paid)) {
+        $paid = Cache::get($key);
+
+        if (! empty($paid)) {
             return $paid;
         }
 
         $paid = static::getResponseData('GET', 'apps/paid', $data);
 
-        Cache::put('apps.paid', $paid, Date::now()->addHour());
+        Cache::put($key, $paid, Date::now()->addHour());
 
         return $paid;
     }
 
     public function getNewModules($data = [])
     {
-        // Get data from cache
-        $new = Cache::get('apps.new');
+        $key = 'apps.new.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($new)) {
+        $new = Cache::get($key);
+
+        if (! empty($new)) {
             return $new;
         }
 
         $new = static::getResponseData('GET', 'apps/new', $data);
 
-        Cache::put('apps.new', $new, Date::now()->addHour());
+        Cache::put($key, $new, Date::now()->addHour());
 
         return $new;
     }
 
     public function getFreeModules($data = [])
     {
-        // Get data from cache
-        $free = Cache::get('apps.free');
+        $key = 'apps.free.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($free)) {
+        $free = Cache::get($key);
+
+        if (! empty($free)) {
             return $free;
         }
 
         $free = static::getResponseData('GET', 'apps/free', $data);
 
-        Cache::put('apps.free', $free, Date::now()->addHour());
+        Cache::put($key, $free, Date::now()->addHour());
 
         return $free;
     }
 
     public function getFeaturedModules($data = [])
     {
-        // Get data from cache
-        $featured = Cache::get('apps.featured');
+        $key = 'apps.featured.' . $this->getDataKeyOfModules($data);
 
-        if (!empty($featured)) {
+        $featured = Cache::get($key);
+
+        if (! empty($featured)) {
             return $featured;
         }
 
         $featured = static::getResponseData('GET', 'apps/featured', $data);
 
-        Cache::put('apps.featured', $featured, Date::now()->addHour());
+        Cache::put($key, $featured, Date::now()->addHour());
 
         return $featured;
+    }
+
+    public function getPopularModules($data = [])
+    {
+        $key = 'apps.popular.' . $this->getDataKeyOfModules($data);
+
+        $popular = Cache::get($key);
+
+        if (! empty($popular)) {
+            return $popular;
+        }
+
+        $popular = static::getResponseData('GET', 'apps/popular', $data);
+
+        Cache::put($key, $popular, Date::now()->addHour());
+
+        return $popular;
     }
 
     public function getSearchModules($data = [])
@@ -280,235 +362,108 @@ trait Modules
         return static::getResponseData('GET', 'apps/search', $data);
     }
 
+    public function getTestimonialModules($data = [])
+    {
+        $key = 'apps.testimonials.' . $this->getDataKeyOfModules($data);
+
+        $testimonials = Cache::get($key);
+
+        if (! empty($testimonials)) {
+            return $testimonials;
+        }
+
+        $testimonials = static::getResponseData('GET', 'apps/testimonials', $data);
+
+        Cache::put($key, $testimonials, Date::now()->addHour());
+
+        return $testimonials;
+    }
+
+    public function getWidgetsOfModules($data = [])
+    {
+        $key = 'apps.widgets.' . $this->getDataKeyOfModules($data);
+
+        $widgets = Cache::get($key);
+
+        if (! empty($widgets)) {
+            return $widgets;
+        }
+
+        $widgets = static::getResponseData('GET', 'apps/widgets');
+
+        Cache::put($key, $widgets, Date::now()->addHour());
+
+        return $widgets;
+    }
+
+    public function getModulesByWidget($alias, $data = [])
+    {
+        $key = 'apps.widgets.' . $alias . '.' . $this->getDataKeyOfModules($data);
+
+        $widget = Cache::get($key);
+
+        if (! empty($widget)) {
+            return $widget;
+        }
+
+        $widget = static::getResponseData('GET', 'apps/widgets/' . $alias, $data);
+
+        Cache::put($key, $widget, Date::now()->addHour());
+
+        return $widget;
+    }
+
     public function getCoreVersion()
     {
         $data['query'] = Info::all();
 
-        if (!$response = static::getResponse('GET', 'core/version', $data)) {
+        if (! $response = static::getResponse('GET', 'core/version', $data)) {
             return [];
         }
 
         return $response->json();
     }
 
-    public function downloadModule($path)
-    {
-        if (!$response = static::getResponse('GET', $path)) {
-            return [
-                'success' => false,
-                'error' => true,
-                'message' => null,
-                'data' => null,
-            ];
-        }
-
-        $file = $response->getBody()->getContents();
-
-        $path = 'temp-' . md5(mt_rand());
-        $temp_path = storage_path('app/temp') . '/' . $path;
-
-        $file_path = $temp_path . '/upload.zip';
-
-        // Create tmp directory
-        if (!File::isDirectory($temp_path)) {
-            File::makeDirectory($temp_path);
-        }
-
-        // Add content to the Zip file
-        $uploaded = is_int(file_put_contents($file_path, $file)) ? true : false;
-
-        if (!$uploaded) {
-            return [
-                'success' => false,
-                'error' => true,
-                'message' => null,
-                'data' => null,
-            ];
-        }
-
-        return [
-            'success' => true,
-            'error' => false,
-            'message' => null,
-            'data' => [
-                'path' => $path,
-            ],
-        ];
-    }
-
-    public function unzipModule($path)
-    {
-        $temp_path = storage_path('app/temp') . '/' . $path;
-
-        $file = $temp_path . '/upload.zip';
-
-        // Unzip the file
-        $zip = new ZipArchive();
-
-        if (!$zip->open($file) || !$zip->extractTo($temp_path)) {
-            return [
-                'success' => false,
-                'error' => true,
-                'message' => null,
-                'data' => null,
-            ];
-        }
-
-        $zip->close();
-
-        // Remove Zip
-        File::delete($file);
-
-        $data = [
-            'path' => $path
-        ];
-
-        return [
-            'success' => true,
-            'error' => false,
-            'message' => null,
-            'data' => $data,
-        ];
-    }
-
-    public function installModule($path)
-    {
-        $temp_path = storage_path('app/temp') . '/' . $path;
-
-        $modules_path = base_path() . '/modules';
-
-        // Create modules directory
-        if (!File::isDirectory($modules_path)) {
-            File::makeDirectory($modules_path);
-        }
-
-        $module = json_decode(file_get_contents($temp_path . '/module.json'));
-
-        $module_path = $modules_path . '/' . Str::studly($module->alias);
-
-        // Create module directory
-        if (!File::isDirectory($module_path)) {
-            File::makeDirectory($module_path);
-        }
-
-        // Move all files/folders from temp path then delete it
-        File::copyDirectory($temp_path, $module_path);
-        File::deleteDirectory($temp_path);
-
-        $data = [
-            'path' => $path,
-            'name' => Str::studly($module->alias),
-            'alias' => $module->alias,
-        ];
-
-        $company_id = session('company_id');
-        $locale = app()->getLocale();
-
-        Cache::forget('installed.' . $company_id . '.module');
-
-        Console::run("module:install {$module->alias} {$company_id} {$locale}");
-
-        return [
-            'success' => true,
-            'redirect' => url('apps/' . $module->alias),
-            'error' => false,
-            'message' => null,
-            'data' => $data,
-        ];
-    }
-
-    public function uninstallModule($alias)
-    {
-        $module = module($alias);
-
-        $data = [
-            'name' => $module->getName(),
-            'category' => $module->get('category'),
-            'version' => $module->get('version'),
-        ];
-
-        Artisan::call('cache:clear');
-
-        $module->delete();
-
-        // Cache Data clear
-        File::deleteDirectory(storage_path('framework/cache/data'));
-
-        return [
-            'success' => true,
-            'error' => false,
-            'message' => null,
-            'data' => $data,
-        ];
-    }
-
-    public function enableModule($alias)
-    {
-        $module = module($alias);
-
-        $data = [
-            'name' => $module->getName(),
-            'category' => $module->get('category'),
-            'version' => $module->get('version'),
-        ];
-
-        $module->enable();
-
-        Artisan::call('cache:clear');
-
-        return [
-            'success' => true,
-            'error' => false,
-            'message' => null,
-            'data' => $data,
-        ];
-    }
-
-    public function disableModule($alias)
-    {
-        $module = module($alias);
-
-        $data = [
-            'name' => $module->getName(),
-            'category' => $module->get('category'),
-            'version' => $module->get('version'),
-        ];
-
-        $module->disable();
-
-        Artisan::call('cache:clear');
-
-        return [
-            'success' => true,
-            'error' => false,
-            'message' => null,
-            'data' => $data,
-        ];
-    }
-
     public function moduleExists($alias)
     {
-        $status = false;
-
-        if (module($alias) instanceof \Akaunting\Module\Module) {
-            $status = true;
+        if (! module($alias) instanceof \Akaunting\Module\Module) {
+            return false;
         }
 
-        return $status;
+        return true;
+    }
+
+    public function moduleIsEnabled($alias): bool
+    {
+        if (! $this->moduleExists($alias)) {
+            return false;
+        }
+
+        if (! Module::alias($alias)->enabled()->first()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function moduleIsDisabled($alias): bool
+    {
+        return ! $this->moduleIsEnabled($alias);
     }
 
     public function loadSuggestions()
     {
-        // Get data from cache
-        $data = Cache::get('suggestions');
+        $key = 'apps.suggestions';
 
-        if (!empty($data)) {
+        $data = Cache::get($key);
+
+        if (! empty($data)) {
             return $data;
         }
 
         $data = [];
 
-        if (!$suggestions = static::getResponseData('GET', 'apps/suggestions')) {
+        if (! $suggestions = static::getResponseData('GET', 'apps/suggestions')) {
             return $data;
         }
 
@@ -516,23 +471,24 @@ trait Modules
             $data[$suggestion->path] = $suggestion;
         }
 
-        Cache::put('suggestions', $data, Date::now()->addHour(6));
+        Cache::put($key, $data, Date::now()->addHour(6));
 
         return $data;
     }
 
     public function loadNotifications()
     {
-        // Get data from cache
-        $data = Cache::get('notifications');
+        $key = 'apps.notifications';
 
-        if (!empty($data)) {
+        $data = Cache::get($key);
+
+        if (! empty($data)) {
             return $data;
         }
 
         $data = [];
 
-        if (!$notifications = static::getResponse('GET', 'apps/notifications')) {
+        if (! $notifications = static::getResponseData('GET', 'apps/notifications')) {
             return $data;
         }
 
@@ -540,40 +496,110 @@ trait Modules
             $data[$notification->path][] = $notification;
         }
 
-        Cache::put('notifications', $data, Date::now()->addHour(6));
+        Cache::put($key, $data, Date::now()->addHour(6));
+
+        return $data;
+    }
+
+    public function loadTips()
+    {
+        $key = 'apps.tips';
+
+        $data = Cache::get($key);
+
+        if (! empty($data)) {
+            return $data;
+        }
+
+        $data = [];
+
+        if (! $tips = static::getResponseData('GET', 'apps/tips')) {
+            return $data;
+        }
+
+        foreach ($tips as $tip) {
+            $data[$tip->path][] = $tip;
+        }
+
+        Cache::put($key, $data, Date::now()->addHour(6));
 
         return $data;
     }
 
     public function getSuggestions($path)
     {
-        // Get data from cache
-        $data = Cache::get('suggestions');
+        $key = 'apps.suggestions';
+
+        $data = Cache::get($key);
 
         if (empty($data)) {
             $data = $this->loadSuggestions();
         }
 
-        if (!empty($data) && array_key_exists($path, $data)) {
+        if (! empty($data) && array_key_exists($path, $data)) {
             return $data[$path];
         }
 
         return false;
     }
 
-    public function getNotifications($path)
+    public function getNotifications($path): array
     {
-        // Get data from cache
-        $data = Cache::get('notifications');
+        $key = 'apps.notifications';
+
+        $data = Cache::get($key);
 
         if (empty($data)) {
             $data = $this->loadNotifications();
         }
 
-        if (!empty($data) && array_key_exists($path, $data)) {
-            return $data[$path];
+        if (! empty($data) && array_key_exists($path, $data)) {
+            return (array) $data[$path];
         }
 
-        return false;
+        return [];
+    }
+
+    public function getTips($path): array
+    {
+        $key = 'apps.tips';
+
+        $data = Cache::get($key);
+
+        if (empty($data)) {
+            $data = $this->loadTips();
+        }
+
+        if (! empty($data) && array_key_exists($path, $data)) {
+            return (array) $data[$path];
+        }
+
+        return [];
+    }
+
+    public function getPageNumberOfModules($data = [])
+    {
+        if (empty($data['query']) || empty($data['query']['page'])) {
+            return 1;
+        }
+
+        return $data['query']['page'];
+    }
+
+    public function getDataKeyOfModules($data = [])
+    {
+        $result = 'language.' . language()->getShortCode() . '.page.' . $this->getPageNumberOfModules($data);
+
+        if (isset($data['query']['page'])) {
+            unset($data['query']['page']);
+        }
+
+        if (isset($data['query'])){
+            foreach($data['query'] as $key => $value) {
+                $result .= '.' . $key . '.' . $value;
+            }
+        }
+
+        return $result;
     }
 }

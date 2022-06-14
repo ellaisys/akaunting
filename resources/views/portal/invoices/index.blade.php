@@ -1,61 +1,179 @@
-@extends('layouts.portal')
+<x-layouts.portal>
+    <x-slot name="title">
+        {{ trans_choice('general.invoices', 2) }}
+    </x-slot>
 
-@section('title', trans_choice('general.invoices', 2))
+    <x-slot name="content">
+        @if ($invoices->count() || request()->get('search', false))
+            <x-index.container>
+                <x-index.search search-string="App\Models\Portal\Sale\Invoice" />
 
-@section('content')
-    <div class="card">
-        <div class="card-header border-bottom-0">
-            {!! Form::open([
-                'route' => 'portal.invoices.index',
-                'role' => 'form',
-                'method' => 'GET',
-                'class' => 'mb-0'
-            ]) !!}
+                <x-table>
+                    <x-table.thead>
+                        <x-table.tr class="flex items-center px-1">
+                            <x-table.th override="class" class="p-0"></x-table.th>
+                            @stack('issued_at_th_start')
 
-                <div class="row">
-                    <div class="col-12 d-flex align-items-center">
-                        <span class="font-weight-400 d-none d-lg-block mr-2">{{ trans('general.search') }}:</span>
-                        <akaunting-search></akaunting-search>
-                    </div>
-                </div>
+                            <x-table.th class="w-4/12 hidden sm:table-cell">
+                                @stack('due_at_th_inside_start')
 
-            {!! Form::close() !!}
-        </div>
+                                <x-slot name="first">
+                                    <x-sortablelink column="due_at" title="{{ trans('invoices.due_date') }}" />
+                                </x-slot>
 
-        <div class="table-responsive">
-            <table class="table table-flush table-hover">
-                <thead class="thead-light">
-                    <tr class="row table-head-line">
-                        <th class="col-xs-4 col-sm-4 col-md-3">@sortablelink('invoice_number', trans('invoices.invoice_number'))</th>
-                        <th class="col-xs-4 col-sm-2 col-md-2 text-right">@sortablelink('amount', trans('general.amount'))</th>
-                        <th class="col-sm-3 col-md-3 d-none d-sm-block">@sortablelink('invoiced_at', trans('invoices.invoice_date'))</th>
-                        <th class="col-md-2 d-none d-md-block">@sortablelink('due_at', trans('invoices.due_date'))</th>
-                        <th class="col-xs-4 col-sm-3 col-md-2 text-center">@sortablelink('status', trans_choice('general.statuses', 1))</th>
-                    </tr>
-                </thead>
+                                @stack('due_at_th_inside_end')
 
-                <tbody>
-                    @foreach($invoices as $item)
-                        <tr class="row align-items-center border-top-1 tr-py">
-                            <td class="col-xs-4 col-sm-4 col-md-3"><a href="{{ route('portal.invoices.show', $item->id) }}">{{ $item->invoice_number }}</a></td>
-                            <td class="col-xs-4 col-sm-2 col-md-2 text-right">@money($item->amount, $item->currency_code, true)</td>
-                            <td class="col-sm-3 col-md-3 d-none d-sm-block">@date($item->invoiced_at)</td>
-                            <td class="col-md-2 d-none d-md-block">@date($item->due_at)</td>
-                            <td class="col-xs-4 col-sm-3 col-md-2 text-center"><span class="badge badge-pill badge-{{ $item->status_label }} my--2">{{ trans('invoices.statuses.' . $item->status) }}</span></td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                                @stack('issued_at_th_inside_start')
 
-        <div class="card-footer table-action">
-            <div class="row">
-                @include('partials.admin.pagination', ['items' => $invoices])
-            </div>
-        </div>
-    </div>
-@endsection
+                                <x-slot name="second">
+                                    <x-sortablelink column="issued_at" title="{{ trans('invoices.invoice_date') }}" />
+                                </x-slot>
 
-@push('scripts_start')
-    <script src="{{ asset('public/js/portal/invoices.js?v=' . version('short')) }}"></script>
-@endpush
+                                @stack('issued_at_th_inside_end')
+                            </x-table.th>
+
+                            @stack('issued_at_th_end')
+
+                            @stack('status_th_start')
+
+                            <x-table.th class="w-3/12 hidden sm:table-cell">
+                                @stack('status_th_inside_start')
+
+                                <x-sortablelink column="status" title="{{ trans_choice('general.statuses', 1) }}" />
+
+                                @stack('status_th_inside_end')
+                            </x-table.th>
+
+                            @stack('status_th_end')
+
+                            @stack('document_number_th_start')
+
+                            <x-table.th class="w-3/12 sm:table-cell">
+                                @stack('document_number_th_inside_start')
+
+                                <x-sortablelink column="document_number" title="{{ trans_choice('general.numbers', 1) }}" />
+
+                                @stack('document_number_th_inside_end')
+                            </x-table.th>
+
+                            @stack('document_number_th_end')
+
+                            @stack('amount_th_start')
+
+                            <x-table.th class="w-6/12 sm:w-2/12" kind="amount">
+                                @stack('amount_th_inside_start')
+
+                                <x-sortablelink column="amount" title="{{ trans('general.amount') }}" />
+
+                                @stack('amount_th_inside_end')
+                            </x-table.th>
+
+                            @stack('amount_th_end')
+                        </x-table.tr>
+                    </x-table.thead>
+
+                    <x-table.tbody>
+                        @foreach($invoices as $item)
+                            @php $paid = $item->paid; @endphp
+                            <x-table.tr href="{{ route('portal.invoices.show', $item->id) }}">
+                                <x-table.td kind="action"></x-table.td>
+                                @stack('issued_at_td_start')
+
+                                <x-table.td class="w-4/12 hidden sm:table-cell">
+                                    @stack('due_at_td_inside_start')
+
+                                    <x-slot name="first" class="font-bold truncate" override="class">
+                                        {{ \Date::parse($item->due_at)->diffForHumans() }}
+                                    </x-slot>
+
+                                    @stack('due_at_td_inside_end')
+
+                                    @stack('issued_at_td_inside_start')
+
+                                    <x-slot name="second">
+                                        <x-date date="{{ $item->issued_at }}" />
+                                    </x-slot>
+
+                                    @stack('issued_at_td_inside_end')
+                                </x-table.td>
+
+                                @stack('issued_at_td_end')
+
+                                @stack('status_td_start')
+
+                                <x-table.td class="w-3/12 hidden sm:table-cell">
+                                    @stack('status_td_inside_start')
+
+                                    <x-index.status status="{{ $item->status }}" background-color="bg-{{ $item->status_label }}" text-color="text-text-{{ $item->status_label }}" />
+
+                                    @stack('status_td_inside_end')
+                                </x-table.td>
+
+                                @stack('status_td_end')
+
+
+                                @stack('due_at_and_issued_at_td_start')
+
+                                <x-table.td class="w-3/12  sm:table-cell">
+                                    @stack('document_number_td_inside_start')
+
+                                    <x-slot name="first" class="relative w-20 font-normal group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class,data-tooltip-target,data-tooltip-placement">
+                                        <span class="border-black border-b border-dashed">
+                                            {{ $item->document_number }}
+                                        </span>
+
+                                        <div class="w-full absolute h-10 -left-10 -mt-6"></div>
+
+                                        <x-documents.index.information :document="$item" show-route="portal.invoices.show"/>
+                                    </x-slot>
+
+                                    @stack('document_number_td_inside_end')
+                                </x-table.td>
+
+                                @stack('due_at_and_issued_at_td_end')
+
+                                @stack('amount_td_start')
+
+                                <x-table.td class="w-6/12 sm:w-2/12" kind="amount">
+                                    @stack('amount_td_inside_start')
+
+                                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+
+                                        @stack('amount_td_inside_end')
+                                </x-table.td>
+
+                                @stack('amount_td_end')
+                            </x-table.tr>
+                        @endforeach
+                    </x-table.tbody>
+                </x-table>
+
+                <x-pagination :items="$invoices" />
+            </x-index.container>
+        @else
+            <x-empty-page
+                group="sales"
+                page="invoices"
+                hide-button-import
+                :buttons="[
+                    [
+                        'url' =>  route('transactions.create', ['type' => 'income']),
+                        'permission' => 'create-sales-invoices',
+                        'text' => trans('general.title.new', ['type' => trans_choice('general.incomes', 1)]),
+                        'description' => trans('general.empty.actions.new', ['type' => trans_choice('general.incomes', 1)]),
+                        'active_badge' => false
+                    ],
+                    [
+                        'url' => 'https://akaunting.com/premium-cloud',
+                        'permission' => 'create-sales-invoices',
+                        'text' => trans('import.title', ['type' => trans_choice('general.bank_transactions', 2)]),
+                        'description' => '',
+                        'active_badge' => false
+                    ]
+                ]"
+            />
+        @endif
+    </x-slot>
+
+    <x-script folder="portal" file="apps" />
+</x-layouts.portal>

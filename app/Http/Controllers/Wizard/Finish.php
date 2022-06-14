@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Wizard;
 
-use Illuminate\Routing\Controller;
+use App\Abstracts\Http\Controller;
 use App\Traits\Modules;
 
 class Finish extends Controller
@@ -15,7 +15,7 @@ class Finish extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:read-admin-panel')->only(['index', 'show', 'edit', 'export']);
+        $this->middleware('permission:read-admin-panel')->only('index', 'show', 'edit', 'export');
     }
 
     /**
@@ -32,12 +32,27 @@ class Finish extends Controller
 
         $data = [
             'query' => [
-                'limit' => 4
+                'limit' => 6
             ]
         ];
 
         $modules = $this->getFeaturedModules($data);
 
-        return view('wizard.finish.index', compact('modules'));
+        return $this->response('wizard.finish.index', compact('modules'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return Response
+     */
+    public function update()
+    {
+        setting()->set('wizard.completed', 1);
+
+        // Save all settings
+        setting()->save();
+
+        return response()->json([]);
     }
 }

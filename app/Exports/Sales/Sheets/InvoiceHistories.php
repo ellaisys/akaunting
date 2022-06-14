@@ -3,30 +3,24 @@
 namespace App\Exports\Sales\Sheets;
 
 use App\Abstracts\Export;
-use App\Models\Sale\InvoiceHistory as Model;
+use App\Models\Document\DocumentHistory as Model;
 
 class InvoiceHistories extends Export
 {
     public function collection()
     {
-        $model = Model::with(['invoice'])->usingSearchString(request('search'));
-
-        if (!empty($this->ids)) {
-            $model->whereIn('invoice_id', (array) $this->ids);
-        }
-
-        return $model->cursor();
+        return Model::with('document')->invoice()->collectForExport($this->ids, null, 'document_id');
     }
 
     public function map($model): array
     {
-        $invoice = $model->invoice;
+        $document = $model->document;
 
-        if (empty($invoice)) {
+        if (empty($document)) {
             return [];
         }
 
-        $model->invoice_number = $invoice->invoice_number;
+        $model->invoice_number = $document->document_number;
 
         return parent::map($model);
     }

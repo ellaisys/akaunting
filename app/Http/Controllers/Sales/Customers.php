@@ -9,16 +9,20 @@ use App\Http\Requests\Common\Import as ImportRequest;
 use App\Imports\Sales\Customers as Import;
 use App\Jobs\Common\CreateContact;
 use App\Jobs\Common\DeleteContact;
+use App\Jobs\Common\DuplicateContact;
 use App\Jobs\Common\UpdateContact;
-use App\Models\Banking\Transaction;
 use App\Models\Common\Contact;
-use App\Models\Sale\Invoice;
-use App\Models\Setting\Currency;
-use Date;
-use Illuminate\Http\Request as BaseRequest;
+use App\Traits\Contacts;
 
 class Customers extends Controller
 {
+    use Contacts;
+
+    /**
+     * @var string
+     */
+    public $type = Contact::CUSTOMER_TYPE;
+
     /**
      * Display a listing of the resource.
      *
@@ -26,9 +30,9 @@ class Customers extends Controller
      */
     public function index()
     {
-        $customers = Contact::customer()->collect();
+        $customers = Contact::customer()->with('invoices.transactions')->collect();
 
-        return view('sales.customers.index', compact('customers'));
+        return $this->response('sales.customers.index', compact('customers'));
     }
 
     /**
@@ -40,56 +44,7 @@ class Customers extends Controller
      */
     public function show(Contact $customer)
     {
-        $amounts = [
-            'paid' => 0,
-            'open' => 0,
-            'overdue' => 0,
-        ];
-
-        $counts = [];
-
-        // Handle invoices
-        $invoices = Invoice::where('contact_id', $customer->id)->get();
-
-        $counts['invoices'] = $invoices->count();
-
-        $today = Date::today()->toDateString();
-
-        foreach ($invoices as $item) {
-            // Already in transactions
-            if ($item->status == 'paid') {
-                continue;
-            }
-
-            $transactions = 0;
-
-            foreach ($item->transactions as $transaction) {
-                $transactions += $transaction->getAmountConvertedToDefault();
-            }
-
-            // Check if it's open or overdue invoice
-            if ($item->due_at > $today) {
-                $amounts['open'] += $item->getAmountConvertedToDefault() - $transactions;
-            } else {
-                $amounts['overdue'] += $item->getAmountConvertedToDefault() - $transactions;
-            }
-        }
-
-        // Handle transactions
-        $transactions = Transaction::where('contact_id', $customer->id)->type('income')->get();
-
-        $counts['transactions'] = $transactions->count();
-
-        // Prepare data
-        $transactions->each(function ($item) use (&$amounts) {
-            $amounts['paid'] += $item->getAmountConvertedToDefault();
-        });
-
-        $limit = request('limit', setting('default.list_limit', '25'));
-        $transactions = $this->paginate($transactions->sortByDesc('paid_at'), $limit);
-        $invoices = $this->paginate($invoices->sortByDesc('invoiced_at'), $limit);
-
-        return view('sales.customers.show', compact('customer', 'counts', 'amounts', 'transactions', 'invoices'));
+        return view('sales.customers.show', compact('customer'));
     }
 
     /**
@@ -99,9 +54,7 @@ class Customers extends Controller
      */
     public function create()
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
-        return view('sales.customers.create', compact('currencies'));
+        return view('sales.customers.create');
     }
 
     /**
@@ -116,7 +69,7 @@ class Customers extends Controller
         $response = $this->ajaxDispatch(new CreateContact($request));
 
         if ($response['success']) {
-            $response['redirect'] = route('customers.index');
+            $response['redirect'] = route('customers.show', $response['data']->id);
 
             $message = trans('messages.success.added', ['type' => trans_choice('general.customers', 1)]);
 
@@ -126,7 +79,7 @@ class Customers extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -141,7 +94,7 @@ class Customers extends Controller
      */
     public function duplicate(Contact $customer)
     {
-        $clone = $customer->duplicate();
+        $clone = $this->dispatch(new DuplicateContact($customer));
 
         $message = trans('messages.success.duplicated', ['type' => trans_choice('general.customers', 1)]);
 
@@ -159,13 +112,19 @@ class Customers extends Controller
      */
     public function import(ImportRequest $request)
     {
-        \Excel::import(new Import(), $request->file('import'));
+        $response = $this->importExcel(new Import, $request, trans_choice('general.customers', 2));
 
-        $message = trans('messages.success.imported', ['type' => trans_choice('general.customers', 2)]);
+        if ($response['success']) {
+            $response['redirect'] = route('customers.index');
 
-        flash($message)->success();
+            flash($response['message'])->success();
+        } else {
+            $response['redirect'] = route('import.create', ['sales', 'customers']);
 
-        return redirect()->route('customers.index');
+            flash($response['message'])->error()->important();
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -177,9 +136,7 @@ class Customers extends Controller
      */
     public function edit(Contact $customer)
     {
-        $currencies = Currency::enabled()->pluck('name', 'code');
-
-        return view('sales.customers.edit', compact('customer', 'currencies'));
+        return view('sales.customers.edit', compact('customer'));
     }
 
     /**
@@ -205,7 +162,7 @@ class Customers extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -267,7 +224,7 @@ class Customers extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -280,62 +237,20 @@ class Customers extends Controller
      */
     public function export()
     {
-        return \Excel::download(new Export(), \Str::filename(trans_choice('general.customers', 2)) . '.xlsx');
+        return $this->exportExcel(new Export, trans_choice('general.customers', 2));
     }
 
-    public function currency(Contact $customer)
+    public function createInvoice(Contact $customer)
     {
-        if (empty($customer)) {
-            return response()->json([]);
-        }
+        $data['contact'] = $customer;
 
-        $currency_code = setting('default.currency');
-
-        if (isset($customer->currency_code)) {
-            $currencies = Currency::enabled()->pluck('name', 'code')->toArray();
-
-            if (array_key_exists($customer->currency_code, $currencies)) {
-                $currency_code = $customer->currency_code;
-            }
-        }
-
-        // Get currency object
-        $currency = Currency::where('code', $currency_code)->first();
-
-        $customer->currency_name = $currency->name;
-        $customer->currency_code = $currency_code;
-        $customer->currency_rate = $currency->rate;
-
-        $customer->thousands_separator = $currency->thousands_separator;
-        $customer->decimal_mark = $currency->decimal_mark;
-        $customer->precision = (int) $currency->precision;
-        $customer->symbol_first = $currency->symbol_first;
-        $customer->symbol = $currency->symbol;
-
-        return response()->json($customer);
+        return redirect()->route('invoices.create')->withInput($data);
     }
 
-    public function field(BaseRequest $request)
+    public function createIncome(Contact $customer)
     {
-        $html = '';
+        $data['contact'] = $customer;
 
-        if ($request['fields']) {
-            foreach ($request['fields'] as $field) {
-                switch ($field) {
-                    case 'password':
-                        $html .= \Form::passwordGroup('password', trans('auth.password.current'), 'key', [], 'col-md-6 password');
-                        break;
-                    case 'password_confirmation':
-                        $html .= \Form::passwordGroup('password_confirmation', trans('auth.password.current_confirm'), 'key', [], 'col-md-6 password');
-                        break;
-                }
-            }
-        }
-
-        $json = [
-            'html' => $html
-        ];
-
-        return response()->json($json);
+        return redirect()->route('transactions.create', ['type' => 'income'])->withInput($data);
     }
 }

@@ -2,7 +2,8 @@
 
 return [
 
-    'sales_price'           => 'Försäljningspris',
-    'purchase_price'        => 'Inköpspris',
+    'sale_price'            => 'Försäljningspris',
+    'purchase_price'         => 'Inköpspris',
+    'enter_item_description' => 'Ange varubeskrivning',
 
 ];

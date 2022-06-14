@@ -3,30 +3,40 @@
 namespace App\Abstracts;
 
 use App\Traits\Import as ImportHelper;
+use App\Traits\Sources;
 use App\Utilities\Date;
+use Carbon\Exceptions\InvalidFormatException;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithLimit;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Validators\Failure;
-use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
-abstract class Import implements ToModel, SkipsOnError, SkipsOnFailure, WithBatchInserts, WithChunkReading, WithHeadingRow, WithMapping, WithValidation
+abstract class Import implements HasLocalePreference, ShouldQueue, SkipsEmptyRows, WithChunkReading, WithHeadingRow, WithLimit, WithMapping, WithValidation, ToModel
 {
-    use Importable, ImportHelper;
+    use Importable, ImportHelper, Sources;
 
-    public $empty_field = 'empty---';
+    public $user;
+
+    public function __construct()
+    {
+        $this->user = user();
+    }
 
     public function map($row): array
     {
-        $row['company_id'] = session('company_id');
+        $row['company_id'] = company_id();
+        $row['created_by'] = $this->user->id;
+        $row['created_from'] = $this->getSourcePrefix() . 'import';
 
         // Make enabled field integer
         if (isset($row['enabled'])) {
@@ -38,13 +48,18 @@ abstract class Import implements ToModel, SkipsOnError, SkipsOnFailure, WithBatc
             $row['reconciled'] = (int) $row['reconciled'];
         }
 
-        $date_fields = ['paid_at', 'invoiced_at', 'billed_at', 'due_at', 'issued_at', 'created_at'];
+        $date_fields = ['paid_at', 'invoiced_at', 'billed_at', 'due_at', 'issued_at', 'created_at', 'transferred_at'];
         foreach ($date_fields as $date_field) {
             if (!isset($row[$date_field])) {
                 continue;
             }
 
-            $row[$date_field] = Date::parse($row[$date_field])->format('Y-m-d H:i:s');
+            try {
+                $row[$date_field] = Date::parse(ExcelDate::excelToDateTimeObject($row[$date_field]))
+                                        ->format('Y-m-d H:i:s');
+            } catch (InvalidFormatException | \Exception $e) {
+                Log::info($e->getMessage());
+            }
         }
 
         return $row;
@@ -55,39 +70,14 @@ abstract class Import implements ToModel, SkipsOnError, SkipsOnFailure, WithBatc
         return [];
     }
 
-    public function batchSize(): int
-    {
-        return 100;
-    }
-
     public function chunkSize(): int
     {
-        return 100;
+        return config('excel.imports.chunk_size');
     }
 
-    public function onFailure(Failure ...$failures)
+    public function limit(): int
     {
-        $sheet = Str::snake((new \ReflectionClass($this))->getShortName());
-
-        foreach ($failures as $failure) {
-            // @todo remove after 3.2 release https://github.com/Maatwebsite/Laravel-Excel/issues/1834#issuecomment-474340743
-            if (collect($failure->values())->first() == $this->empty_field) {
-                continue;
-            }
-
-            $message = trans('messages.error.import_column', [
-                'message' => collect($failure->errors())->first(),
-                'sheet' => $sheet,
-                'line' => $failure->row(),
-            ]);
-
-            flash($message)->error()->important();
-       }
-    }
-
-    public function onError(\Throwable $e)
-    {
-        flash($e->getMessage())->error()->important();
+        return config('excel.imports.row_limit');
     }
 
     public function isNotValid($row)
@@ -108,5 +98,63 @@ abstract class Import implements ToModel, SkipsOnError, SkipsOnFailure, WithBatc
         }
 
         return false;
+    }
+
+    public function preferredLocale()
+    {
+        return $this->user->locale;
+    }
+
+    protected function replaceForBatchRules(array $rules): array
+    {
+        $dependent_rules = [
+            'after:',
+            'after_or_equal:',
+            'before:',
+            'before_or_equal:',
+            'different:',
+            'exclude_if:',
+            'exclude_unless:',
+            'gt:',
+            'gte:',
+            'in_array:',
+            'lt:',
+            'lte:',
+            'prohibited_if:',
+            'prohibited_unless:',
+            'required_if:',
+            'required_unless:',
+            'required_with:',
+            'required_with_all:',
+            'required_without:',
+            'required_without_all:',
+            'same:',
+        ];
+
+        $batch_rules = [
+            'after:*.',
+            'after_or_equal:*.',
+            'before:*.',
+            'before_or_equal:*.',
+            'different:*.',
+            'exclude_if:*.',
+            'exclude_unless:*.',
+            'gt:*.',
+            'gte:*.',
+            'in_array:*.',
+            'lt:*.',
+            'lte:*.',
+            'prohibited_if:*.',
+            'prohibited_unless:*.',
+            'required_if:*.',
+            'required_unless:*.',
+            'required_with:*.',
+            'required_with_all:*.',
+            'required_without:*.',
+            'required_without_all:*.',
+            'same:*.',
+        ];
+
+        return str_replace($dependent_rules, $batch_rules, $rules);
     }
 }

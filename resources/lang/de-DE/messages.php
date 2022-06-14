@@ -8,9 +8,13 @@ return [
         'deleted'           => ':type gelöscht!',
         'duplicated'        => ':type dupliziert!',
         'imported'          => ':type importiert!',
+        'import_queued'     => ':type Import ist geplant! Sie erhalten eine E-Mail, sobald dieser fertiggestellt ist.',
         'exported'          => ':type exportiert!',
+        'export_queued'     => ':type Export ist geplant! Sie erhalten eine E-Mail, sobald dieser fertiggestellt ist.',
         'enabled'           => ':type aktiviert!',
         'disabled'          => ':type deaktiviert!',
+
+        'clear_all'         => 'Großartig! Du hast all deinen :type gelöscht.',
     ],
 
     'error' => [

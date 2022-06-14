@@ -39,7 +39,12 @@ return [
     ],
 
     'error' => [
+        'php_version'       => 'Erro: Peça ao seu provedor de hospedagem para usar PHP :php_version ou superior para HTTP e CLI.',
         'connection'        => 'Erro: Não foi possível conectar ao banco de dados! Certifique-se de que os detalhes estão corretos.',
     ],
 
+    'update' => [
+        'core'              => 'Uma nova versão do Akaunting está disponível! Por favor, atualize sua instalação.',
+        'module'            => 'Uma nova versão do :module está disponível! Por favor, atualize sua instalação.',
+    ],
 ];

@@ -3,30 +3,24 @@
 namespace App\Exports\Sales\Sheets;
 
 use App\Abstracts\Export;
-use App\Models\Sale\InvoiceItemTax as Model;
+use App\Models\Document\DocumentItemTax as Model;
 
 class InvoiceItemTaxes extends Export
 {
     public function collection()
     {
-        $model = Model::with(['invoice', 'item', 'tax'])->usingSearchString(request('search'));
-
-        if (!empty($this->ids)) {
-            $model->whereIn('invoice_id', (array) $this->ids);
-        }
-
-        return $model->cursor();
+        return Model::with('document', 'item', 'tax')->invoice()->collectForExport($this->ids, null, 'document_id');
     }
 
     public function map($model): array
     {
-        $invoice = $model->invoice;
+        $document = $model->document;
 
-        if (empty($invoice)) {
+        if (empty($document)) {
             return [];
         }
 
-        $model->invoice_number = $invoice->invoice_number;
+        $model->invoice_number = $document->document_number;
         $model->item_name = $model->item->name;
         $model->tax_rate = $model->tax->rate;
 

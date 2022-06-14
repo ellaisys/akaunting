@@ -11,6 +11,7 @@ use App\Jobs\Banking\UpdateReconciliation;
 use App\Models\Banking\Account;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
+use App\Utilities\Date;
 
 class Reconciliations extends Controller
 {
@@ -21,11 +22,9 @@ class Reconciliations extends Controller
      */
     public function index()
     {
-        $reconciliations = Reconciliation::collect();
+        $reconciliations = Reconciliation::with('account')->collect();
 
-        $accounts = collect(Account::enabled()->orderBy('name')->pluck('name', 'id'));
-
-        return view('banking.reconciliations.index', compact('reconciliations', 'accounts'));
+        return $this->response('banking.reconciliations.index', compact('reconciliations'));
     }
 
     /**
@@ -45,11 +44,9 @@ class Reconciliations extends Controller
      */
     public function create()
     {
-        $accounts = Account::enabled()->pluck('name', 'id');
-
         $account_id = request('account_id', setting('default.account'));
-        $started_at = request('started_at', '0000-00-00');
-        $ended_at = request('ended_at', '0000-00-00');
+        $started_at = request('started_at', Date::now()->firstOfMonth()->toDateString());
+        $ended_at = request('ended_at', Date::now()->endOfMonth()->toDateString());
 
         $account = Account::find($account_id);
 
@@ -59,7 +56,7 @@ class Reconciliations extends Controller
 
         $opening_balance = $this->getOpeningBalance($account, $started_at);
 
-        return view('banking.reconciliations.create', compact('accounts', 'account', 'currency', 'opening_balance', 'transactions'));
+        return view('banking.reconciliations.create', compact('account', 'currency', 'opening_balance', 'transactions'));
     }
 
     /**
@@ -84,7 +81,7 @@ class Reconciliations extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -133,7 +130,7 @@ class Reconciliations extends Controller
 
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -159,7 +156,7 @@ class Reconciliations extends Controller
         } else {
             $message = $response['message'];
 
-            flash($message)->error();
+            flash($message)->error()->important();
         }
 
         return response()->json($response);
@@ -176,10 +173,10 @@ class Reconciliations extends Controller
      */
     protected function getTransactions($account, $started_at, $ended_at)
     {
-        $started = explode(' ', $started_at);
-        $ended = explode(' ', $ended_at);
+        $started = explode(' ', $started_at)[0] . ' 00:00:00';
+        $ended = explode(' ', $ended_at)[0] . ' 23:59:59';
 
-        $transactions = Transaction::where('account_id', $account->id)->whereBetween('paid_at', [$started[0], $ended[0]])->get();
+        $transactions = Transaction::with('account', 'contact')->where('account_id', $account->id)->whereBetween('paid_at', [$started, $ended])->get();
 
         return collect($transactions)->sortByDesc('paid_at');
     }

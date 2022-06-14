@@ -3,63 +3,83 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
+use App\Events\Auth\UserCreated;
+use App\Events\Auth\UserCreating;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Models\Auth\User;
-use Artisan;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 
-class CreateUser extends Job
+class CreateUser extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
+    public function handle(): User
     {
-        $this->request = $this->getRequestInstance($request);
-    }
+        event(new UserCreating($this->request));
 
-    /**
-     * Execute the job.
-     *
-     * @return Permission
-     */
-    public function handle()
-    {
-        $user = User::create($this->request->input());
+        \DB::transaction(function () {
+            if (! app()->runningInConsole() && ! request()->isInstall()) {
+                $this->request->merge(['password' => Str::random(40)]);
+            }
 
-        // Upload picture
-        if ($this->request->file('picture')) {
-            $media = $this->getMedia($this->request->file('picture'), 'users');
+            $this->model = User::create($this->request->input());
 
-            $user->attachMedia($media, 'picture');
-        }
+            // Upload picture
+            if ($this->request->file('picture')) {
+                $media = $this->getMedia($this->request->file('picture'), 'users');
 
-        if ($this->request->has('dashboards')) {
-            $user->dashboards()->attach($this->request->get('dashboards'));
-        }
+                $this->model->attachMedia($media, 'picture');
+            }
 
-        if ($this->request->has('permissions')) {
-            $user->permissions()->attach($this->request->get('permissions'));
-        }
+            if ($this->request->has('dashboards')) {
+                $this->model->dashboards()->attach($this->request->get('dashboards'));
+            }
 
-        $user->roles()->attach($this->request->get('roles'));
+            if ($this->request->has('permissions')) {
+                $this->model->permissions()->attach($this->request->get('permissions'));
+            }
 
-        $user->companies()->attach($this->request->get('companies'));
+            if ($this->request->has('roles')) {
+                $this->model->roles()->attach($this->request->get('roles'));
+            }
 
-        Artisan::call('cache:clear');
+            if ($this->request->has('companies')) {
+                if (app()->runningInConsole() || request()->isInstall()) {
+                    $this->model->companies()->attach($this->request->get('companies'));
+                } else {
+                    $user = user();
 
-        // Add User Dashboard
-        foreach ($user->companies as $company) {
-            Artisan::call('user:seed', [
-                'user' => $user->id,
-                'company' => $company->id,
-            ]);
-        }
+                    $companies = $user->withoutEvents(function () use ($user) {
+                        return $user->companies()->whereIn('id', $this->request->get('companies'))->pluck('id');
+                    });
 
-        Artisan::call('cache:clear');
+                    if ($companies->isNotEmpty()) {
+                        $this->model->companies()->attach($companies->toArray());
+                    }
+                }
+            }
 
-        return $user;
+            if (empty($this->model->companies)) {
+                return;
+            }
+
+            foreach ($this->model->companies as $company) {
+                Artisan::call('user:seed', [
+                    'user' => $this->model->id,
+                    'company' => $company->id,
+                ]);
+
+                if (app()->runningInConsole() || request()->isInstall()) {
+                    continue;
+                }
+
+                $this->dispatch(new CreateInvitation($this->model, $company));
+            }
+        });
+
+        event(new UserCreated($this->model, $this->request));
+
+        return $this->model;
     }
 }

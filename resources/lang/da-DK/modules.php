@@ -9,7 +9,6 @@ return [
     'new'                   => 'Ny',
     'top_free'              => 'Top gratis',
     'free'                  => 'GRATIS',
-    'search'                => 'Søg',
     'install'               => 'Installer',
     'buy_now'               => 'Køb nu',
     'get_api_key'           => '<a href=":url" target="_blank">Klik her</a> for at få din API nøgle.',
@@ -28,7 +27,7 @@ return [
 
     'installed'             => ':module installeret',
     'uninstalled'           => ':module afinstalleret',
-    //'updated'               => ':module updated',
+    'updated_2'             => ':module opdateret',
     'enabled'               => ':module aktiveret',
     'disabled'              => ':module deaktiveret',
 
@@ -36,7 +35,7 @@ return [
         'installation'      => 'Installation',
         'faq'               => 'FAQ',
         'changelog'         => 'Ændringslog',
-        'reviews'           => 'Gennemsyn',
+        'reviews'           => 'Anmeldelser',
     ],
 
     'installation' => [

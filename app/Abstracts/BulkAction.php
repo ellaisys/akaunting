@@ -7,7 +7,9 @@ use App\Jobs\Common\UpdateContact;
 use App\Jobs\Banking\DeleteTransaction;
 use App\Traits\Jobs;
 use App\Traits\Relationships;
-use Artisan;
+use App\Utilities\Export;
+use App\Utilities\Import;
+use Illuminate\Support\Arr;
 
 abstract class BulkAction
 {
@@ -16,30 +18,65 @@ abstract class BulkAction
     public $model = false;
 
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-common-items',
+        'enable'    => [
+            'name'          => 'general.enable',
+            'message'       => 'bulk_actions.message.enable',
+            'permission'    => 'update-common-items',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-common-items',
+        'disable'   => [
+            'name'          => 'general.disable',
+            'message'       => 'bulk_actions.message.disable',
+            'permission'    => 'update-common-items',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-common-items',
+        'delete'    => [
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-common-items',
         ],
-        'export' => [
-            'name' => 'general.export',
-            'message' => 'bulk_actions.message.export',
+        'export'    => [
+            'name'          => 'general.export',
+            'message'       => 'bulk_actions.message.export',
+            'type'          => 'download'
         ],
     ];
 
-    public function getSelectedRecords($request)
+    public $icons = [
+        'enable'        => 'check_circle',
+        'disable'       => 'hide_source',
+        'delete'        => 'delete',
+        'export'        => 'file_download',
+        'reconcile'     => 'published_with_changes',
+        'unreconcile'   => 'layers_clear',
+        'received'      => 'call_received',
+        'cancelled'     => 'cancel',
+        'sent'          => 'send',
+        'approved'      => 'approval',
+        'refused'       => 'do_not_disturb_on',
+        'issued'        => 'mark_email_read',
+        'confirmed'     => 'thumb_up_alt',
+    ];
+
+    public $messages = [
+        'general'   => 'bulk_actions.success.general',
+        'enable'    => 'messages.success.enabled',
+        'disable'   => 'messages.success.disabled',
+        'delete'    => 'messages.success.deleted',
+        'duplicate' => 'messages.success.duplicated',
+        'invite'    => 'messages.success.invited',
+        'end'       => 'messages.success.ended',
+    ];
+
+    public function getSelectedRecords($request, $relationships = null)
     {
-        return $this->model::find($this->getSelectedInput($request));
+        if (empty($relationships)) {
+            $model = $this->model::query();
+        } else {
+            $relationships = Arr::wrap($relationships);
+
+            $model = $this->model::with($relationships);
+        }
+
+        return $model->find($this->getSelectedInput($request));
     }
 
     public function getSelectedInput($request)
@@ -75,7 +112,7 @@ abstract class BulkAction
         $items = $this->getSelectedRecords($request);
 
         foreach ($items as $item) {
-            $item->enabled = 1;
+            $item->enabled = true;
             $item->save();
         }
     }
@@ -92,7 +129,7 @@ abstract class BulkAction
         $items = $this->getSelectedRecords($request);
 
         foreach ($items as $item) {
-            $item->enabled = 0;
+            $item->enabled = false;
             $item->save();
         }
     }
@@ -123,46 +160,72 @@ abstract class BulkAction
         foreach ($items as $item) {
             $item->delete();
         }
-
-        Artisan::call('cache:clear');
     }
 
     public function disableContacts($request)
     {
-        $contacts = $this->getSelectedRecords($request);
+        $contacts = $this->getSelectedRecords($request, 'user');
 
         foreach ($contacts as $contact) {
             try {
                 $this->dispatch(new UpdateContact($contact, request()->merge(['enabled' => 0])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
 
     public function deleteContacts($request)
     {
-        $contacts = $this->getSelectedRecords($request);
+        $contacts = $this->getSelectedRecords($request, 'user');
 
         foreach ($contacts as $contact) {
             try {
                 $this->dispatch(new DeleteContact($contact));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
 
     public function deleteTransactions($request)
     {
-        $transactions = $this->getSelectedRecords($request);
+        $transactions = $this->getSelectedRecords($request, 'category');
 
         foreach ($transactions as $transaction) {
             try {
                 $this->dispatch(new DeleteTransaction($transaction));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
+    }
+
+    /**
+     * Import the excel file or catch errors
+     *
+     * @param $class
+     * @param $request
+     * @param $translation
+     *
+     * @return array
+     */
+    public function importExcel($class, $request, $translation)
+    {
+        return Import::fromExcel($class, $request, $translation);
+    }
+
+    /**
+     * Export the excel file or catch errors
+     *
+     * @param $class
+     * @param $translation
+     * @param $extension
+     *
+     * @return mixed
+     */
+    public function exportExcel($class, $translation, $extension = 'xlsx')
+    {
+        return Export::toExcel($class, $translation, $extension);
     }
 }

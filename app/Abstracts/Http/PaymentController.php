@@ -2,9 +2,9 @@
 
 namespace App\Abstracts\Http;
 
-use App\Events\Sale\PaymentReceived;
+use App\Events\Document\PaymentReceived;
 use App\Http\Requests\Portal\InvoicePayment as PaymentRequest;
-use App\Models\Sale\Invoice;
+use App\Models\Document\Document;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\URL;
 use Monolog\Logger;
@@ -34,23 +34,25 @@ abstract class PaymentController extends BaseController
             $this->logger = $this->getLogger();
 
             $this->user = user();
-    
+
             $this->module = module($this->alias);
 
             return $next($request);
         });
     }
 
-    public function show(Invoice $invoice, PaymentRequest $request)
+    public function show(Document $invoice, PaymentRequest $request, $cards = [])
     {
         $this->setContactFirstLastName($invoice);
 
         $confirm_url = $this->getConfirmUrl($invoice);
 
-        $html = view('partials.portal.payment_method.' . $this->type, [
+        $html = view('components.payment_method.' . $this->type, [
             'setting' => $this->setting,
             'invoice' => $invoice,
             'confirm_url' => $confirm_url,
+            'store_card' => !empty($this->setting['store_card']) ? true : false,
+            'cards' => $cards,
         ])->render();
 
         return response()->json([
@@ -62,18 +64,18 @@ abstract class PaymentController extends BaseController
         ]);
     }
 
-    public function signed(Invoice $invoice, PaymentRequest $request)
+    public function signed(Document $invoice, PaymentRequest $request)
     {
         return $this->show($invoice, $request);
     }
 
-    public function cancel(Invoice $invoice, $force_redirect = false)
+    public function cancel(Document $invoice, $force_redirect = false)
     {
         $message = trans('messages.warning.payment_cancel', ['method' => setting($this->alias . '.name')]);
 
         $this->logger->info($this->module->getName() . ':: Invoice: ' . $invoice->id . ' - Cancel Message: ' . $message);
 
-        flash($message)->warning();
+        flash($message)->warning()->important();
 
         $invoice_url = $this->getInvoiceUrl($invoice);
 
@@ -101,15 +103,15 @@ abstract class PaymentController extends BaseController
 
         flash($message)->success();
 
-        $invoice_url = $this->getInvoiceUrl($invoice);
+        $finish_url = $this->getFinishUrl($invoice);
 
         if ($force_redirect || ($this->type == 'redirect')) {
-            return redirect($invoice_url);
+            return redirect($finish_url);
         }
 
         return response()->json([
             'error' => $message,
-            'redirect' => $invoice_url,
+            'redirect' => $finish_url,
             'success' => true,
             'data' => false,
         ]);
@@ -117,9 +119,16 @@ abstract class PaymentController extends BaseController
 
     public function getInvoiceUrl($invoice)
     {
-        return $this->user
+        return request()->isPortal($invoice->company_id)
                 ? route('portal.invoices.show', $invoice->id)
-                : URL::signedRoute('signed.invoices.show', [$invoice->id, 'company_id' => $invoice->company_id]);
+                : URL::signedRoute('signed.invoices.show', [$invoice->id]);
+    }
+
+    public function getFinishUrl($invoice)
+    {
+        return request()->isPortal($invoice->company_id)
+                ? route('portal.invoices.finish', $invoice->id)
+                : URL::signedRoute('signed.invoices.finish', [$invoice->id]);
     }
 
     public function getConfirmUrl($invoice)
@@ -139,14 +148,14 @@ abstract class PaymentController extends BaseController
 
     public function getNotifyUrl($invoice)
     {
-        return route('portal.invoices.' . $this->alias . '.notify', $invoice->id);
+        return route('portal.' . $this->alias . '.invoices.notify', $invoice->id);
     }
 
     public function getModuleUrl($invoice, $suffix)
     {
-        return $this->user
-                ? route('portal.invoices.' . $this->alias . '.' . $suffix, $invoice->id)
-                : URL::signedRoute('signed.invoices.' . $this->alias . '.' . $suffix, [$invoice->id, 'company_id' => $invoice->company_id]);
+        return request()->isPortal($invoice->company_id)
+                ? route('portal.' . $this->alias . '.invoices.' . $suffix, $invoice->id)
+                : URL::signedRoute('signed.' . $this->alias . '.invoices.' . $suffix, [$invoice->id]);
     }
 
     public function getLogger()
@@ -160,9 +169,11 @@ abstract class PaymentController extends BaseController
     public function dispatchPaidEvent($invoice, $request)
     {
         $request['company_id'] = $invoice->company_id;
+        $request['account_id'] = setting($this->alias . '.account_id', setting('default.account'));
         $request['amount'] = $invoice->amount;
         $request['payment_method'] = $this->alias;
         $request['reference'] = $this->getReference($invoice);
+        $request['type'] = 'income';
 
         event(new PaymentReceived($invoice, $request));
     }

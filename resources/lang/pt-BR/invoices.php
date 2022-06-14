@@ -4,10 +4,12 @@ return [
 
     'invoice_number'        => 'Número da Fatura',
     'invoice_date'          => 'Data de Emissão',
+    'invoice_amount'        => 'Valor da Fatura',
     'total_price'           => 'Valor total',
     'due_date'              => 'Data de Vencimento',
     'order_number'          => 'Número',
     'bill_to'               => 'Pagar para',
+    'cancel_date'           => 'Data de cancelamento',
 
     'quantity'              => 'Quantidade',
     'price'                 => 'Preço',
@@ -18,6 +20,7 @@ return [
     'total'                 => 'Total',
 
     'item_name'             => 'Item|Itens',
+    'recurring_invoices'    => 'Fatura recorrente|Faturas recorrentes',
 
     'show_discount'         => ':discount% desconto',
     'add_discount'          => 'Adicionar desconto',
@@ -39,25 +42,13 @@ return [
     'send_invoice'          => 'Enviar fatura',
     'get_paid'              => 'Pagar',
     'accept_payments'       => 'Aceitar Pagamentos Online',
+    'payment_received'      => 'Pagamento recebido',
 
-    'statuses' => [
-        'draft'             => 'Rascunho',
-        'sent'              => 'Enviado',
-        'viewed'            => 'Visualizado',
-        'approved'          => 'Aprovado',
-        'partial'           => 'Parcial',
-        'paid'              => 'Pago',
-        'overdue'           => 'Vencido',
-        'unpaid'            => 'Não Pago',
-        'cancelled'         => 'Cancelado',
+    'form_description' => [
+        'billing'           => 'Os detalhes de faturamento aparecem na sua conta. A Data da Fatura é usada no painel e nos relatórios. Selecione a data que pretende pagar como Data de Vencimento.',
     ],
 
     'messages' => [
-        'email_sent'        => 'E-mail da fatura foi enviado!',
-        'marked_sent'       => 'Fatura marcada como enviada!',
-        'marked_paid'       => 'Fatura marcada como paga!',
-        'marked_viewed'     => 'Fatura marcada como visualizada!',
-        'marked_cancelled'  => 'Fatura marcada como cancelada!',
         'email_required'    => 'Nenhum endereço de e-mail para este cliente!',
         'draft'             => 'Isto é um <b>RASCUNHO</b> da fatura e será refletida nos gráficos depois de enviada.',
 
@@ -72,6 +63,23 @@ return [
                 'await'     => 'Aguardando pagamento',
             ],
         ],
+    ],
+
+    'slider' => [
+        'create'            => ':user criou essa fatura em :date',
+        'create_recurring'  => ':user criou esse modelo recorrente em :date',
+        'schedule'          => 'Repetir a cada :interval :frequency a partir de :date',
+        'children'          => ':count faturas foram criadas automaticamente',
+    ],
+
+    'share' => [
+        'show_link'         => 'Seu cliente pode visualizar a fatura nesse link',
+        'copy_link'         => 'Copiar o link e compartilhá-lo com seu cliente.',
+        'success_message'   => 'Link copiado para área de transferência!',
+    ],
+
+    'sticky' => [
+        'description' => 'Você está pré-visualizando como seu cliente verá a versão web de sua fatura.',
     ],
 
 ];

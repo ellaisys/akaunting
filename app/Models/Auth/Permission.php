@@ -2,14 +2,15 @@
 
 namespace App\Models\Auth;
 
+use Akaunting\Sortable\Traits\Sortable;
+use App\Traits\Tenants;
 use Laratrust\Models\LaratrustPermission;
 use Laratrust\Traits\LaratrustPermissionTrait;
-use Kyslik\ColumnSortable\Sortable;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
 
 class Permission extends LaratrustPermission
 {
-    use LaratrustPermissionTrait, SearchString, Sortable;
+    use LaratrustPermissionTrait, SearchString, Sortable, Tenants;
 
     protected $table = 'permissions';
 
@@ -40,7 +41,7 @@ class Permission extends LaratrustPermission
         $request = request();
 
         $search = $request->get('search');
-        $limit = $request->get('limit', setting('default.list_limit', '25'));
+        $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->usingSearchString($search)->sortable($sort)->paginate($limit);
     }

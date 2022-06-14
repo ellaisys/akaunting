@@ -2,9 +2,13 @@
 
 namespace Tests\Feature\Banking;
 
-use App\Models\Banking\Account;
-use Tests\Feature\FeatureTestCase;
+use App\Exports\Banking\Transfers as Export;
 use App\Jobs\Banking\CreateTransfer;
+use App\Models\Banking\Account;
+use App\Models\Banking\Transfer;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Tests\Feature\FeatureTestCase;
 
 class TransfersTest extends FeatureTestCase
 {
@@ -38,7 +42,7 @@ class TransfersTest extends FeatureTestCase
         $transfer = $this->dispatch(new CreateTransfer($this->getRequest()));
 
         $this->loginAs()
-            ->get(route('transfers.edit', $transfer->id))
+            ->get(route('transfers.show', $transfer->id))
             ->assertStatus(200)
             ->assertSee($transfer->description);
     }
@@ -69,11 +73,80 @@ class TransfersTest extends FeatureTestCase
         $this->assertFlashLevel('success');
     }
 
+    public function testItShouldExportTransfers()
+    {
+        $count = 5;
+        Transfer::factory()->count($count)->create();
+
+        \Excel::fake();
+
+        $this->loginAs()
+            ->get(route('transfers.export'))
+            ->assertStatus(200);
+
+        \Excel::matchByRegex();
+
+        \Excel::assertDownloaded(
+            '/' . \Str::filename(trans_choice('general.transfers', 2)) . '-\d{10}\.xlsx/',
+            function (Export $export) use ($count) {
+                // Assert that the correct export is downloaded.
+                return $export->collection()->count() === $count;
+            }
+        );
+    }
+
+    public function testItShouldExportSelectedTransfers()
+    {
+        $create_count = 5;
+        $select_count = 3;
+
+        $transfers = Transfer::factory()->count($create_count)->create();
+
+        \Excel::fake();
+
+        $this->loginAs()
+            ->post(
+                route('bulk-actions.action', ['group' => 'banking', 'type' => 'transfers']),
+                ['handle' => 'export', 'selected' => $transfers->take($select_count)->pluck('id')->toArray()]
+            )
+            ->assertStatus(200);
+
+        \Excel::matchByRegex();
+
+        \Excel::assertDownloaded(
+            '/' . \Str::filename(trans_choice('general.transfers', 2)) . '-\d{10}\.xlsx/',
+            function (Export $export) use ($select_count) {
+                return $export->collection()->count() === $select_count;
+            }
+        );
+    }
+
+    public function testItShouldImportTransfers()
+    {
+        \Excel::fake();
+
+        $this->loginAs()
+            ->post(
+                route('transfers.import'),
+                [
+                    'import' => UploadedFile::fake()->createWithContent(
+                        'transfers.xlsx',
+                        File::get(public_path('files/import/transfers.xlsx'))
+                    ),
+                ]
+            )
+            ->assertStatus(200);
+
+        \Excel::assertImported('transfers.xlsx');
+
+        $this->assertFlashLevel('success');
+    }
+
     public function getRequest()
     {
-        $from_account = factory(Account::class)->states('enabled', 'default_currency')->create();
+        $from_account = Account::factory()->enabled()->default_currency()->create();
 
-        $to_account = factory(Account::class)->states('enabled', 'default_currency')->create();
+        $to_account = Account::factory()->enabled()->default_currency()->create();
 
         return [
             'company_id' => $this->company->id,

@@ -3,8 +3,12 @@
 return [
 
     'styles' => [
+        'tailwind' => \App\View\Presenters\Menu::class,
+    ],
 
-        'argon' => \Akaunting\Menu\Presenters\Admin\Argon::class,
+    'home_urls' => [
+        '/',
+        'portal',
     ],
 
     'ordering' => true,

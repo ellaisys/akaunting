@@ -2,7 +2,6 @@
 
 namespace App\Utilities;
 
-use Akaunting\Module\Module;
 use App\Traits\SiteApi;
 use Cache;
 use Date;
@@ -89,7 +88,7 @@ class Versions
                 $module = module($module);
             }
 
-            if (!$module instanceof Module) {
+            if (!$module instanceof \Akaunting\Module\Module) {
                 continue;
             }
 
@@ -106,7 +105,7 @@ class Versions
         return $versions;
     }
 
-    protected static function getLatestVersion($url, $latest)
+    public static function getLatestVersion($url, $latest)
     {
         if (!$data = static::getResponseData('GET', $url, ['timeout' => 10])) {
             return $latest;
@@ -117,5 +116,60 @@ class Versions
         }
 
         return $data->latest;
+    }
+
+    public static function getUpdates()
+    {
+        // Get data from cache
+        $updates = Cache::get('updates');
+
+        if (!empty($updates)) {
+            return $updates;
+        }
+
+        $updates = [];
+
+        $modules = module()->all();
+
+        $versions = static::all($modules);
+
+        foreach ($versions as $alias => $latest_version) {
+            if ($alias == 'core') {
+                $installed_version = version('short');
+            } else {
+                $module = module($alias);
+
+                if (!$module instanceof \Akaunting\Module\Module) {
+                    continue;
+                }
+
+                $installed_version = $module->get('version');
+            }
+
+            if (version_compare($installed_version, $latest_version, '>=')) {
+                continue;
+            }
+
+            $updates[$alias] = $latest_version;
+        }
+
+        Cache::put('updates', $updates, Date::now()->addHour(6));
+
+        return $updates;
+    }
+
+    public static function shouldUpdate($listener_version, $old_version, $new_version): bool
+    {
+        // Don't update if "listener" is same or lower than "old" version
+        if (version_compare($listener_version, $old_version, '<=')) {
+            return false;
+        }
+
+        // Don't update if "listener" is higher than "new" version
+        if (version_compare($listener_version, $new_version, '>')) {
+            return false;
+        }
+
+        return true;
     }
 }

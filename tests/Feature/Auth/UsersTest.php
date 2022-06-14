@@ -12,7 +12,7 @@ class UsersTest extends FeatureTestCase
     {
         $this->loginAs()
             ->get(route('users.index'))
-            ->assertStatus(200)
+            ->assertOk()
             ->assertSeeText(trans_choice('general.users', 2));
     }
 
@@ -20,26 +20,32 @@ class UsersTest extends FeatureTestCase
     {
         $this->loginAs()
             ->get(route('users.create'))
-            ->assertStatus(200)
-            ->assertSeeText(trans('general.title.new', ['type' => trans_choice('general.users', 1)]));
+            ->assertOk()
+            ->assertSeeText(trans('general.title.invite', ['type' => trans_choice('general.users', 1)]));
     }
 
     public function testItShouldCreateUser()
     {
+        $request = $this->getRequest();
+
         $this->loginAs()
-            ->post(route('users.store'), $this->getRequest())
-            ->assertStatus(200);
+            ->post(route('users.store'), $request)
+            ->assertOk();
 
         $this->assertFlashLevel('success');
+
+        $this->assertDatabaseHas('users', $this->getAssertRequest($request));
     }
 
     public function testItShouldSeeUserUpdatePage()
     {
-        $user = $this->dispatch(new CreateUser($this->getRequest()));
+        $request = $this->getRequest();
+
+        $user = $this->dispatch(new CreateUser($request));
 
         $this->loginAs()
             ->get(route('users.edit', $user->id))
-            ->assertStatus(200)
+            ->assertOk()
             ->assertSee($user->email);
     }
 
@@ -49,57 +55,69 @@ class UsersTest extends FeatureTestCase
 
         $user = $this->dispatch(new CreateUser($request));
 
-        $request['email'] = $this->faker->safeEmail;
+        $request['email'] = $this->faker->freeEmail;
 
         $this->loginAs()
             ->patch(route('users.update', $user->id), $request)
-            ->assertStatus(200)
+            ->assertOk()
 			->assertSee($request['email']);
 
         $this->assertFlashLevel('success');
+
+        $this->assertDatabaseHas('users', $this->getAssertRequest($request));
     }
 
     public function testItShouldDeleteUser()
     {
-        $user = $this->dispatch(new CreateUser($this->getRequest()));
+        $request = $this->getRequest();
+
+        $user = $this->dispatch(new CreateUser($request));
 
         $this->loginAs()
             ->delete(route('users.destroy', $user->id))
-            ->assertStatus(200);
+            ->assertOk();
 
         $this->assertFlashLevel('success');
+
+        $this->assertSoftDeleted('users', $this->getAssertRequest($request));
     }
 
     public function testItShouldSeeLoginPage()
     {
         $this->get(route('login'))
-            ->assertStatus(200)
+            ->assertOk()
             ->assertSeeText(trans('auth.login_to'));
     }
 
     public function testItShouldLoginUser()
     {
-        $user = $this->dispatch(new CreateUser($this->getRequest()));
+        $request = $this->getRequest();
+
+        $user = $this->dispatch(new CreateUser($request));
 
         $this->post(route('login'), ['email' => $user->email, 'password' => $user->password])
-            ->assertStatus(200);
+            ->assertOk();
 
         $this->isAuthenticated($user->user);
     }
 
     public function testItShouldNotLoginUser()
     {
-        $user = $this->dispatch(new CreateUser($this->getRequest()));
+        $request = $this->getRequest();
+
+        $user = $this->dispatch(new CreateUser($request));
 
         $this->post(route('login'), ['email' => $user->email, 'password' => $this->faker->password()])
-            ->assertStatus(200);
+            ->assertOk();
 
         $this->assertGuest();
     }
 
     public function testItShouldLogoutUser()
     {
-        $user = $this->dispatch(new CreateUser($this->getRequest()));
+        $request = $this->getRequest();
+
+        $user = $this->dispatch(new CreateUser($request));
 
         $this->loginAs()
             ->get(route('logout', $user->id))
@@ -111,6 +129,17 @@ class UsersTest extends FeatureTestCase
 
     public function getRequest()
     {
-        return factory(User::class)->states('enabled')->raw();
+        return User::factory()->enabled()->raw();
+    }
+
+    public function getAssertRequest($request)
+    {
+        unset($request['password']);
+        unset($request['password_confirmation']);
+        unset($request['remember_token']);
+        unset($request['roles']);
+        unset($request['companies']);
+
+        return $request;
     }
 }

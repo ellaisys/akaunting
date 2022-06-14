@@ -6,6 +6,6 @@ return [
 
     'message' => 'Právě pracujeme na stránkách, zkuste to prosím později!',
 
-    'last-updated' => 'Tato zpráva byla naposledy aktualizována :timestamp',
+    'read_only' => 'Režim pouze pro čtení je aktivní. Informace je možné pouze zobrazit a není možné je editovat.',
 
 ];

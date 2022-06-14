@@ -20,7 +20,7 @@ class Validation extends Provider
         Validator::extend('currency', function ($attribute, $value, $parameters, $validator) use(&$currency_code) {
             $status = false;
 
-            if (!is_string($value) || (strlen($value) != 3)) {
+            if (!is_string($value)) {
                 return $status;
             }
 
@@ -28,6 +28,10 @@ class Validation extends Provider
 
             if (in_array($value, $currencies)) {
                 $status = true;
+            }
+
+            if (strlen($value) != 3) {
+                return $status;
             }
 
             $currency_code = $value;
@@ -42,8 +46,12 @@ class Validation extends Provider
         Validator::extend('amount', function ($attribute, $value, $parameters, $validator) use (&$amount) {
             $status = false;
 
-            if ($value > 0) {
+            if ($value > 0 || in_array($value, $parameters)) {
                 $status = true;
+            }
+
+            if (! preg_match("/^(?=.*?[0-9])[0-9.,]+$/", $value)) {
+                $status = false;
             }
 
             $amount = $value;

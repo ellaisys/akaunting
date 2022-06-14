@@ -3,58 +3,44 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Banking\Transaction;
 
-class UpdateTransaction extends Job
+class UpdateTransaction extends Job implements ShouldUpdate
 {
-    protected $transaction;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $transaction
-     * @param  $request
-     */
-    public function __construct($transaction, $request)
-    {
-        $this->transaction = $transaction;
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Transaction
-     */
-    public function handle()
+    public function handle(): Transaction
     {
         $this->authorize();
 
-        $this->transaction->update($this->request->all());
+        \DB::transaction(function () {
+            $this->model->update($this->request->all());
 
-        // Upload attachment
-        if ($this->request->file('attachment')) {
-            $media = $this->getMedia($this->request->file('attachment'), 'transactions');
+            // Upload attachment
+            if ($this->request->file('attachment')) {
+                $this->deleteMediaModel($this->model, 'attachment', $this->request);
 
-            $this->transaction->attachMedia($media, 'attachment');
-        }
+                foreach ($this->request->file('attachment') as $attachment) {
+                    $media = $this->getMedia($attachment, 'transactions');
 
-        // Recurring
-        $this->transaction->updateRecurring();
+                    $this->model->attachMedia($media, 'attachment');
+                }
+            } elseif (!$this->request->file('attachment') && $this->model->attachment) {
+                $this->deleteMediaModel($this->model, 'attachment', $this->request);
+            }
 
-        return $this->transaction;
+            // Recurring
+            $this->model->updateRecurring($this->request->all());
+        });
+
+        return $this->model;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
-        if ($this->transaction->reconciled) {
+        if ($this->model->reconciled) {
             $message = trans('messages.warning.reconciled_tran');
 
             throw new \Exception($message);

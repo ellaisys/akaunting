@@ -3,18 +3,24 @@
 return [
 
     'company' => [
-        'description'       => 'Firmenname, E-Mail, Adresse, Steuernummer usw. ändern',
-        'name'              => 'Name',
-        'email'             => 'E-Mail',
-        'phone'             => 'Telefon',
-        'address'           => 'Adresse',
-        'logo'              => 'Logo',
+        'description'                => 'Firmenname, E-Mail, Adresse, Steuernummer usw. ändern',
+        'name'                       => 'Name',
+        'email'                      => 'E-Mail',
+        'phone'                      => 'Telefon',
+        'address'                    => 'Adresse',
+        'edit_your_business_address' => 'Geschäftsadresse bearbeiten',
+        'logo'                       => 'Logo',
     ],
 
     'localisation' => [
         'description'       => 'Steuerjahr, Zeitzone, Datumsformat und mehr lokale Variablen festlegen',
         'financial_start'   => 'Beginn des Finanzjahrs',
         'timezone'          => 'Zeitzone',
+        'financial_denote' => [
+            'title'         => 'Beginn des Finanzjahrs',
+            'begins'        => 'Nach dem Jahr, in dem es beginnt',
+            'ends'          => 'Nach dem Jahr, in dem es endet',
+        ],
         'date' => [
             'format'        => 'Datumsformat',
             'separator'     => 'Datumstrennzeichen',
@@ -32,7 +38,7 @@ return [
         'discount_location' => [
             'name'          => 'Rabatt Position',
             'item'          => 'pro Artikel / Position',
-            'total'         => 'auf Totalbetrag',
+            'total'         => 'Insgesamt',
             'both'          => 'pro Artikel / Position und Totalbetrag',
         ],
     ],
@@ -62,12 +68,27 @@ return [
         'default'           => 'Standard',
         'classic'           => 'Klassisch',
         'modern'            => 'Modern',
+        'hide'              => [
+            'item_name'         => 'Artikelname ausblenden',
+            'item_description'  => 'Artikelbeschreibung ausblenden',
+            'quantity'          => 'Menge ausblenden',
+            'price'             => 'Preis ausblenden',
+            'amount'            => 'Betrag ausblenden',
+        ],
+    ],
+
+    'transfer' => [
+        'choose_template'   => 'Wählen Sie eine Vorlage aus',
+        'second'            => 'Zweite',
+        'third'             => 'Dritte',
     ],
 
     'default' => [
         'description'       => 'Standardkonto, Währung, Sprache Ihres Unternehmens',
         'list_limit'        => 'Datensätze pro Seite',
         'use_gravatar'      => 'Gravatar verwenden',
+        'income_category'   => 'Kategorie für Einnahmen',
+        'expense_category'  => 'Kategorie für Ausgaben',
     ],
 
     'email' => [
@@ -100,6 +121,7 @@ return [
             'invoice_payment_admin'     => 'Vorlage für Zahlungseingang (an Admin gesendet)',
             'bill_remind_admin'         => 'Vorlage für Erinnerungen - Ausgaben (an Admin gesendet)',
             'bill_recur_admin'          => 'Vorlage für wiederkehrende Rechnungen - Ausgaben (an Admin gesendet)',
+            'revenue_new_customer'      => 'Vorlage für Zahlungseingang (an Kunden gesendet)',
         ],
     ],
 

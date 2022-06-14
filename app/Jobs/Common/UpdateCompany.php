@@ -3,97 +3,114 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Events\Common\CompanyUpdated;
+use App\Events\Common\CompanyUpdating;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Common\Company;
 use App\Traits\Users;
 
-class UpdateCompany extends Job
+class UpdateCompany extends Job implements ShouldUpdate
 {
     use Users;
 
-    protected $company;
+    protected $current_company_id;
 
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $company
-     * @param  $request
-     */
-    public function __construct($company, $request)
+    public function booted(...$arguments): void
     {
-        $this->company = $company;
-        $this->request = $this->getRequestInstance($request);
+        $this->current_company_id = company_id();
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return Company
-     */
-    public function handle()
+    public function handle(): Company
     {
         $this->authorize();
 
-        $this->company->update($this->request->all());
+        event(new CompanyUpdating($this->model, $this->request));
 
-        // Clear current and load given company settings
-        setting()->setExtraColumns(['company_id' => $this->company->id]);
-        setting()->forgetAll();
-        setting()->load(true);
+        \DB::transaction(function () {
+            $this->model->update($this->request->all());
 
-        if ($this->request->has('name')) {
-            setting()->set('company.name', $this->request->get('name'));
-        }
+            $this->model->makeCurrent();
 
-        if ($this->request->has('email')) {
-            setting()->set('company.email', $this->request->get('email'));
-        }
-
-        if ($this->request->has('address')) {
-            setting()->set('company.address', $this->request->get('address'));
-        }
-
-        if ($this->request->has('currency')) {
-            setting()->set('default.currency', $this->request->get('currency'));
-        }
-
-        if ($this->request->has('locale')) {
-            setting()->set('default.locale', $this->request->get('locale'));
-        }
-
-        if ($this->request->file('logo')) {
-            $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->company->id);
-
-            if ($company_logo) {
-                $this->company->attachMedia($company_logo, 'company_logo');
-
-                setting()->set('company.logo', $company_logo->id);
+            if ($this->request->has('name')) {
+                setting()->set('company.name', $this->request->get('name'));
             }
+
+            if ($this->request->has('email')) {
+                setting()->set('company.email', $this->request->get('email'));
+            }
+
+            if ($this->request->has('tax_number')) {
+                setting()->set('company.tax_number', $this->request->get('tax_number'));
+            }
+
+            if ($this->request->has('phone')) {
+                setting()->set('company.phone', $this->request->get('phone'));
+            }
+
+            if ($this->request->has('address')) {
+                setting()->set('company.address', $this->request->get('address'));
+            }
+
+            if ($this->request->has('city')) {
+                setting()->set('company.city', $this->request->get('city'));
+            }
+
+            if ($this->request->has('zip_code')) {
+                setting()->set('company.zip_code', $this->request->get('zip_code'));
+            }
+
+            if ($this->request->has('state')) {
+                setting()->set('company.state', $this->request->get('state'));
+            }
+
+            if ($this->request->has('country')) {
+                setting()->set('company.country', $this->request->get('country'));
+            }
+
+            if ($this->request->has('currency')) {
+                setting()->set('default.currency', $this->request->get('currency'));
+            }
+
+            if ($this->request->has('locale')) {
+                setting()->set('default.locale', $this->request->get('locale'));
+            }
+
+            if ($this->request->file('logo')) {
+                $company_logo = $this->getMedia($this->request->file('logo'), 'settings', $this->model->id);
+
+                if ($company_logo) {
+                    $this->model->attachMedia($company_logo, 'company_logo');
+
+                    setting()->set('company.logo', $company_logo->id);
+                }
+            }
+
+            setting()->save();
+        });
+
+        event(new CompanyUpdated($this->model, $this->request));
+
+        if (!empty($this->current_company_id)) {
+            company($this->current_company_id)->makeCurrent();
         }
 
-        setting()->save();
-        setting()->forgetAll();
-
-        return $this->company;
+        return $this->model;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
         // Can't disable active company
-        if (($this->request->get('enabled', 1) == 0) && ($this->company->id == session('company_id'))) {
+        if (($this->request->get('enabled', 1) == 0) && ($this->model->id == $this->current_company_id)) {
             $message = trans('companies.error.disable_active');
 
             throw new \Exception($message);
         }
 
         // Check if user can access company
-        if (!$this->isUserCompany($this->company->id)) {
+        if ($this->isNotUserCompany($this->model->id)) {
             $message = trans('companies.error.not_user_company');
 
             throw new \Exception($message);

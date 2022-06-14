@@ -1,155 +1,177 @@
-@extends('layouts.modules')
+<x-layouts.modules>
+    <x-slot name="title">
+        {{ trans_choice('general.modules', 2) }}
+    </x-slot>
 
-@section('title', trans_choice('general.modules', 2))
+    <x-slot name="buttons">
+        <x-link href="{{ route('apps.api-key.create') }}">
+            {{ trans('modules.api_key') }}
+        </x-link>
 
-@section('new_button')
-    <span><a href="{{ route('apps.api-key.create') }}" class="btn btn-white btn-sm header-button-top"><span class="fa fa-key"></span> &nbsp;{{ trans('modules.api_key') }}</a></span>
-    <span><a href="{{ route('apps.my.index') }}" class="btn btn-white btn-sm header-button-top"><span class="fa fa-user"></span> &nbsp;{{ trans('modules.my_apps') }}</a></span>
-@endsection
+        <x-link href="{{ route('apps.my.index') }}">
+            {{ trans('modules.my_apps') }}
+        </x-link>
+    </x-slot>
 
-@section('content')
-    @include('partials.modules.bar')
-
-    <div class="row">
-        <div class="col-md-8">
-            <h3>{{ $module->name }}</h3>
-
-            <div class="nav-wrapper">
-                <ul class="nav nav-pills nav-fill flex-column flex-md-row" id="tabs-icons-text" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link mb-sm-2 mb-md-0 active" href="#description" data-toggle="tab" aria-selected="false">{{ trans('general.description') }}</a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="description">
-                            {!! $module->description !!}
-
-                            @if ($module->screenshots || $module->video)
-                               <akaunting-carousel :name="'{{ $module->name }}'" :height="'430px'"
+    <x-slot name="content">
+        <div class="flex flex-col gap-16 py-4">
+            <div class="flex flex-col lg:flex-row w-full gap-8 lg:gap-16">
+                <div class="w-full lg:w-7/12 flex flex-col gap-2 banner">
+                    @foreach ($module->files as $file)
+                        @if ($loop->first)
+                            <div class="relative w-full">
+                                <img src="{{ $file->path_string }}" class="w-full h-auto rounded-xl" /> 
                                     @if ($module->video)
-                                        @php
-                                            if (strpos($module->video->link, '=') !== false) {
-                                                $code = explode('=', $module->video->link);
-                                                $code[1]= str_replace('&list', '', $code[1]);
-                                            }
-                                        @endphp
-                                        :video="'{{ $code[1] }}'"
-                                    @endif
-                                    :screenshots="{{ json_encode($module->screenshots) }}">
-                                </akaunting-carousel>
-                            @endif
+                                    @php
+                                        if (strpos($module->video->link, '=') !== false) {
+                                            $code = explode('=', $module->video->link);
+                                            $code[1]= str_replace('&list', '', $code[1]);
+                                        }
+                                    @endphp
+
+                                    <a href="https://www.youtube-nocookie.com/embed/{{ $code[1] }}" class="glightbox-video absolute flex items-center justify-around top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white bg-opacity-75 hover:bg-opacity-100 rounded-full">
+                                        <i class="material-icons text-purple text-7xl"> play_arrow </i>
+                                    </a>
+                                @endif
+                            </div>
+                        @endif
+                    @endforeach
+
+                    @if ($module->categories)
+                        <div class="flex justify-between">
+                            <span>
+                                @foreach ($module->categories as $module_category)
+                                    <a href="{{ route('apps.categories.show', $module_category->slug) }}">{{ $module_category->name }}</a> </br>
+                                @endforeach
+                            </span>
                         </div>
-                    </div>
+                    @endif
                 </div>
-            </div>
-        </div>
 
-        <div class="col-md-4">
-            <h3>{{ trans_choice('general.actions', 1) }}</h3>
+                <div class="w-full lg:w-5/12 flex flex-col justify-between">
+                    <div class="flex flex-col gap-6">
+                        <div class="flex flex-col">
+                            <div class="flex flex-col gap-4">
+                                @if ($module->vote)
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex">
+                                            @for ($i = 1; $i <= $module->vote; $i++)
+                                                <i class="material-icons text-orange text-sm">star</i>
+                                            @endfor
 
-            <div class="card">
-                <div class="card-body">
-                    <div id="countdown-pre-sale"></div>
-                    <div class="text-center">
-                        <strong>
-                            <div class="text-xl">
+                                            @for ($i = $module->vote; $i < 5; $i++)
+                                                <i class="material-icons text-sm">star_border</i>
+                                            @endfor
+                                        </div>
+                                        <p class="text-xs">
+                                            @if ($module->total_review)
+                                            ( {{ $module->total_review }} {{ trans('modules.tab.reviews') }} )
+                                            @endif
+                                        </p>
+                                    </div>
+                                @endif
+
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex gap-4 items-baseline">
+                                        <h3 class="text-4xl font-semibold text-black">{{ $module->name }}</h3>   
+
+                                        @if ($module->vendor_name)
+                                            <span class="text-sm"> by <a class="border-b border-dashed border-black transition-all hover:font-semibold" href="{{ route('apps.vendors.show', $module->vendor->slug) }}">{{ $module->vendor_name }}</a></span>
+                                        @endif
+                                    </div>
+
+                                    @if ($module->version)
+                                        <div class="text-xs">
+                                            <span>{{ trans('footer.version') }} {{ $module->version }}</span>
+
+                                            @if ($module->updated_at)
+                                                <span> ( {{ trans('modules.updated') }} {{ Date::parse($module->updated_at)->diffForHumans() }} )</span>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="text-sm whitespace-normal truncate line-clamp-3"
+                        >
+                            {!! $module->description !!}
+                        </div>
+
+                        <div class="flex items-baseline">
+                            <span class="text-5xl font-bold text-purple">
                                 @if ($module->price == '0.0000')
                                     {{ trans('modules.free') }}
                                 @else
                                     {!! $module->price_prefix !!}
-                                    @if (isset($module->special_price))
-                                        <del class="text-danger">{{ $module->price }}</del>
-                                        {{ $module->special_price }}
-                                    @else
-                                        {{ $module->price }}
-                                    @endif
+
+                                @if (isset($module->special_price))
+                                    <del>{{ $module->price }}</del>
+                                    {{ $module->special_price }}
+                                @else
+                                    {{ $module->price }}
+                                @endif
                                     {!! $module->price_suffix !!}
                                 @endif
-                            </div>
-                        </strong>
+                            </span>
+
+                            <span class="text-sm mb-0"> / {{ trans('modules.billed_yearly') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col mt-5">
+                        @can('create-modules-item')
+                            @if ($module->install)
+                                <x-tooltip id="tooltip-countdown-install" placement="bottom" message="{{ trans('modules.pre_sale_install') }}">
+                                    <x-button
+                                        kind="primary"
+                                        override="class"
+                                        class="w-full px-3 py-1.5 mb-3 sm:mb-0 rounded-xl text-sm text-white font-medium leading-6 cursor-default bg-green hover:bg-green-700 disabled:bg-gray-50"
+                                    >
+                                        <akaunting-countdown id="countdown-pre-sale"
+                                            :year="{{ (int) $module->pre_sale_date->year }}"
+                                            :month="{{ (int) $module->pre_sale_date->month - 1 }}"
+                                            :date="{{ (int) $module->pre_sale_date->day }}"
+                                        ></akaunting-countdown>
+                                    </x-button>
+                                </x-tooltip>
+                            @else
+                                <x-tooltip id="tooltip-countdown-uninstall" placement="bottom" message="{{ trans('modules.pre_sale_uninstall') }}">
+                                    <x-link
+                                        href="/"
+                                        kind="primary"
+                                        override="class"
+                                        class="w-full flex items-center justify-center px-3 py-1.5 mb-3 sm:mb-0 rounded-xl text-sm font-medium leading-6 bg-green hover:bg-green-700 text-white disabled:bg-green-100"
+                                    >
+                                    <akaunting-countdown id="countdown-pre-sale"
+                                        :year="{{ (int) $module->pre_sale_date->year }}"
+                                        :month="{{ (int) $module->pre_sale_date->month - 1 }}"
+                                        :date="{{ (int) $module->pre_sale_date->day }}"
+                                    ></akaunting-countdown>
+                                    </x-link>
+                                </x-tooltip>
+                            @endif
+                        @endcan
                     </div>
                 </div>
-
-                <div class="card-footer">
-                    @permission('create-modules-item')
-                        @if ($module->install)
-                            <a href="#" class="btn btn-warning btn-block" disabled="disabled">
-                                {{ trans('modules.pre_sale') }}
-                            </a>
-                        @else
-                            <a href="{{ $module->action_url }}" class="btn btn-warning btn-block" target="_blank">
-                                {{ trans('modules.pre_sale') }}
-                            </a>
-                        @endif
-                    @endpermission
-
-                    @if ($module->purchase_faq)
-                        <br>
-                        <div class="text-center">
-                            <a href="#" @click="onShowFaq" id="button-purchase-faq">{{ trans('modules.tab.faq')}}</a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <h3>{{ trans('modules.about') }}</h3>
-
-            <div class="card">
-                <table class="table">
-                    <tbody>
-                        @if ($module->vendor_name)
-                            <tr>
-                                <th>{{ trans_choice('general.developers', 1) }}</th>
-                                <td class="text-right"><a href="{{ route('apps.vendors.show', $module->vendor->slug) }}">{{ $module->vendor_name }}</a></td>
-                            </tr>
-                        @endif
-                        @if ($module->version)
-                            <tr>
-                                <th>{{ trans('footer.version') }}</th>
-                                <td class="text-right">{{ $module->version }}</td>
-                            </tr>
-                        @endif
-                        @if ($module->created_at)
-                            <tr>
-                                <th>{{ trans('modules.added') }}</th>
-                                <td class="text-right">@date($module->created_at)</td>
-                            </tr>
-                        @endif
-                        @if ($module->updated_at)
-                            <tr>
-                                <th>{{ trans('modules.updated') }}</th>
-                                <td class="text-right">{{ Date::parse($module->updated_at)->diffForHumans() }}</td>
-                            </tr>
-                        @endif
-                        @if ($module->category)
-                            <tr>
-                                <th>{{ trans_choice('general.categories', 1) }}</th>
-                                <td class="text-right"><a href="{{ route('apps.categories.show', $module->category->slug) }}">{{ $module->category->name }}</a></td>
-                            </tr>
-                        @endif
-                    </tbody>
-                </table>
             </div>
         </div>
-    </div>
+        
+        @if ($module->purchase_faq)
+            <akaunting-modal :show="faq" modal-dialog-class="max-w-screen-md">
+                <template #modal-content>
+                    {!! $module->purchase_faq !!}
+                </template>
+            </akaunting-modal>
+        @endif
+    </x-slot>
 
-    @if ($module->purchase_faq)
-        <akaunting-modal :show="faq.show">
-            <template #modal-content>
-                {!! $module->purchase_faq !!}
-            </template>
-        </akaunting-modal>
-    @endif
-@endsection
+    @push('scripts_start')
+        <script type="text/javascript">
+            var app_slug = "{{ $module->slug }}";
+        </script>
+    @endpush
 
-@push('scripts_start')
-    <script type="text/javascript">
-        var app_slug = "{{ $module->slug }}";
-    </script>
-
-    <script src="{{ asset('public/js/modules/item.js?v=' . version('short')) }}"></script>
-@endpush
+    <x-script folder="modules" file="apps" />
+</x-layouts.modules>

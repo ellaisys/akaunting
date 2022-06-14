@@ -11,21 +11,31 @@ class Dashboards extends BulkAction
 {
     public $model = Dashboard::class;
 
+    public $text = 'general.dashboards';
+
+    public $path = [
+        'group' => 'common',
+        'type' => 'dashboards',
+    ];
+
     public $actions = [
-        'enable' => [
-            'name' => 'general.enable',
-            'message' => 'bulk_actions.message.enable',
-            'permission' => 'update-common-dashboards',
+        'enable'    => [
+            'icon'          => 'check_circle',
+            'name'          => 'general.enable',
+            'message'       => 'bulk_actions.message.enable',
+            'permission'    => 'update-common-dashboards',
         ],
-        'disable' => [
-            'name' => 'general.disable',
-            'message' => 'bulk_actions.message.disable',
-            'permission' => 'update-common-dashboards',
+        'disable'   => [
+            'icon'          => 'hide_source',
+            'name'          => 'general.disable',
+            'message'       => 'bulk_actions.message.disable',
+            'permission'    => 'update-common-dashboards',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-common-dashboards',
+        'delete'    => [
+            'icon'          => 'delete',
+            'name'          => 'general.delete',
+            'message'       => 'bulk_actions.message.delete',
+            'permission'    => 'delete-common-dashboards',
         ],
     ];
 
@@ -37,7 +47,7 @@ class Dashboards extends BulkAction
             try {
                 $this->dispatch(new UpdateDashboard($dashboard, $request->merge(['enabled' => 1])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -50,7 +60,7 @@ class Dashboards extends BulkAction
             try {
                 $this->dispatch(new UpdateDashboard($dashboard, $request->merge(['enabled' => 0])));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }
@@ -63,7 +73,7 @@ class Dashboards extends BulkAction
             try {
                 $this->dispatch(new DeleteDashboard($dashboard));
             } catch (\Exception $e) {
-                flash($e->getMessage())->error();
+                flash($e->getMessage())->error()->important();
             }
         }
     }

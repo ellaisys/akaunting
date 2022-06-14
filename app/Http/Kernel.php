@@ -14,8 +14,10 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middleware = [
+        \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
-        \MisterPhilip\MaintenanceMode\Http\Middleware\CheckForMaintenanceMode::class,
+        \Fruitcake\Cors\HandleCors::class,
+        \Illuminate\Foundation\Http\Middleware\CheckForMaintenanceMode::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
@@ -34,11 +36,8 @@ class Kernel extends HttpKernel
             // 'session.auth',
             'session.errors',
             'csrf',
-            'bindings',
             'install.redirect',
             'header.x',
-            'company.settings',
-            'company.currencies',
             'language',
             'firewall.all',
         ],
@@ -49,32 +48,38 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            'api.auth',
+            'auth.basic.once',
             'auth.disabled',
-            'throttle:60,1',
-            'bindings',
-            'api.company',
+            'throttle:api',
             'permission:read-api',
-            'company.settings',
-            'company.currencies',
+            'company.identify',
+            'bindings',
+            'read.only',
             'language',
             'firewall.all',
         ],
 
         'common' => [
             'web',
+            'company.identify',
+            'bindings',
+            'read.only',
             'wizard.redirect',
         ],
 
         'guest' => [
             'web',
             'auth.redirect',
+            'read.only',
         ],
 
         'admin' => [
             'web',
             'auth',
             'auth.disabled',
+            'company.identify',
+            'bindings',
+            'read.only',
             'wizard.redirect',
             'menu.admin',
             'permission:read-admin-panel',
@@ -84,6 +89,9 @@ class Kernel extends HttpKernel
             'web',
             'auth',
             'auth.disabled',
+            'company.identify',
+            'bindings',
+            'read.only',
             'permission:read-admin-panel',
         ],
 
@@ -91,8 +99,21 @@ class Kernel extends HttpKernel
             'web',
             'auth',
             'auth.disabled',
+            'company.identify',
+            'bindings',
+            'read.only',
             'menu.portal',
             'permission:read-client-portal',
+        ],
+
+        'preview' => [
+            'web',
+            'auth',
+            'auth.disabled',
+            'company.identify',
+            'bindings',
+            'read.only',
+            'permission:read-admin-panel',
         ],
 
         'signed' => [
@@ -102,13 +123,16 @@ class Kernel extends HttpKernel
             'session.errors',
             'csrf',
             'signature',
-            'company.signed',
+            'company.identify',
             'bindings',
+            'read.only',
             'header.x',
-            'company.settings',
-            'company.currencies',
             'language',
             'firewall.all',
+        ],
+
+        'import' => [
+            'throttle:import',
         ],
     ];
 
@@ -138,12 +162,12 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
         // Akaunting
-        'api.company' => \App\Http\Middleware\ApiCompany::class,
+        'api.key' => \App\Http\Middleware\RedirectIfNoApiKey::class,
+        'auth.basic.once' => \App\Http\Middleware\AuthenticateOnceWithBasicAuth::class,
         'auth.disabled' => \App\Http\Middleware\LogoutIfUserDisabled::class,
         'auth.redirect' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-        'company.currencies' => \App\Http\Middleware\LoadCurrencies::class,
-        'company.settings' => \App\Http\Middleware\LoadSettings::class,
-        'company.signed' => \App\Http\Middleware\SignedCompany::class,
+        'company.identify' => \App\Http\Middleware\IdentifyCompany::class,
+        'dropzone' => \App\Http\Middleware\Dropzone::class,
         'header.x' => \App\Http\Middleware\AddXHeader::class,
         'menu.admin' => \App\Http\Middleware\AdminMenu::class,
         'menu.portal' => \App\Http\Middleware\PortalMenu::class,
@@ -151,8 +175,8 @@ class Kernel extends HttpKernel
         'install.can' => \App\Http\Middleware\CanInstall::class,
         'install.redirect' => \App\Http\Middleware\RedirectIfNotInstalled::class,
         'money' => \App\Http\Middleware\Money::class,
+        'read.only' => \App\Http\Middleware\CheckForReadOnlyMode::class,
         'wizard.redirect' => \App\Http\Middleware\RedirectIfWizardNotCompleted::class,
-        'api.key' => \App\Http\Middleware\CanApiKey::class,
 
         // Vendor
         'ability' => \Laratrust\Middleware\LaratrustAbility::class,

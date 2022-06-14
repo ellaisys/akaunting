@@ -4,6 +4,7 @@ return [
 
     'invoice_number'        => 'Faktura nummer',
     'invoice_date'          => 'Faktura dato',
+    'invoice_amount'        => 'Fakturabeløb',
     'total_price'           => 'Total pris',
     'due_date'              => 'Forfaldsdato',
     'order_number'          => 'Ordrenummer',
@@ -40,26 +41,9 @@ return [
     'get_paid'              => 'Betal',
     'accept_payments'       => 'Accepter onlinebetalinger',
 
-    'statuses' => [
-        'draft'             => 'Kladde',
-        'sent'              => 'Sendt',
-        'viewed'            => 'Set',
-        'approved'          => 'Godkendt',
-        'partial'           => 'Delvis',
-        'paid'              => 'Betalt',
-        'overdue'           => 'Overskredet',
-        'unpaid'            => 'Ubetalt',
-        'cancelled'         => 'Annulleret',
-    ],
-
     'messages' => [
-        'email_sent'        => 'Faktura email er blevet sendt!',
-        'marked_sent'       => 'Faktura er markeret som sendt!',
-        'marked_paid'       => 'Faktura markeret som betalt!',
-        'marked_viewed'     => 'Faktura markeret som set!',
-        'marked_cancelled'  => 'Faktura markeret som annulleret!',
         'email_required'    => 'Ingen E-mail-adresse for kunden!',
-        'draft'             => 'Dette er et <b>UDKAST</b> til faktura og vil blive vist som diagrammer, når det bliver sendt.',
+        'draft'             => 'Dette er et <b>UDKAST</b> til faktura og vil først blive vist i oversigten, når den er sendt.',
 
         'status' => [
             'created'       => 'Oprettet den :date',

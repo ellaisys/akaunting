@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Modals;
 
 use App\Abstracts\Http\Controller;
 use App\Jobs\Common\CreateItem;
-use App\Models\Setting\Category;
 use App\Models\Setting\Currency;
 use App\Models\Setting\Tax;
 use Illuminate\Http\Request as IRequest;
@@ -17,9 +16,9 @@ class Items extends Controller
     public function __construct()
     {
         // Add CRUD permission check
-        $this->middleware('permission:create-common-items')->only(['create', 'store', 'duplicate', 'import']);
-        $this->middleware('permission:read-common-items')->only(['index', 'show', 'edit', 'export']);
-        $this->middleware('permission:update-common-items')->only(['update', 'enable', 'disable']);
+        $this->middleware('permission:create-common-items')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-common-items')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-common-items')->only('update', 'enable', 'disable');
         $this->middleware('permission:delete-common-items')->only('destroy');
     }
 
@@ -30,13 +29,11 @@ class Items extends Controller
      */
     public function create(IRequest $request)
     {
-        $categories = Category::type('item')->enabled()->orderBy('name')->pluck('name', 'id');
-
         $taxes = Tax::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        $currency = Currency::where('code', setting('default.currency', 'USD'))->first();
+        $currency = Currency::where('code', setting('default.currency'))->first();
 
-        $html = view('modals.items.create', compact('categories', 'taxes', 'currency'))->render();
+        $html = view('modals.items.create', compact('taxes', 'currency'))->render();
 
         return response()->json([
             'success' => true,
@@ -56,7 +53,7 @@ class Items extends Controller
     {
         if ($request->get('type', false) == 'inline') {
             $data = [
-                'company_id' => session('company_id'),
+                'company_id' => company_id(),
                 'name' => '',
                 'sale_price' => 0,
                 'purchase_price' => 0,

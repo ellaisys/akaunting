@@ -12,6 +12,8 @@ export default class BulkAction {
         this['value'] = '*';
         // Select action message
         this['message'] = '';
+        // Action type
+        this['type'] = '';
         // Bulk action view status
         this['show'] = false;
         // Bulk action modal status
@@ -35,8 +37,10 @@ export default class BulkAction {
             this.select_all = true;
         }
 
-        if (!this.count) {
+        if (! this.count) {
             this.show = false;
+
+            this.hideSearchHTML();
         }
     }
 
@@ -44,8 +48,9 @@ export default class BulkAction {
     selectAll() {
         this.show = false;
         this.selected = [];
+        this.hideSearchHTML();
 
-        if (!this.select_all) {
+        if (! this.select_all) {
             this.show = true;
 
             for (let input of document.querySelectorAll('[data-bulk-action]')) {
@@ -56,11 +61,23 @@ export default class BulkAction {
         this.count = this.selected.length;
     }
 
-    change(event) {
-        this.message = event.target.options[event.target.options.selectedIndex].dataset.message;
+    change(type) {
+        let action = document.getElementById('button-bulk-action-' + type);
+
+        this.value = type;
+
+        this.message = action.getAttribute('data-message');
 
         if (typeof(this.message) == "undefined") {
             this.message = '';
+        }
+
+        this.path = action.getAttribute('data-path');
+
+        this.type = '*';
+
+        if (action.getAttribute('data-type')) {
+            this.type = action.getAttribute('data-type');
         }
 
         return this.message;
@@ -72,72 +89,88 @@ export default class BulkAction {
             return;
         }
 
-        var path = document.getElementsByName("bulk_action_path")[0].getAttribute('value');
-
         this.loading = true;
 
-        if (this.value != 'export') {
-            window.axios.post(path, {
-                'handle': this.value,
-                'selected': this.selected
-            })
-            .then(response => {
-                if (response.data.redirect) {
-                    window.location.reload(false);
-                }
-            })
-            .catch(error => {
-                //this.loading = false;
-                //this.modal = false;
+        // bwfore version 2.0.23
+        if (this.value == 'export') {
+            this.type = 'download';
+        }
 
-                //window.location.reload(false);
-            })
-            .finally(function () {
-                //window.location.reload(false);
-            });
-        } else {
-            window.axios({
-                url: path,
-                method: 'POST',
-                data:{
+        switch (this.type) {
+            case 'download':
+                let download_promise = Promise.resolve(window.axios({
+                    url: this.path,
+                    method: 'POST',
+                    data:{
+                        'handle': this.value,
+                        'selected': this.selected
+                    },
+                    responseType: 'blob',
+                }));
+
+                download_promise.then((response) => {
+                    if (response.data.type != 'application/json') {
+                        const blob = new Blob([response.data], {type: response.data.type});
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+
+                        link.href = url;
+
+                        const contentDisposition = response.headers['content-disposition'];
+
+                        let fileName = 'unknown';
+
+                        if (contentDisposition) {
+                            const fileNameMatch = contentDisposition.match(/filename=(.+)/);
+
+                            if (fileNameMatch.length === 2) {
+                                fileName = fileNameMatch[1];
+                            }
+                        }
+
+                        link.setAttribute('download', fileName);
+
+                        document.body.appendChild(link);
+
+                        link.click();
+                        link.remove();
+
+                        window.URL.revokeObjectURL(url);
+
+                        this.loading = false;
+                        this.modal = false;
+                        this.value = '*';
+                        this.clear();
+
+                        return;
+                    }
+
+                    window.location.reload(false);
+                });
+
+              break;
+            default:
+                let type_promise = Promise.resolve(window.axios.post(this.path, {
                     'handle': this.value,
                     'selected': this.selected
-                },
-                responseType: 'blob',
-            }).then((response) => {
-                console.log(response.data);
-                const blob = new Blob([response.data], {type: response.data.type});
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
+                }));
 
-                link.href = url;
-
-                const contentDisposition = response.headers['content-disposition'];
-
-                let fileName = 'unknown';
-
-                if (contentDisposition) {
-                    const fileNameMatch = contentDisposition.match(/filename=(.+)/);
-
-                    if (fileNameMatch.length === 2) {
-                        fileName = fileNameMatch[1];
+                type_promise.then(response => {
+                    if (response.data.redirect === true) {
+                        window.location.reload(false);
+                    } else if (typeof response.data.redirect === 'string') {
+                        window.location.href = response.data.redirect;
                     }
-                }
+                })
+                .catch(error => {
+                    //this.loading = false;
+                    //this.modal = false;
 
-                link.setAttribute('download', fileName);
-
-                document.body.appendChild(link);
-
-                link.click();
-                link.remove();
-
-                window.URL.revokeObjectURL(url);
-
-                 this.loading = false;
-                 this.modal = false;
-                 this.value = '*';
-                 this.clear();
-            });
+                    //window.location.reload(false);
+                })
+                .finally(function () {
+                    //window.location.reload(false);
+                });
         }
     }
 
@@ -146,18 +179,30 @@ export default class BulkAction {
         this.show = false;
         this.select_all = false;
         this.selected = [];
+
+        this.hideSearchHTML();
     }
+
+    hideSearchHTML() {
+        setInterval(() => {
+            const search_box_html = document.querySelector('.js-search-box-hidden');
+
+            if (search_box_html) {
+                search_box_html.classList.add('d-none');
+            }
+        }, 5);
+    };
 
     // Change enabled status
     status(item_id, event, notify) {
-        var item = event.target;
-        var status = (event.target.checked) ? 'enable' : 'disable';
+        let item = event.target;
+        let status = (event.target.checked) ? 'enable' : 'disable';
 
         window.axios.get(this.path + '/' + item_id + '/' + status)
         .then(response => {
-            var type = (response.data.success) ? 'success' : 'warning';
+            let type = (response.data.success) ? 'success' : 'warning';
 
-            if (!response.data.success) {
+            if (! response.data.success) {
                 if (item.checked) {
                     item.checked = false;
                 } else {

@@ -4,6 +4,7 @@ namespace App\Models\Common;
 
 use App\Abstracts\Model;
 use Bkwld\Cloner\Cloneable;
+use Illuminate\Support\Str;
 
 class Report extends Model
 {
@@ -16,14 +17,44 @@ class Report extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'class', 'name', 'description', 'settings'];
+    protected $fillable = ['company_id', 'class', 'name', 'description', 'settings', 'created_from', 'created_by'];
 
     /**
-     * The attributes that should be casted to native types.
+     * The attributes that should be cast.
      *
      * @var array
      */
     protected $casts = [
         'settings' => 'object',
     ];
+
+    /**
+     * Scope to only include reports of a given alias.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $alias
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeAlias($query, $alias)
+    {
+        $class = ($alias == 'core') ? 'App\\\\' : 'Modules\\\\' . Str::studly($alias) . '\\\\';
+
+        return $query->where('class', 'like', $class . '%');
+    }
+
+    /**
+     * Get the alias based on class.
+     *
+     * @return string
+     */
+    public function getAliasAttribute()
+    {
+        if (Str::startsWith($this->class, 'App\\')) {
+            return 'core';
+        }
+
+        $arr = explode('\\', $this->class);
+
+        return Str::kebab($arr[1]);
+    }
 }

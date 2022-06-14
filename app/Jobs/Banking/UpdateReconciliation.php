@@ -3,54 +3,36 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
 
-class UpdateReconciliation extends Job
+class UpdateReconciliation extends Job implements ShouldUpdate
 {
-    protected $reconciliation;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $reconciliation
-     * @param  $request
-     */
-    public function __construct($reconciliation, $request)
+    public function handle(): Reconciliation
     {
-        $this->reconciliation = $reconciliation;
-        $this->request = $this->getRequestInstance($request);
-    }
+        \DB::transaction(function () {
+            $reconcile = (int) $this->request->get('reconcile');
+            $transactions = $this->request->get('transactions');
 
-    /**
-     * Execute the job.
-     *
-     * @return Reconciliation
-     */
-    public function handle()
-    {
-        $reconcile = $this->request->get('reconcile');
-        $transactions = $this->request->get('transactions');
+            $this->model->reconciled = $reconcile;
+            $this->model->save();
 
-        $this->reconciliation->reconciled = $reconcile ? 1 : 0;
-        $this->reconciliation->save();
+            if ($transactions) {
+                foreach ($transactions as $key => $value) {
+                    if (empty($value)) {
+                        continue;
+                    }
 
-        if ($transactions) {
-            foreach ($transactions as $key => $value) {
-                if (empty($value)) {
-                    continue;
+                    $t = explode('_', $key);
+
+                    $transaction = Transaction::find($t[1]);
+                    $transaction->reconciled = $reconcile;
+                    $transaction->save();
                 }
- 
-                $t = explode('_', $key);
-
-                $transaction = Transaction::find($t[1]);
-                $transaction->reconciled = 1;
-                $transaction->save();
             }
-        }
+        });
 
-        return $this->reconciliation;
+        return $this->model;
     }
 }

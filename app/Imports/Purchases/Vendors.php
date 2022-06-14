@@ -3,8 +3,8 @@
 namespace App\Imports\Purchases;
 
 use App\Abstracts\Import;
-use App\Models\Common\Contact as Model;
 use App\Http\Requests\Common\Contact as Request;
+use App\Models\Common\Contact as Model;
 
 class Vendors extends Import
 {
@@ -17,7 +17,10 @@ class Vendors extends Import
     {
         $row = parent::map($row);
 
+        $country = array_search($row['country'], trans('countries'));
+
         $row['type'] = 'vendor';
+        $row['country'] = !empty($country) ? $country : null;
 
         return $row;
     }

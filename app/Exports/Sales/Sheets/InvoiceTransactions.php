@@ -4,32 +4,29 @@ namespace App\Exports\Sales\Sheets;
 
 use App\Abstracts\Export;
 use App\Models\Banking\Transaction as Model;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class InvoiceTransactions extends Export
+class InvoiceTransactions extends Export implements WithColumnFormatting
 {
     public function collection()
     {
-        $model = Model::with(['account', 'category', 'contact', 'invoice'])->type('income')->isDocument()->usingSearchString(request('search'));
-
-        if (!empty($this->ids)) {
-            $model->whereIn('document_id', (array) $this->ids);
-        }
-
-        return $model->cursor();
+        return Model::with('account', 'category', 'contact', 'document')->income()->isDocument()->collectForExport($this->ids, ['paid_at' => 'desc'], 'document_id');
     }
 
     public function map($model): array
     {
-        $invoice = $model->invoice;
+        $document = $model->document;
 
-        if (empty($invoice)) {
+        if (empty($document)) {
             return [];
         }
 
-        $model->invoice_number = $invoice->invoice_number;
+        $model->invoice_number = $document->document_number;
         $model->account_name = $model->account->name;
         $model->category_name = $model->category->name;
         $model->contact_email = $model->contact->email;
+        $model->transaction_number = $model->number;
 
         return parent::map($model);
     }
@@ -38,6 +35,7 @@ class InvoiceTransactions extends Export
     {
         return [
             'invoice_number',
+            'transaction_number',
             'paid_at',
             'amount',
             'currency_code',
@@ -49,6 +47,13 @@ class InvoiceTransactions extends Export
             'payment_method',
             'reference',
             'reconciled',
+        ];
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'B' => NumberFormat::FORMAT_DATE_YYYYMMDD,
         ];
     }
 }

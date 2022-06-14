@@ -3,29 +3,15 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldDelete;
 
-class DeleteReport extends Job
+class DeleteReport extends Job implements ShouldDelete
 {
-    protected $report;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $report
-     */
-    public function __construct($report)
+    public function handle(): bool
     {
-        $this->report = $report;
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
-    {
-        $this->report->delete();
+        \DB::transaction(function () {
+            $this->model->delete();
+        });
 
         return true;
     }

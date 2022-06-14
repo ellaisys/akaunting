@@ -2,12 +2,11 @@
 
 namespace App\Events\Banking;
 
-use Illuminate\Queue\SerializesModels;
+use App\Abstracts\Event;
+use App\Models\Banking\Transaction;
 
-class TransactionCreated
+class TransactionCreated extends Event
 {
-    use SerializesModels;
-
     public $transaction;
 
     /**
@@ -15,7 +14,7 @@ class TransactionCreated
      *
      * @param $transaction
      */
-    public function __construct($transaction)
+    public function __construct(Transaction $transaction)
     {
         $this->transaction = $transaction;
     }

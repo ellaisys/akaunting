@@ -9,7 +9,6 @@ return [
     'new'                   => 'नया',
     'top_free'              => 'टॉप फ़्री',
     'free'                  => 'फ़्री',
-    'search'                => 'खोज',
     'install'               => 'इंस्टॉल करें',
     'buy_now'               => 'अभी खरीदें',
     'get_api_key'           => 'अपनी एपीआई कुंजी प्राप्त करने के लिए यहां <a href=":url" target="_blank">क्लिक</a> करें।',
@@ -28,7 +27,7 @@ return [
 
     'installed'             => ':module इंस्टॉल',
     'uninstalled'           => ':module अनइंस्टॉल',
-    //'updated'               => ':module updated',
+    'updated_2'             => ':module अपडेट किया गया',
     'enabled'               => ':module सक्रिय',
     'disabled'              => ':module निष्क्रिय',
 

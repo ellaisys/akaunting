@@ -3,47 +3,36 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
-use Artisan;
+use App\Events\Auth\UserDeleted;
+use App\Events\Auth\UserDeleting;
+use App\Interfaces\Job\ShouldDelete;
 
-class DeleteUser extends Job
+class DeleteUser extends Job implements ShouldDelete
 {
-    protected $user;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $user
-     */
-    public function __construct($user)
-    {
-        $this->user = $user;
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return boolean|Exception
-     */
-    public function handle()
+    public function handle(): bool
     {
         $this->authorize();
 
-        $this->user->delete();
+        event(new UserDeleting($this->model));
 
-        Artisan::call('cache:clear');
+        \DB::transaction(function () {
+            $this->model->delete();
+
+            $this->model->flushCache();
+        });
+
+        event(new UserDeleted($this->model));
 
         return true;
     }
 
     /**
      * Determine if this action is applicable.
-     *
-     * @return void
      */
-    public function authorize()
+    public function authorize(): void
     {
         // Can't delete yourself
-        if ($this->user->id == user()->id) {
+        if ($this->model->id == user()->id) {
             $message = trans('auth.error.self_delete');
 
             throw new \Exception($message);

@@ -3,9 +3,14 @@
 namespace App\Models\Setting;
 
 use App\Abstracts\Model;
+use App\Models\Document\Document;
+use App\Traits\Contacts;
+use App\Traits\Transactions;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Currency extends Model
 {
+    use Contacts, HasFactory, Transactions;
 
     protected $table = 'currencies';
 
@@ -14,7 +19,30 @@ class Currency extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'code', 'rate', 'enabled', 'precision', 'symbol', 'symbol_first', 'decimal_mark', 'thousands_separator'];
+    protected $fillable = [
+        'company_id',
+        'name',
+        'code',
+        'rate',
+        'enabled',
+        'precision',
+        'symbol',
+        'symbol_first',
+        'decimal_mark',
+        'thousands_separator',
+        'created_from',
+        'created_by',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'rate' => 'double',
+        'enabled' => 'boolean',
+    ];
 
     /**
      * Sortable columns.
@@ -28,9 +56,14 @@ class Currency extends Model
         return $this->hasMany('App\Models\Banking\Account', 'currency_code', 'code');
     }
 
+    public function documents()
+    {
+        return $this->hasMany('App\Models\Document\Document', 'currency_code', 'code');
+    }
+
     public function bills()
     {
-        return $this->hasMany('App\Models\Purchase\Bill', 'currency_code', 'code');
+        return $this->documents()->where('documents.type', Document::BILL_TYPE);
     }
 
     public function contacts()
@@ -40,22 +73,22 @@ class Currency extends Model
 
     public function customers()
     {
-        return $this->contacts()->where('type', 'customer');
+        return $this->contacts()->whereIn('contacts.type', (array) $this->getCustomerTypes());
     }
 
     public function expense_transactions()
     {
-        return $this->transactions()->where('type', 'expense');
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getExpenseTypes());
     }
 
     public function income_transactions()
     {
-        return $this->transactions()->where('type', 'income');
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getIncomeTypes());
     }
 
     public function invoices()
     {
-        return $this->hasMany('App\Models\Sale\Invoice', 'currency_code', 'code');
+        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
     }
 
     public function transactions()
@@ -65,18 +98,19 @@ class Currency extends Model
 
     public function vendors()
     {
-        return $this->contacts()->where('type', 'vendor');
+        return $this->contacts()->whereIn('contacts.type', (array) $this->getVendorTypes());
     }
 
     /**
-     * Convert rate to double.
+     * Scope currency by code.
      *
-     * @param  string  $value
-     * @return void
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param mixed $code
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function setRateAttribute($value)
+    public function scopeCode($query, $code)
     {
-        $this->attributes['rate'] = (double) $value;
+        return $query->where($this->qualifyColumn('code'), $code);
     }
 
     /**
@@ -150,14 +184,39 @@ class Currency extends Model
     }
 
     /**
-     * Scope currency by code.
+     * Get the line actions.
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param mixed $code
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return array
      */
-    public function scopeCode($query, $code)
+    public function getLineActionsAttribute()
     {
-        return $query->where($this->table . '.code', $code);
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('currencies.edit', $this->id),
+            'permission' => 'update-settings-currencies',
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'currencies.destroy',
+            'permission' => 'delete-settings-currencies',
+            'model' => $this,
+        ];
+
+        return $actions;
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\Currency::new();
     }
 }
