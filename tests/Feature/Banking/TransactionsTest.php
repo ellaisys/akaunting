@@ -4,9 +4,12 @@ namespace Tests\Feature\Banking;
 
 use App\Exports\Banking\Transactions as Export;
 use App\Jobs\Banking\CreateTransaction;
+use App\Notifications\Banking\Transaction as Notification;
 use App\Models\Banking\Transaction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\Feature\FeatureTestCase;
 
 class TransactionsTest extends FeatureTestCase
@@ -69,6 +72,43 @@ class TransactionsTest extends FeatureTestCase
         ]);
     }
 
+    public function testItShouldSendTransactionEmail()
+    {
+        NotificationFacade::fake();
+
+        $transaction = $this->dispatch(new CreateTransaction($this->getRequest()));
+
+        $this->loginAs()
+            ->post(route('modals.transactions.emails.store', $transaction->id), $this->getEmailRequest($transaction))
+            ->assertStatus(200);
+
+        $this->assertFlashLevel('success');
+
+        NotificationFacade::assertSentTo($transaction->contact, Notification::class);
+    }
+
+    public function testItShouldHitRateLimitForSendTransactionEmail()
+    {
+        NotificationFacade::fake();
+
+        $limit_per_minute = (int) config('app.throttles.email.minute');
+
+        $transaction = $this->dispatch(new CreateTransaction($this->getRequest()));
+
+        for ($i = 0; $i < $limit_per_minute; $i++) {
+            $this->loginAs()
+                ->post(route('modals.transactions.emails.store', $transaction->id), $this->getEmailRequest($transaction));
+        }
+
+        $this->loginAs()
+            ->post(route('modals.transactions.emails.store', $transaction->id), $this->getEmailRequest($transaction))
+            ->assertJson([
+                'success' => false,
+            ]);
+
+        NotificationFacade::assertSentTimes(Notification::class, $limit_per_minute);
+    }
+
 	public function testItShouldSeeTransactionUpdatePage()
 	{
         $request = $this->getRequest();
@@ -119,16 +159,16 @@ class TransactionsTest extends FeatureTestCase
         $count = 5;
         Transaction::factory()->income()->count($count)->create();
 
-        \Excel::fake();
+        Excel::fake();
 
         $this->loginAs()
             ->get(route('transactions.export'))
             ->assertStatus(200);
 
-        \Excel::matchByRegex();
+        Excel::matchByRegex();
 
-        \Excel::assertDownloaded(
-            '/' . \Str::filename(trans_choice('general.transactions', 2)) . '-\d{10}\.xlsx/',
+        Excel::assertDownloaded(
+            '/' . str()->filename(trans_choice('general.transactions', 2)) . '-\d{10}\.xlsx/',
             function (Export $export) use ($count) {
                 // Assert that the correct export is downloaded.
                 return $export->collection()->count() === $count;
@@ -143,7 +183,7 @@ class TransactionsTest extends FeatureTestCase
 
         $transactions = Transaction::factory()->income()->count($create_count)->create();
 
-        \Excel::fake();
+        Excel::fake();
 
         $this->loginAs()
             ->post(
@@ -152,10 +192,10 @@ class TransactionsTest extends FeatureTestCase
             )
             ->assertStatus(200);
 
-        \Excel::matchByRegex();
+        Excel::matchByRegex();
 
-        \Excel::assertDownloaded(
-            '/' . \Str::filename(trans_choice('general.transactions', 2)) . '-\d{10}\.xlsx/',
+        Excel::assertDownloaded(
+            '/' . str()->filename(trans_choice('general.transactions', 2)) . '-\d{10}\.xlsx/',
             function (Export $export) use ($select_count) {
                 return $export->collection()->count() === $select_count;
             }
@@ -164,7 +204,7 @@ class TransactionsTest extends FeatureTestCase
 
     public function testItShouldImportTransactions()
     {
-        \Excel::fake();
+        Excel::fake();
 
         $this->loginAs()
             ->post(
@@ -178,7 +218,7 @@ class TransactionsTest extends FeatureTestCase
             )
             ->assertStatus(200);
 
-        \Excel::assertImported('transactions.xlsx');
+        Excel::assertImported('transactions.xlsx');
 
         $this->assertFlashLevel('success');
     }
@@ -190,5 +230,19 @@ class TransactionsTest extends FeatureTestCase
         $factory = $recurring ? $factory->income()->recurring() : $factory->income();
 
         return $factory->raw();
+    }
+
+    public function getEmailRequest($transaction)
+    {
+        $email_template = config('type.transaction.' . $transaction->type . '.email_template');
+
+        $notification = new Notification($transaction, $email_template, true);
+
+        return [
+            'transaction_id'    => $transaction->id,
+            'to'                => [$transaction->contact->email],
+            'subject'           => $notification->getSubject(),
+            'body'              => $notification->getBody(),
+        ];
     }
 }

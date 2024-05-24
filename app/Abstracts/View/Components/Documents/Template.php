@@ -6,18 +6,18 @@ use App\Abstracts\View\Component;
 use App\Models\Common\Media;
 use App\Traits\DateTime;
 use App\Traits\Documents;
+use App\Traits\Tailwind;
 use App\Traits\ViewComponents;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Exception\NotReadableException;
 use Image;
+use ReflectionProperty;
 
 abstract class Template extends Component
 {
-    use DateTime, Documents, ViewComponents;
+    use DateTime, Documents, Tailwind, ViewComponents;
 
     public const OBJECT_TYPE = 'document';
     public const DEFAULT_TYPE = 'invoice';
@@ -94,6 +94,9 @@ abstract class Template extends Component
     /** @var string */
     public $textOrderNumber;
 
+    /** @var string */
+    public $showContactRoute;
+
     public $hideItems;
 
     public $hideName;
@@ -122,6 +125,9 @@ abstract class Template extends Component
 
     public $hideNote;
 
+    /** @var bool */
+    public $print;
+
     /**
      * Create a new component instance.
      *
@@ -134,9 +140,9 @@ abstract class Template extends Component
         bool $hideContactName = false, bool $hideContactAddress = false, bool $hideContactTaxNumber = false, bool $hideContactPhone = false, bool $hideContactEmail = false,
         bool $hideOrderNumber = false, bool $hideDocumentNumber = false, bool $hideIssuedAt = false, bool $hideDueAt = false,
         string $textDocumentTitle = '', string $textDocumentSubheading = '',
-        string $textContactInfo = '', string $textDocumentNumber = '', string $textOrderNumber = '', string $textIssuedAt = '', string $textDueAt = '',
+        string $textContactInfo = '', string $textDocumentNumber = '', string $textOrderNumber = '', string $textIssuedAt = '', string $textDueAt = '', string $showContactRoute = '',
         bool $hideItems = false, bool $hideName = false, bool $hideDescription = false, bool $hideQuantity = false, bool $hidePrice = false, bool $hideDiscount = false, bool $hideAmount = false, bool $hideNote = false,
-        string $textItems = '', string $textQuantity = '', string $textPrice = '', string $textAmount = ''
+        string $textItems = '', string $textQuantity = '', string $textPrice = '', string $textAmount = '', bool $print = false
     ) {
         $this->type = $type;
         $this->item = $item;
@@ -165,8 +171,9 @@ abstract class Template extends Component
         $this->hideDueAt = $hideDueAt;
 
         $this->textDocumentTitle = $this->getTextDocumentTitle($type, $textDocumentTitle);
-        $this->textDocumentSubheading = $this->gettextDocumentSubheading($type, $textDocumentSubheading);
+        $this->textDocumentSubheading = $this->getTextDocumentSubheading($type, $textDocumentSubheading);
         $this->textContactInfo = $this->getTextContactInfo($type, $textContactInfo);
+        $this->showContactRoute = $this->getShowContactRoute($type, $showContactRoute);
         $this->textIssuedAt = $this->getTextIssuedAt($type, $textIssuedAt);
         $this->textDocumentNumber = $this->getTextDocumentNumber($type, $textDocumentNumber);
         $this->textDueAt = $this->getTextDueAt($type, $textDueAt);
@@ -186,6 +193,8 @@ abstract class Template extends Component
         $this->textPrice = $this->getTextPrice($type, $textPrice);
         $this->textAmount = $this->getTextAmount($type, $textAmount);
 
+        $this->print = $this->getPrint($print);
+
         // Set Parent data
         //$this->setParentData();
     }
@@ -200,7 +209,7 @@ abstract class Template extends Component
             return $template;
         }
 
-        $documentTemplate =  setting($this->getSettingKey($type, 'template'), 'default');
+        $documentTemplate =  setting($this->getDocumentSettingKey($type, 'template'), 'default');
 
         return $documentTemplate;
     }
@@ -211,6 +220,12 @@ abstract class Template extends Component
             return $logo;
         }
 
+        static $content;
+
+        if (! empty($content)) {
+            return $content;
+        }
+
         $media_id = (! empty($this->document->contact->logo) && ! empty($this->document->contact->logo->id)) ? $this->document->contact->logo->id : setting('company.logo');
 
         $media = Media::find($media_id);
@@ -218,7 +233,7 @@ abstract class Template extends Component
         if (! empty($media)) {
             $path = $media->getDiskPath();
 
-            if (Storage::missing($path)) {
+            if (! $media->fileExists()) {
                 return $logo;
             }
         } else {
@@ -231,7 +246,7 @@ abstract class Template extends Component
                 $height = setting('invoice.logo_size_height');
 
                 if ($media) {
-                    $image->make(Storage::get($path))->resize($width, $height)->encode();
+                    $image->make($media->contents())->resize($width, $height)->encode();
                 } else {
                     $image->make($path)->resize($width, $height)->encode();
                 }
@@ -256,7 +271,9 @@ abstract class Template extends Component
 
         $extension = File::extension($path);
 
-        return 'data:image/' . $extension . ';base64,' . base64_encode($image);
+        $content = 'data:image/' . $extension . ';base64,' . base64_encode($image);
+
+        return $content;
     }
 
     protected function getBackgroundColor($type, $backgroundColor)
@@ -265,18 +282,24 @@ abstract class Template extends Component
             return $backgroundColor;
         }
 
-        if ($background_color = config('type.document.' . $type . '.color', false)) {
-            return $background_color;
+        // checking setting color
+        $key = $this->getDocumentSettingKey($type, 'color');
+
+        if (! empty(setting($key))) {
+            $backgroundColor = setting($key);
         }
 
-
-        if (! empty($alias = config('type.document.' . $type . '.alias'))) {
-            $type = $alias . '.' . str_replace('-', '_', $type);
+        // checking config color
+        if (empty($backgroundColor) && $background_color = config('type.document.' . $type . '.color', false)) {
+            $backgroundColor = $background_color;
         }
 
-        $backgroundColor = setting($this->getSettingKey($type, 'color'), '#55588b');
+        // set default color
+        if (empty($backgroundColor)) {
+            $backgroundColor = '#55588b';
+        }
 
-        return $backgroundColor;
+        return $this->getHexCodeOfTailwindClass($backgroundColor);
     }
 
     protected function getTextDocumentTitle($type, $textDocumentTitle)
@@ -285,7 +308,11 @@ abstract class Template extends Component
             return $textDocumentTitle;
         }
 
-        $key = $this->getSettingKey($type, 'title');
+        if (! empty($this->document) && $this->document->title !== '') {
+            return $this->document->title;
+        }
+
+        $key = $this->getDocumentSettingKey($type, 'title');
 
         if (! empty(setting($key))) {
             return setting($key);
@@ -306,7 +333,11 @@ abstract class Template extends Component
             return $textDocumentSubheading;
         }
 
-        $key = $this->getSettingKey($type, 'subheading');
+        if (! empty($this->document) && $this->document->subheading !== '') {
+            return $this->document->subheading;
+        }
+
+        $key = $this->getDocumentSettingKey($type, 'subheading');
 
         if (! empty(setting($key))) {
             return setting($key);
@@ -436,18 +467,18 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if (setting($this->getSettingKey($type, 'item_name'), 'items') === 'custom') {
-            if (empty($textItems = setting($this->getSettingKey($type, 'item_name_input')))) {
+        if (setting($this->getDocumentSettingKey($type, 'item_name'), 'items') === 'custom') {
+            if (empty($textItems = setting($this->getDocumentSettingKey($type, 'item_name_input')))) {
                 $textItems = 'general.items';
             }
 
             return $textItems;
         }
 
-        if (setting($this->getSettingKey($type, 'item_name')) !== null
-            && (trans(setting($this->getSettingKey($type, 'item_name'))) != setting($this->getSettingKey($type, 'item_name')))
+        if (setting($this->getDocumentSettingKey($type, 'item_name')) !== null
+            && (trans(setting($this->getDocumentSettingKey($type, 'item_name'))) != setting($this->getDocumentSettingKey($type, 'item_name')))
         ) {
-            return setting($this->getSettingKey($type, 'item_name'));
+            return setting($this->getDocumentSettingKey($type, 'item_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'items');
@@ -466,18 +497,18 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if (setting($this->getSettingKey($type, 'quantity_name'), 'quantity') === 'custom') {
-            if (empty($textQuantity = setting($this->getSettingKey($type, 'quantity_name_input')))) {
+        if (setting($this->getDocumentSettingKey($type, 'quantity_name'), 'quantity') === 'custom') {
+            if (empty($textQuantity = setting($this->getDocumentSettingKey($type, 'quantity_name_input')))) {
                 $textQuantity = 'invoices.quantity';
             }
 
             return $textQuantity;
         }
 
-        if (setting($this->getSettingKey($type, 'quantity_name')) !== null
-            && (trans(setting($this->getSettingKey($type, 'quantity_name'))) != setting($this->getSettingKey($type, 'quantity_name')))
+        if (setting($this->getDocumentSettingKey($type, 'quantity_name')) !== null
+            && (trans(setting($this->getDocumentSettingKey($type, 'quantity_name'))) != setting($this->getDocumentSettingKey($type, 'quantity_name')))
         ) {
-            return setting($this->getSettingKey($type, 'quantity_name'));
+            return setting($this->getDocumentSettingKey($type, 'quantity_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'quantity');
@@ -496,18 +527,18 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if (setting($this->getSettingKey($type, 'price_name'), 'price') === 'custom') {
-            if (empty($textPrice = setting($this->getSettingKey($type, 'price_name_input')))) {
+        if (setting($this->getDocumentSettingKey($type, 'price_name'), 'price') === 'custom') {
+            if (empty($textPrice = setting($this->getDocumentSettingKey($type, 'price_name_input')))) {
                 $textPrice = 'invoices.price';
             }
 
             return $textPrice;
         }
 
-        if (setting($this->getSettingKey($type, 'price_name')) !== null
-            && (trans(setting($this->getSettingKey($type, 'price_name'))) != setting($this->getSettingKey($type, 'price_name')))
+        if (setting($this->getDocumentSettingKey($type, 'price_name')) !== null
+            && (trans(setting($this->getDocumentSettingKey($type, 'price_name'))) != setting($this->getDocumentSettingKey($type, 'price_name')))
         ) {
-            return setting($this->getSettingKey($type, 'price_name'));
+            return setting($this->getDocumentSettingKey($type, 'price_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'price');
@@ -534,6 +565,23 @@ abstract class Template extends Component
         return 'general.amount';
     }
 
+    protected function getShowContactRoute($type, $showContactRoute)
+    {
+        if (! empty($showContactRoute)) {
+            return $showContactRoute;
+        }
+
+        $route = $this->getRouteFromConfig($type, 'contact.show', 1);
+
+        if (!empty($route)) {
+            return $route;
+        }
+
+        $default_key = Str::plural(config('type.' . static::OBJECT_TYPE . '.' . $type . '.contact_type'), 2);
+
+        return $default_key . '.show';
+    }
+
     protected function getHideItems($type, $hideItems, $hideName, $hideDescription)
     {
         if (! empty($hideItems)) {
@@ -557,9 +605,11 @@ abstract class Template extends Component
             return $hideName;
         }
 
+        $hideName = setting($this->getDocumentSettingKey($type, 'item_name'), false);
+
         // if you use settting translation
-        if ($hideName = setting($this->getSettingKey($type, 'hide_item_name'), false)) {
-            return $hideName;
+        if ($hideName === 'hide') {
+            return true;
         }
 
         $hide = $this->getHideFromConfig($type, 'name');
@@ -568,8 +618,7 @@ abstract class Template extends Component
             return $hide;
         }
 
-        // @todo what return value invoice or always false??
-        return setting('invoice.hide_item_name', $hideName);
+        return false;
     }
 
     protected function getHideDescription($type, $hideDescription)
@@ -579,8 +628,8 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if ($hideDescription = setting($this->getSettingKey($type, 'hide_item_description'), false)) {
-            return $hideDescription;
+        if (setting($this->getDocumentSettingKey($type, 'hide_item_description'), false)) {
+            return true;
         }
 
         $hide = $this->getHideFromConfig($type, 'description');
@@ -589,8 +638,7 @@ abstract class Template extends Component
             return $hide;
         }
 
-        // @todo what return value invoice or always false??
-        return setting('invoice.hide_item_description', $hideDescription);
+        return false;
     }
 
     protected function getHideQuantity($type, $hideQuantity)
@@ -599,9 +647,11 @@ abstract class Template extends Component
             return $hideQuantity;
         }
 
+        $hideQuantity = setting($this->getDocumentSettingKey($type, 'quantity_name'), false);
+
         // if you use settting translation
-        if ($hideQuantity = setting($this->getSettingKey($type, 'hide_quantity'), false)) {
-            return $hideQuantity;
+        if ($hideQuantity === 'hide') {
+            return true;
         }
 
         $hide = $this->getHideFromConfig($type, 'quantity');
@@ -610,8 +660,7 @@ abstract class Template extends Component
             return $hide;
         }
 
-        // @todo what return value invoice or always false??
-        return setting('invoice.hide_quantity', $hideQuantity);
+        return false;
     }
 
     protected function getHidePrice($type, $hidePrice)
@@ -620,9 +669,11 @@ abstract class Template extends Component
             return $hidePrice;
         }
 
+        $hidePrice = setting($this->getDocumentSettingKey($type, 'price_name'), false);
+
         // if you use settting translation
-        if ($hidePrice = setting($this->getSettingKey($type, 'hide_price'), false)) {
-            return $hidePrice;
+        if ($hidePrice === 'hide') {
+            return true;
         }
 
         $hide = $this->getHideFromConfig($type, 'price');
@@ -631,8 +682,7 @@ abstract class Template extends Component
             return $hide;
         }
 
-        // @todo what return value invoice or always false??
-        return setting('invoice.hide_price', $hidePrice);
+        return false;
     }
 
     protected function getHideDiscount($type, $hideDiscount)
@@ -642,7 +692,7 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if ($hideDiscount = setting($this->getSettingKey($type, 'hide_discount'), false)) {
+        if ($hideDiscount = setting($this->getDocumentSettingKey($type, 'hide_discount'), false)) {
             return $hideDiscount;
         }
 
@@ -663,8 +713,8 @@ abstract class Template extends Component
         }
 
         // if you use settting translation
-        if ($hideAmount = setting($this->getSettingKey($type, 'hide_amount'), false)) {
-            return $hideAmount;
+        if (setting($this->getDocumentSettingKey($type, 'hide_amount'), false)) {
+            return true;
         }
 
         $hide = $this->getHideFromConfig($type, 'amount');
@@ -673,7 +723,24 @@ abstract class Template extends Component
             return $hide;
         }
 
-        // @todo what return value invoice or always false??
-        return setting('invoice.hide_amount', $hideAmount);
+        return false;
+    }
+
+    protected function getPrint($print)
+    {
+        if (! empty($print)) {
+            return $print;
+        }
+
+        $self = new ReflectionProperty($this::class, 'methodCache');
+        $self->setAccessible(true);
+
+        $values = $self->getValue();
+
+        if (array_key_exists('App\View\Components\Layouts\Admin', $values)) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -9,6 +9,7 @@ return [
     'mark_read'           => 'Mark Read',
     'mark_read_all'       => 'Mark Read All',
     'empty'               => 'Woohoo, notification zero!',
+    'new_apps'            => ':app is available. <a href=":url">Check it out now</a>!',
 
     'update' => [
 
@@ -74,7 +75,7 @@ return [
         'export_failed' => [
 
             'title'         => 'Export failed',
-            'description'   => 'Not able to create the export file due to the following issue: :issues',
+            'description'   => 'Not able to create the export file due to several issues. Check out your email for the details.',
 
         ],
 
@@ -82,6 +83,13 @@ return [
 
             'title'         => 'Import completed',
             'description'   => 'Your <strong>:type</strong> lined <strong>:count</strong> data is imported successfully.',
+
+        ],
+
+        'import_failed' => [
+
+            'subject'       => 'Import failed',
+            'description'   => 'Not able to import the file due to several issues. Check out your email for the details.',
 
         ],
 

@@ -28,10 +28,10 @@ class Menu extends Component
 
     public function getCompanies()
     {
+        $companies = [];
+
         if ($user = user()) {
             $companies = $user->companies()->enabled()->limit(10)->get()->sortBy('name');
-        } else {
-            $companies = [];
         }
 
         return $companies;
@@ -41,7 +41,7 @@ class Menu extends Component
     {
         // Get nofitications
         $notifications = new \stdClass();
-        $notifications->notifications = [];
+        $notifications->notifications = collect();
         $notifications->keyword = '';
 
         event(new NotificationsCreated($notifications));

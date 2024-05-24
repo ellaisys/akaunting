@@ -3,12 +3,12 @@
 }
 
 .ql-container {
-  height: 18rem !important;
   font-family: "Quicksand", sans-serif !important;
 }
 
 .ql-editor p {
   color: #424242;
+  display: inline;
 }
 
 .ql-toolbar {
@@ -24,13 +24,15 @@
   @apply text-sm text-light-gray;
   display: block;
   width: 100%;
-  padding: .625rem .75rem;
+  padding: 12px 9px !important;
   background-color: #fff;
   background-clip: padding-box;
   border: 1px solid;
   border-top: unset;
   border-bottom-left-radius: 0.5rem;
   border-bottom-right-radius: 0.5rem;
+  font-size: 14px !important;
+  height: auto !important;
 }
 
 .ql-toolbar button:hover {
@@ -85,9 +87,9 @@
   border-right: 0.5rem solid transparent;
 }
 .ql-container .ql-tooltip:hover {
-  display: -webkit-box !important;
-  display: -ms-flexbox !important;
-  display: flex !important;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
 }
 .ql-tooltip .ql-preview {
   width: 100%;
@@ -275,4 +277,12 @@
 
 .ql-snow .ql-tooltip a.ql-action::after {
     display: none;
+}
+
+.ql-snow .ql-tooltip input[type=text]::-webkit-input-placeholder {
+  color: transparent;
+}
+
+.ql-snow .ql-hidden {
+  display: none !important;
 }

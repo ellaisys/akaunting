@@ -50,7 +50,7 @@ class Transfers extends Controller
     {
         $accounts = Account::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        $currency = Currency::where('code', setting('default.currency'))->first();
+        $currency = Currency::where('code', default_currency())->first();
 
         return view('banking.transfers.create', compact('accounts', 'currency'));
     }
@@ -69,7 +69,7 @@ class Transfers extends Controller
         if ($response['success']) {
             $response['redirect'] = route('transfers.show', $response['data']->id);
 
-            $message = trans('messages.success.added', ['type' => trans_choice('general.transfers', 1)]);
+            $message = trans('messages.success.created', ['type' => trans_choice('general.transfers', 1)]);
 
             flash($message)->success();
         } else {
@@ -136,7 +136,7 @@ class Transfers extends Controller
     {
         $accounts = Account::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        $currency_code = ($transfer->expense_transaction->account) ? $transfer->expense_transaction->account->currency_code : setting('default.currency');
+        $currency_code = ($transfer->expense_transaction->account) ? $transfer->expense_transaction->account->currency_code : default_currency();
 
         $currency = Currency::where('code', $currency_code)->first();
 

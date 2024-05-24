@@ -3,12 +3,8 @@
 return [
 
     'years'                         => 'Année|Années',
+    'date_range'                    => 'Intervalle de date',
     'preferences'                   => 'Préférence|Préférences',
-    'this_year'                     => 'Cette année',
-    'previous_year'                 => 'Année précédente',
-    'this_quarter'                  => 'Ce trimestre',
-    'previous_quarter'              => 'Trimestre précédent',
-    'last_12_months'                => '12 derniers mois',
     'profit_loss'                   => 'Gains & pertes',
     'income_summary'                => 'Sommaire des revenus',
     'expense_summary'               => 'Sommaire des dépenses',
@@ -21,12 +17,12 @@ return [
     'income_expense'                => 'Recettes & Dépenses',
     'pin'                           => 'Épingler votre rapport',
 
-    'income_expense_description'    => 'Description pour les rapports de revenus et de dépenses',
-    'accounting_description'        => 'Description des rapports comptables',
+    'income_expense_description'    => 'Obtenez un aperçu de vos revenus et dépenses.',
+    'accounting_description'        => 'Obtenez une image claire de la façon dont votre entreprise se déroule.',
 
     'form_description' => [
         'general'                   => 'Saisir ici les informations générales du rapport telles que le nom, le type, la description, etc.',
-        'preferences'               => 'Les préférences vous aident à personnaliser vos rapports.  '
+        'preferences'               => 'Les préférences vous aident à personnaliser vos rapports.'
     ],
 
     'charts' => [

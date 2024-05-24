@@ -49,10 +49,7 @@ class Notifications extends Component
 
         $type = isset($data['file_name']) ?: trans('general.export');
 
-        $this->dispatchBrowserEvent('mark-read', [
-            'type' => 'notification',
-            'message' => trans('notifications.messages.mark_read', ['type' => $type]),
-        ]);
+        $this->dispatch('mark-read', type: 'notification', message: trans('notifications.messages.mark_read', ['type' => $type]));
     }
 
     public function markReadAll()
@@ -63,10 +60,7 @@ class Notifications extends Component
             $this->markRead($notification->type, $notification->id, false);
         }
 
-        $this->dispatchBrowserEvent('mark-read-all', [
-            'type' => 'notification',
-            'message' => trans('notifications.messages.mark_read_all', ['type' => trans('general.export')]),
-        ]);
+        $this->dispatch('mark-read-all', type: 'notification', message: trans('notifications.messages.mark_read_all', ['type' => trans('general.export')]));
     }
 
     public function markUpdateRead($notification_id)
@@ -91,7 +85,7 @@ class Notifications extends Component
     public function getNotifications(): array
     {
         $notifications = new \stdClass();
-        $notifications->notifications = [];
+        $notifications->notifications = collect();
         $notifications->keyword = $this->keyword;
 
         event(new NotificationsCreated($notifications));

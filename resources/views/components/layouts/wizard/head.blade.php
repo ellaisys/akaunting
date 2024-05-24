@@ -25,7 +25,7 @@
 
     <!-- Css -->
     <link rel="stylesheet" href="{{ asset('public/css/element.css?v=' . version('short')) }}" type="text/css">
-    <link rel="stylesheet" href="{{ asset('public/css/app.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ asset('public/css/app.css?v=' . version('short')) }}" type="text/css">
 
     @stack('css')
 
@@ -37,7 +37,10 @@
         var url = '{{ url("/" . company_id()) }}';
         var app_url = '{{ config("app.url") }}';
         var aka_currency = {!! !empty($currency) ? $currency : 'false' !!};
+        var all_currencies = {!! !empty($currencies) ? $currencies : '[]' !!};
     //--></script>
+
+    <x-script.exceptions.trackers />
 
     @stack('js')
 

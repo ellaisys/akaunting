@@ -9,6 +9,7 @@ use App\Events\Document\DocumentReceived;
 use App\Events\Document\DocumentSent;
 use App\Events\Document\DocumentViewed;
 use App\Events\Document\PaymentReceived;
+use App\Interfaces\Utility\DocumentNumber;
 use App\Jobs\Document\UpdateDocument;
 use App\Models\Common\Contact;
 use App\Models\Common\Item;
@@ -44,7 +45,7 @@ class Document extends AbstractFactory
             'company_id' => $this->company->id,
             'issued_at' => $issued_at,
             'due_at' => $due_at,
-            'currency_code' => setting('default.currency'),
+            'currency_code' => default_currency(),
             'currency_rate' => '1',
             'notes' => $this->faker->text(5),
             'amount' => '0',
@@ -57,28 +58,30 @@ class Document extends AbstractFactory
      */
     public function invoice(): Factory
     {
-        $contacts = Contact::customer()->enabled()->get();
+        return $this->state(function (array $attributes): array {
+            $contacts = Contact::customer()->enabled()->get();
 
-        if ($contacts->count()) {
-            $contact = $contacts->random(1)->first();
-        } else {
-            $contact = Contact::factory()->customer()->enabled()->create();
-        }
+            if ($contacts->count()) {
+                $contact = $contacts->random(1)->first();
+            } else {
+                $contact = Contact::factory()->customer()->enabled()->create();
+            }
 
-        $statuses = ['draft', 'sent', 'viewed', 'partial', 'paid', 'cancelled'];
+            $statuses = ['draft', 'sent', 'viewed', 'partial', 'paid', 'cancelled'];
 
-        return $this->state([
-            'type' => Model::INVOICE_TYPE,
-            'document_number' => $this->getNextDocumentNumber(Model::INVOICE_TYPE),
-            'category_id' => $this->company->categories()->income()->get()->random(1)->pluck('id')->first(),
-            'contact_id' => $contact->id,
-            'contact_name' => $contact->name,
-            'contact_email' => $contact->email,
-            'contact_tax_number' => $contact->tax_number,
-            'contact_phone' => $contact->phone,
-            'contact_address' => $contact->address,
-            'status' => $this->faker->randomElement($statuses),
-        ]);
+            return [
+                'type' => Model::INVOICE_TYPE,
+                'document_number' => $this->getDocumentNumber(Model::INVOICE_TYPE, $contact),
+                'category_id' => $this->company->categories()->income()->get()->random(1)->pluck('id')->first(),
+                'contact_id' => $contact->id,
+                'contact_name' => $contact->name,
+                'contact_email' => $contact->email,
+                'contact_tax_number' => $contact->tax_number,
+                'contact_phone' => $contact->phone,
+                'contact_address' => $contact->address,
+                'status' => $this->faker->randomElement($statuses),
+            ];
+        });
     }
 
     /**
@@ -86,28 +89,30 @@ class Document extends AbstractFactory
      */
     public function bill(): Factory
     {
-        $contacts = Contact::vendor()->enabled()->get();
+        return $this->state(function (array $attributes): array {
+            $contacts = Contact::vendor()->enabled()->get();
 
-        if ($contacts->count()) {
-            $contact = $contacts->random(1)->first();
-        } else {
-            $contact = Contact::factory()->vendor()->enabled()->create();
-        }
+            if ($contacts->count()) {
+                $contact = $contacts->random(1)->first();
+            } else {
+                $contact = Contact::factory()->vendor()->enabled()->create();
+            }
 
-        $statuses = ['draft', 'received', 'partial', 'paid', 'cancelled'];
+            $statuses = ['draft', 'received', 'partial', 'paid', 'cancelled'];
 
-        return $this->state([
-            'type' => Model::BILL_TYPE,
-            'document_number' => $this->getNextDocumentNumber(Model::BILL_TYPE),
-            'category_id' => $this->company->categories()->expense()->get()->random(1)->pluck('id')->first(),
-            'contact_id' => $contact->id,
-            'contact_name' => $contact->name,
-            'contact_email' => $contact->email,
-            'contact_tax_number' => $contact->tax_number,
-            'contact_phone' => $contact->phone,
-            'contact_address' => $contact->address,
-            'status' => $this->faker->randomElement($statuses),
-        ]);
+            return [
+                'type' => Model::BILL_TYPE,
+                'document_number' => $this->getDocumentNumber(Model::BILL_TYPE, $contact),
+                'category_id' => $this->company->categories()->expense()->get()->random(1)->pluck('id')->first(),
+                'contact_id' => $contact->id,
+                'contact_name' => $contact->name,
+                'contact_email' => $contact->email,
+                'contact_tax_number' => $contact->tax_number,
+                'contact_phone' => $contact->phone,
+                'contact_address' => $contact->address,
+                'status' => $this->faker->randomElement($statuses),
+            ];
+        });
     }
 
     /**
@@ -203,13 +208,16 @@ class Document extends AbstractFactory
     {
         $type = $this->getRawAttribute('type') . '-recurring';
 
+        $contact = Contact::find($this->getRawAttribute('contact_id'));
+
         return $this->state([
             'type' => $type,
-            'document_number' => $this->getNextDocumentNumber($type),
+            'document_number' => $this->getDocumentNumber($type, $contact),
             'recurring_started_at' => $this->getRawAttribute('issued_at'),
             'recurring_frequency' => 'daily',
             'recurring_interval' => '1',
             'recurring_limit_count' => '7',
+            'recurring_send_email' => '1',
         ]);
     }
 
@@ -247,14 +255,26 @@ class Document extends AbstractFactory
                 'tax_ids' => [$tax->id],
                 'quantity' => '1',
                 'price' => $amount,
-                'currency' => setting('default.currency'),
+                'currency' => default_currency(),
             ],
         ];
 
-        return $this->state([
-            'items' => $items,
-            'recurring_frequency' => 'no',
-        ]);
+        return $this->state(['items' => $items]);
+    }
+
+    /**
+     * Get document number
+     *
+     */
+    public function getDocumentNumber($type, Contact $contact)
+    {
+        $utility = app(DocumentNumber::class);
+
+        $document_number = $utility->getNextNumber($type, $contact);
+
+        $utility->increaseNextNumber($type, $contact);
+
+        return $document_number;
     }
 
     /**

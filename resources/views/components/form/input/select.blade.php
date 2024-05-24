@@ -4,7 +4,7 @@
 <akaunting-select
 @endif
     @class([
-        'form-group relative',
+        'relative',
         $formGroupClass,
         'required' => $required,
         'readonly' => $readonly,
@@ -45,6 +45,24 @@
 
     @if (isset($attributes['dynamicOptions']))
     :dynamic-options="{{ $attributes['dynamicOptions'] }}"
+    @endif
+
+    @if (! empty($attributes['searchable']))
+    searchable
+    @elseif (! empty($searchable))
+    searchable
+    @endif
+
+    @if (isset($attributes['fullOptions']) || isset($attributes['full-options']))
+    :full-options="{{ json_encode(! empty($attributes['fullOptions']) ? $attributes['fullOptions'] : $attributes['full-options']) }}"
+    @else
+    :full-options="{{ json_encode($fullOptions) }}"
+    @endif
+
+    @if (isset($attributes['searchText']) || isset($attributes['search-text']))
+    search-text="{{ ! empty($attributes['searchText']) ? $attributes['searchText'] : $attributes['search-text'] }}"
+    @else
+    search-text="{{ $searchText }}"
     @endif
 
     @if (empty($multiple))
@@ -121,6 +139,14 @@
     clearable
     @endif
 
+    @if (isset($attributes['no-arrow']))
+    :no-arrow="{{ $attributes['no-arrow'] }}"
+    @endif
+
+    @if (!$required)
+    :not-required={{ $required ? 'false' : 'true' }}
+    @endif
+
     @if (isset($attributes['v-disabled']))
     :disabled="{{ $attributes['v-disabled'] }}"
     @endif
@@ -134,8 +160,8 @@
     @if (! empty($remote))
     remote-action="{{ $attributes['remote_action'] }}"
 
-    @if (! empty($attributes['currecny_code']))
-    currency-code="{{ $attributes['currecny_code'] }}"
+    @if (! empty($attributes['currency_code']))
+    currency-code="{{ $attributes['currency_code'] }}"
     @endif
     @endif
 

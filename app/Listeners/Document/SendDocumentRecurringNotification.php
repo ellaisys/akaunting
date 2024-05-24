@@ -3,6 +3,7 @@
 namespace App\Listeners\Document;
 
 use App\Events\Document\DocumentRecurring as Event;
+use App\Events\Document\DocumentSent;
 use App\Traits\Documents;
 
 class SendDocumentRecurringNotification
@@ -29,11 +30,16 @@ class SendDocumentRecurringNotification
         }
 
         $notification = $config['class'];
+        $attach_pdf = true;
 
         // Notify the customer
         if ($this->canNotifyTheContactOfDocument($document)) {
-            $document->contact->notify(new $notification($document, "{$document->type}_recur_customer"));
+            $document->contact->notify(new $notification($document, "{$document->type}_recur_customer", $attach_pdf));
         }
+
+        $sent = config('type.document.' . $document->type . '.auto_send', DocumentSent::class);
+
+        event(new $sent($document));
 
         // Check if should notify users
         if (! $config['notify_user']) {

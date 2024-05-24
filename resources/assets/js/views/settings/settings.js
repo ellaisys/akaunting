@@ -50,7 +50,7 @@ const app = new Vue({
             },
             item_name_input: false,
             price_name_input: false,
-            quantity_name_input: false
+            quantity_name_input: false,
         }
     },
 
@@ -141,24 +141,40 @@ const app = new Vue({
             });
         },
 
-        settingsInvoice() {
-            if (this.form.item_name == 'custom') {
-                this.item_name_input = true;
-            } else {
-                this.item_name_input = false;
+        // Change currency get money override because remove form currency_code and currency_rate column
+        onChangeCurrency(currency_code) {
+            if (! currency_code) {
+                return;
             }
 
-            if (this.form.price_name == 'custom') {
-                this.price_name_input = true;
-            } else {
-                this.price_name_input = false;
-            }
+            if (! this.all_currencies.length) {
+                let currency_promise = Promise.resolve(window.axios.get((url + '/settings/currencies')));
 
-            if (this.form.quantity_name == 'custom') {
-                this.quantity_name_input = true;
+                currency_promise.then(response => {
+                    if (response.data.success) {
+                        this.all_currencies = response.data.data;
+                    }
+
+                    this.all_currencies.forEach(function (currency, index) {
+                        if (currency_code == currency.code) {
+                            this.currency = currency;
+
+                            this.form.currency = currency.code;
+                        }
+                    }, this);
+                })
+                .catch(error => {
+                    this.onChangeCurrency(currency_code);
+                });
             } else {
-                this.quantity_name_input = false;
+                this.all_currencies.forEach(function (currency, index) {
+                    if (currency_code == currency.code) {
+                        this.currency = currency;
+
+                        this.form.currency = currency.code;
+                    }
+                }, this);
             }
-        }
+        },
     }
 });

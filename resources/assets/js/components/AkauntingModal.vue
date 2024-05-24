@@ -6,11 +6,12 @@
             v-show="show"
             tabindex="-1"
             role="dialog"
+            data-modal-handle
             :aria-hidden="!show">
-            <div class="w-full my-10 m-auto flex flex-col" :class="modalDialogClass ? modalDialogClass : 'max-w-screen-sm'">
+            <div class="w-full my-10 m-auto flex flex-col px-2 sm:px-0" :class="modalDialogClass ? modalDialogClass : 'max-w-md'">
                 <slot name="modal-content">
-                    <div class="modal-content">
-                        <div class="p-5 bg-body rounded-tl-lg rounded-tr-lg">
+                    <div class="bg-body rounded-lg modal-content">
+                        <div class="p-5">
                             <div class="flex items-center justify-between border-b pb-5">
                                 <slot name="card-header">
                                     <h4 class="text-base font-medium">
@@ -25,13 +26,13 @@
                         </div>
 
                         <slot name="modal-body">
-                            <div class="py-1 px-5 bg-body" v-html="message"></div>
+                            <div class="py-1 px-5" v-html="message"></div>
                         </slot>
 
-                        <div class="p-5 bg-body rounded-bl-lg rounded-br-lg border-gray-300">
+                        <div class="p-5 border-gray-300">
                             <slot name="card-footer">
-                                <div class="flex items-center justify-end">
-                                    <button type="button" class="px-6 py-1.5 ltr:mr-2 rtl:ml-2 hover:bg-gray-200 rounded-lg" @click="onCancel">
+                                <div class="flex items-center justify-end space-x-2 rtl:space-x-reverse">
+                                    <button type="button" class="px-6 py-1.5 hover:bg-gray-200 rounded-lg" @click="onCancel">
                                         {{ button_cancel }}
                                     </button>
 
@@ -125,7 +126,7 @@ export default {
         if (this.show) {
             let documentClasses = document.body.classList;
 
-            documentClasses.add('overflow-y-hidden', 'overflow-overlay', '-ml-4');
+            documentClasses.add('overflow-y-hidden', 'overflow-overlay');
         }
 
         if (this.modalDialogClass) {
@@ -158,7 +159,7 @@ export default {
         onCancel() {
             let documentClasses = document.body.classList;
 
-            documentClasses.remove('overflow-y-hidden', 'overflow-overlay', '-ml-4');
+            documentClasses.remove('overflow-y-hidden', 'overflow-overlay');
 
             this.$emit("cancel");
         }
@@ -169,9 +170,9 @@ export default {
             let documentClasses = document.body.classList;
 
             if (val) {
-                documentClasses.add('overflow-y-hidden', 'overflow-overlay', '-ml-4');
+                documentClasses.add('overflow-y-hidden', 'overflow-overlay');
             } else {
-                documentClasses.remove('overflow-y-hidden', 'overflow-overlay', '-ml-4');
+                documentClasses.remove('overflow-y-hidden', 'overflow-overlay');
             }
         }
     }

@@ -6,6 +6,7 @@ use App\Traits\Media;
 use App\Abstracts\Model;
 use App\Traits\Contacts;
 use App\Traits\Currencies;
+use App\Traits\Documents;
 use App\Traits\Transactions;
 use App\Scopes\Contact as Scope;
 use App\Models\Document\Document;
@@ -15,10 +16,9 @@ use Bkwld\Cloner\Cloneable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-
 class Contact extends Model
 {
-    use Cloneable, Contacts, Currencies, HasFactory, Media, Notifiable, Transactions;
+    use Cloneable, Contacts, Currencies, Documents, HasFactory, Media, Notifiable, Transactions;
 
     public const CUSTOMER_TYPE = 'customer';
     public const VENDOR_TYPE = 'vendor';
@@ -27,11 +27,18 @@ class Contact extends Model
     protected $table = 'contacts';
 
     /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = ['media'];
+
+    /**
      * The accessors to append to the model's array form.
      *
      * @var array
      */
-    protected $appends = ['location'];
+    protected $appends = ['location', 'logo', 'initials', 'has_email'];
 
     /**
      * Attributes that should be mass-assignable.
@@ -60,20 +67,24 @@ class Contact extends Model
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'enabled' => 'boolean',
-    ];
-
-    /**
      * Sortable columns.
      *
      * @var array
      */
-    public $sortable = ['name', 'email', 'phone', 'enabled'];
+    public $sortable = [
+        'name',
+        'tax_number',
+        'email',
+        'phone',
+        'country',
+        'currency_code',
+        'enabled'
+    ];
+
+    /**
+     * @var array
+     */
+    public $cloneable_relations = ['contact_persons'];
 
     /**
      * The "booted" method of the model.
@@ -87,14 +98,39 @@ class Contact extends Model
         static::addGlobalScope(new Scope);
     }
 
+    public function contact_persons()
+    {
+        return $this->hasMany('App\Models\Common\ContactPerson');
+    }
+
     public function documents()
     {
         return $this->hasMany('App\Models\Document\Document');
     }
 
+    public function document_recurring()
+    {
+        return $this->documents()->whereIn('documents.type', $this->getRecurringDocumentTypes());
+    }
+
     public function bills()
     {
         return $this->documents()->where('documents.type', Document::BILL_TYPE);
+    }
+
+    public function bill_recurring()
+    {
+        return $this->documents()->where('documents.type', Document::BILL_RECURRING_TYPE);
+    }
+
+    public function invoices()
+    {
+        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
+    }
+
+    public function invoice_recurring()
+    {
+        return $this->documents()->where('documents.type', Document::INVOICE_RECURRING_TYPE);
     }
 
     public function currency()
@@ -112,11 +148,6 @@ class Contact extends Model
         return $this->transactions()->whereIn('transactions.type', (array) $this->getIncomeTypes());
     }
 
-    public function invoices()
-    {
-        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
-    }
-
     public function transactions()
     {
         return $this->hasMany('App\Models\Banking\Transaction');
@@ -125,6 +156,23 @@ class Contact extends Model
     public function user()
     {
         return $this->belongsTo('App\Models\Auth\User', 'user_id', 'id');
+    }
+
+    public function withPersons()
+    {
+        $contacts = collect();
+
+        $contacts->push($this);
+
+        $contact_persons = $this->contact_persons()->whereNotNull('email')->get();
+
+        if ($contact_persons) {
+            foreach ($contact_persons as $contact_person) {
+                $contacts->push($contact_person);
+            }
+        }
+
+        return $contacts;
     }
 
     /**
@@ -165,6 +213,17 @@ class Contact extends Model
         return $query->whereIn($this->qualifyColumn('type'), (array) $this->getCustomerTypes());
     }
 
+    /**
+     * Scope to include only employees.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeEmployee($query)
+    {
+        return $query->whereIn($this->qualifyColumn('type'), (array) $this->getEmployeeTypes());
+    }
+
     public function scopeEmail($query, $email)
     {
         return $query->where('email', '=', $email);
@@ -188,9 +247,9 @@ class Contact extends Model
      */
     public function getLogoAttribute($value)
     {
-        if (!empty($value) && !$this->hasMedia('logo')) {
+        if (! empty($value) && ! $this->hasMedia('logo')) {
             return $value;
-        } elseif (!$this->hasMedia('logo')) {
+        } elseif (! $this->hasMedia('logo')) {
             return false;
         }
 
@@ -237,6 +296,19 @@ class Contact extends Model
 
         return $amount;
     }
+    
+    public function getHasEmailAttribute()
+    {
+        if (! empty($this->email)) {
+            return true;
+        } 
+
+        if ($this->contact_persons()->whereNotNull('email')->count()) {
+            return true;
+        }
+
+        return false;
+    }
 
     public function getLocationAttribute()
     {
@@ -246,15 +318,15 @@ class Contact extends Model
             $location[] = $this->city;
         }
 
-        if ($this->zip_code) {
-            $location[] = $this->zip_code;
-        }
-
         if ($this->state) {
             $location[] = $this->state;
         }
 
-        if ($this->country) {
+        if ($this->zip_code) {
+            $location[] = $this->zip_code;
+        }
+
+        if ($this->country && array_key_exists($this->country, trans('countries'))) {
             $location[] = trans('countries.' . $this->country);
         }
 
@@ -291,6 +363,9 @@ class Contact extends Model
                 'icon' => 'visibility',
                 'url' => route($prefix . '.show', $this->id),
                 'permission' => 'read-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-show-' . $this->type . '-' . $this->id,
+                ],
             ];
         } catch (\Exception $e) {}
 
@@ -300,6 +375,9 @@ class Contact extends Model
                 'icon' => 'edit',
                 'url' => route($prefix . '.edit', $this->id),
                 'permission' => 'update-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-edit-' . $this->type . '-' . $this->id,
+                ],
             ];
         } catch (\Exception $e) {}
 
@@ -309,16 +387,24 @@ class Contact extends Model
                 'icon' => 'file_copy',
                 'url' => route($prefix . '.duplicate', $this->id),
                 'permission' => 'create-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-duplicate-' . $this->type . '-' . $this->id,
+                ],
             ];
         } catch (\Exception $e) {}
 
         try {
+            $delete_type = trans_choice('general.' . $translation_prefix, 1);
+
             $actions[] = [
                 'type' => 'delete',
                 'icon' => 'delete',
-                'title' => $translation_prefix,
+                'title' => trans('general.title.delete', ['type' => $delete_type]),
                 'route' => $prefix . '.destroy',
                 'permission' => 'delete-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-delete-' . $this->type . '-' . $this->id,
+                ],
                 'model' => $this,
             ];
         } catch (\Exception $e) {}

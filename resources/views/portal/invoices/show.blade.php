@@ -18,64 +18,72 @@
     </x-slot>
 
     <x-slot name="content">
-        <div class="flex flex-col lg:flex-row my-10 lg:space-x-24 rtl:space-x-reverse space-y-12 lg:space-y-0">
+        <div class="flex flex-col lg:flex-row my-10 lg:space-x-24 rtl:space-x-reverse space-y-4 lg:space-y-0">
             <div class="w-full lg:w-5/12">
                 @if (! empty($payment_methods) && ! in_array($invoice->status, ['paid', 'cancelled']))
                     <div class="tabs w-full" x-data="{ active: '{{ reset($payment_methods) }}' }">
-                        <div role="tablist" class="flex flex-wrap gap-y-4">
+                        <div role="tablist" class="flex flex-wrap">
                             @php $is_active = true; @endphp
-                            
-                            <div class="swiper swiper-links">
-                                <div class="swiper-wrapper">
-                            @foreach ($payment_methods as $key => $name)
-                                @stack('invoice_{{ $key }}_tab_start')
-                                <div class="swiper-slide">
-                                    <div
-                                    x-on:click="active = '{{ $name }}'"
-                                    @click="onChangePaymentMethod('{{ $key }}')"
-                                    id="tabs-payment-method-{{ $key }}-tab"
-                                    x-bind:class="active != '{{ $name }}' ? '' : 'active-tabs text-purple border-purple transition-all after:absolute after:w-full after:h-0.5 after:left-0 after:right-0 after:bottom-0 after:bg-purple after:rounded-tl-md after:rounded-tr-md'"
-                                    class="text-sm text-black text-center pb-2 border-b cursor-pointer transition-all tabs-link"
-                                >
-                                    {{ $name }}
-                                </div>
-                                </div>
-                                @stack('invoice_{{ $key }}_tab_end')
 
-                                @php $is_active = false; @endphp
-                            @endforeach
+                            <div class="{{ count($payment_methods) > 3 ? 'swiper swiper-links': 'w-full flex' }}">
+                                <div class="{{ count($payment_methods) > 3 ? 'swiper-wrapper' : 'inline-flex' }}">
+                                    @foreach ($payment_methods as $key => $name)
+                                        @stack('invoice_{{ $key }}_tab_start')
+                                            <div
+                                                x-on:click="active = '{{ $name }}'"
+                                                @click="onChangePaymentMethod('{{ $key }}')"
+                                                id="tabs-payment-method-{{ $key }}-tab"
+                                                x-bind:class="active != '{{ $name }}' ? '' : 'active-tabs text-purple border-purple transition-all after:absolute after:w-full after:h-0.5 after:left-0 after:right-0 after:bottom-0 after:bg-purple after:rounded-tl-md after:rounded-tr-md'"
+                                                class="relative px-8 text-sm text-center pb-2 cursor-pointer transition-all border-b whitespace-nowrap tabs-link {{ count($payment_methods) > 3 ? 'swiper-slide': '' }}"
+                                            >
+                                                {{ $name }}
+                                            </div>
+                                        @stack('invoice_{{ $key }}_tab_end')
+
+                                        @php $is_active = false; @endphp
+                                    @endforeach
                                 </div>
+
+                                @if (count($payment_methods) > 3)
+                                    <div class="swiper-button-next bg-body text-white flex items-center justify-center right-0 top-3">
+                                        <span class="material-icons text-purple text-4xl">chevron_right</span>
+                                    </div>
+
+                                    <div class="swiper-button-prev bg-body text-white flex items-center justify-center left-0 top-3">
+                                        <span class="material-icons text-purple text-4xl">chevron_left</span>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         @php $is_active = true; @endphp
 
                         @foreach ($payment_methods as $key => $name)
                             @stack('invoice_{{ $key }}_content_start')
-                            <div
-                                x-bind:class="active != '{{ $name }}' ? 'hidden': 'block'"
-                                class="my-3"
-                                id="tabs-payment-method-{{ $key }}"
-                            >
-                                <component v-bind:is="method_show_html" @interface="onRedirectConfirm"></component>
-                            </div>
+                                <div
+                                    x-bind:class="active != '{{ $name }}' ? 'hidden': 'block'"
+                                    class="my-3"
+                                    id="tabs-payment-method-{{ $key }}"
+                                >
+                                    <component v-bind:is="method_show_html" @interface="onRedirectConfirm"></component>
+                                </div>
                             @stack('invoice_{{ $key }}_content_end')
 
                             @php $is_active = false; @endphp
                         @endforeach
+
+                        <x-form id="portal">
+                            <x-form.group.payment-method
+                                id="payment-method"
+                                :selected="array_key_first($payment_methods)"
+                                not-required
+                                form-group-class="invisible"
+                                placeholder="{{ trans('general.form.select.field', ['field' => trans_choice('general.payment_methods', 1)]) }}"
+                                change="onChangePaymentMethod"
+                            />
+
+                            <x-form.input.hidden name="document_id" :value="$invoice->id" v-model="form.document_id" />
+                        </x-form>
                     </div>
-
-                    <x-form id="portal">
-                        <x-form.group.payment-method
-                            id="payment-method"
-                            :selected="array_key_first($payment_methods)"
-                            not-required
-                            form-group-class="invisible"
-                            placeholder="{{ trans('general.form.select.field', ['field' => trans_choice('general.payment_methods', 1)]) }}"
-                            change="onChangePaymentMethod('{{ array_key_first($payment_methods) }}')"
-                        />
-
-                        <x-form.input.hidden name="document_id" :value="$invoice->id" v-model="form.document_id" />
-                    </x-form>
                 @endif
 
                 @if ($invoice->transactions->count())
@@ -90,18 +98,18 @@
                         <x-slot name="body" class="block" override="class">
                             <div class="text-xs mt-1" style="margin-left: 0 !important;">
                                 <span class="font-medium">
-                                    {{ trans('invoices.payment_received') }} :
+                                    {{ trans('invoices.payments_received') }}:
                                 </span>
 
                                 @if ($invoice->transactions->count())
                                     @foreach ($invoice->transactions as $transaction)
                                         <div class="my-2">
                                             <span>
-                                                <x-link href="{{ route('portal.payments.show', $transaction->id) }}" class="text-black border-b border-transparent transition-all hover:border-black" override="class">
+                                                <x-link href="{{ route('portal.payments.show', $transaction->id) }}" class="text-black bg-no-repeat bg-0-2 bg-0-full hover:bg-full-2 bg-gradient-to-b from-transparent to-black transition-backgroundSize" override="class">
                                                     <x-date :date="$transaction->paid_at" />
                                                 </x-link>
                                                 - {!! trans('documents.transaction', [
-                                                    'amount' => '<span class="font-medium">' . money($transaction->amount, $transaction->currency_code, true) . '</span>',
+                                                    'amount' => '<span class="font-medium">' . money($transaction->amount, $transaction->currency_code) . '</span>',
                                                     'account' => '<span class="font-medium">' . $transaction->account->name . '</span>',
                                                 ]) !!}
                                             </span>
@@ -118,7 +126,7 @@
                 @endif
             </div>
 
-            <div class="hidden lg:block w-7/12">
+            <div class="w-full lg:w-7/12">
                 <x-documents.show.template
                     type="invoice"
                     :document="$invoice"

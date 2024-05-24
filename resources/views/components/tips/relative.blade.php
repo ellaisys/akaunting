@@ -1,5 +1,5 @@
 @foreach ($tips as $item)
-    <div class="relative hidden lg:block w-4/12 mt-12 xl:mt-9.5 lg:pl-12">
+    <div class="relative hidden lg:block w-4/12 mt-12 xl:mt-9.5 ltr:pl-12 rtl:pl-0">
         <div @class([
                 'relative leading-4 z-10',
                 'ltr:text-right rtl:text-left' => $item->align == 'right',
@@ -10,17 +10,28 @@
                 {{ $item->title }}
             </h2>
 
-            <p class="text-sm mb-2">
-                {!! $item->description !!}
-            </p>
+            <div
+                @class([
+                    'ltr:float-right rtl:float-left' => $item->align == 'right',
+                    'ltr:float-left rtl:float-right' => $item->align == 'left',
+                ])
 
-            <a href="{{ $item->action }}" class="font-light text-sm border-b border-transparent transition-all hover:border-black">
-                {{ $item->learn_more }}
-            </a>
+                style="width: 200px;"
+            >
+                <div class="text-sm mb-2">
+                    {!! $item->description !!}
+                </div>
+
+                <x-link href="{{ $item->action }}" class="font-light text-sm" override="class" target="_blank">
+                    <x-link.hover>
+                        {{ $item->learn_more }}
+                    </x-link.hover>
+                </x-link>
+            </div>
         </div>
 
-        <div class="absolute ltr:right-0 rtl:left-0 -top-4">
-            <img src="{{ $item->thumb }}" alt="{{ $item->title }}" />
+        <div class="absolute ltr:right-0 rtl:left-0">
+            <img src="{{ $item->thumb }}" alt="{{ $item->title }}" class="rtl:-scale-x-100 ltr:scale-x-100" />
         </div>
     </div>
 @endforeach

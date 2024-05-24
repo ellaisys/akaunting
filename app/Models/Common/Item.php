@@ -4,6 +4,7 @@ namespace App\Models\Common;
 
 use App\Abstracts\Model;
 use App\Models\Document\Document;
+use App\Utilities\Str;
 use App\Traits\Currencies;
 use App\Traits\Media;
 use Bkwld\Cloner\Cloneable;
@@ -14,6 +15,13 @@ class Item extends Model
     use Cloneable, Currencies, HasFactory, Media;
 
     protected $table = 'items';
+
+    /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = ['taxes'];
 
     /**
      * The accessors to append to the model's array form.
@@ -35,9 +43,10 @@ class Item extends Model
      * @var array
      */
     protected $casts = [
-        'sale_price' => 'double',
-        'purchase_price' => 'double',
-        'enabled' => 'boolean',
+        'sale_price'        => 'double',
+        'purchase_price'    => 'double',
+        'enabled'           => 'boolean',
+        'deleted_at'        => 'datetime',
     ];
 
     /**
@@ -45,7 +54,7 @@ class Item extends Model
      *
      * @var array
      */
-    protected $sortable = ['name', 'category.name', 'sale_price', 'purchase_price', 'enabled'];
+    protected $sortable = ['name', 'category.name', 'description', 'sale_price', 'purchase_price', 'enabled'];
 
     /**
      * @var array
@@ -54,7 +63,7 @@ class Item extends Model
 
     public function category()
     {
-        return $this->belongsTo('App\Models\Setting\Category')->withDefault(['name' => trans('general.na')]);
+        return $this->belongsTo('App\Models\Setting\Category')->withoutGlobalScope('App\Scopes\Category')->withDefault(['name' => trans('general.na')]);
     }
 
     public function taxes()
@@ -85,6 +94,20 @@ class Item extends Model
     public function scopeBilling($query, $billing)
     {
         return $query->where($billing . '_price', '=', null);
+    }
+
+    public function scopePriceType($query, $price_type)
+    {
+        return $query->whereNotNull($price_type . '_price');
+    }
+
+    public function scopeType($query, $type)
+    {
+        if (empty($type)) {
+            return $query;
+        }
+
+        return $query->where($this->qualifyColumn('type'), $type);
     }
 
     /**
@@ -138,6 +161,11 @@ class Item extends Model
             ->select('items.*');
     }
 
+    public function getInitialsAttribute($value)
+    {
+        return Str::getInitials($this->name);
+    }
+
     /**
      * Get the current balance.
      *
@@ -168,6 +196,9 @@ class Item extends Model
             'icon' => 'edit',
             'url' => route('items.edit', $this->id),
             'permission' => 'update-common-items',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-item-' . $this->id,
+            ],
         ];
 
         $actions[] = [
@@ -175,6 +206,9 @@ class Item extends Model
             'icon' => 'file_copy',
             'url' => route('items.duplicate', $this->id),
             'permission' => 'create-common-items',
+            'attributes' => [
+                'id' => 'index-line-actions-duplicate-item-' . $this->id,
+            ],
         ];
 
         $actions[] = [
@@ -182,6 +216,9 @@ class Item extends Model
             'icon' => 'delete',
             'route' => 'items.destroy',
             'permission' => 'delete-common-items',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-item-' . $this->id,
+            ],
             'model' => $this,
         ];
 

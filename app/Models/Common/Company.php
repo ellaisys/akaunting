@@ -27,6 +27,8 @@ class Company extends Eloquent implements Ownable
 
     protected $table = 'companies';
 
+    //protected $with = ['settings'];
+
     /**
      * The accessors to append to the model's array form.
      *
@@ -34,12 +36,11 @@ class Company extends Eloquent implements Ownable
      */
     protected $appends = ['location'];
 
-    protected $dates = ['deleted_at'];
-
     protected $fillable = ['domain', 'enabled', 'created_from', 'created_by'];
 
     protected $casts = [
-        'enabled' => 'boolean',
+        'enabled'       => 'boolean',
+        'deleted_at'    => 'datetime',
     ];
 
     public $allAttributes = [];
@@ -49,7 +50,7 @@ class Company extends Eloquent implements Ownable
      *
      * @var array
      */
-    public $sortable = ['id', 'name', 'domain', 'email', 'enabled', 'created_at', 'tax_number', 'country', 'currency'];
+    public $sortable = ['id', 'name', 'domain', 'email', 'phone', 'enabled', 'created_at', 'tax_number', 'country', 'currency'];
 
     /**
      * Fill the model with an array of attributes.
@@ -70,7 +71,7 @@ class Company extends Eloquent implements Ownable
     {
         parent::boot();
 
-        try { 
+        try {
             // TODO will optimize..
             static::retrieved(function($model) {
                 $model->setCommonSettingsAsAttributes();
@@ -149,6 +150,11 @@ class Company extends Eloquent implements Ownable
         return $this->hasMany('App\Models\Common\Contact');
     }
 
+    public function contact_persons()
+    {
+        return $this->hasMany('App\Models\Common\ContactPerson');
+    }
+
     public function currencies()
     {
         return $this->hasMany('App\Models\Setting\Currency');
@@ -209,6 +215,11 @@ class Company extends Eloquent implements Ownable
         return $this->hasMany('App\Models\Common\Item');
     }
 
+    public function item_taxes()
+    {
+        return $this->hasMany('App\Models\Common\ItemTax');
+    }
+
     public function modules()
     {
         return $this->hasMany('App\Models\Module\Module');
@@ -221,7 +232,7 @@ class Company extends Eloquent implements Ownable
 
     public function owner()
     {
-        return $this->belongsTo('App\Models\Auth\User', 'created_by', 'id')->withDefault(['name' => trans('general.na')]);
+        return $this->belongsTo(user_model_class(), 'created_by', 'id')->withDefault(['name' => trans('general.na')]);
     }
 
     public function reconciliations()
@@ -254,6 +265,11 @@ class Company extends Eloquent implements Ownable
         return $this->hasMany('App\Models\Banking\Transaction');
     }
 
+    public function transaction_taxes()
+    {
+        return $this->hasMany('App\Models\Banking\TransactionTax');
+    }
+
     public function transfers()
     {
         return $this->hasMany('App\Models\Banking\Transfer');
@@ -261,7 +277,7 @@ class Company extends Eloquent implements Ownable
 
     public function users()
     {
-        return $this->belongsToMany('App\Models\Auth\User', 'App\Models\Auth\UserCompany');
+        return $this->belongsToMany(user_model_class(), 'App\Models\Auth\UserCompany');
     }
 
     public function vendors()
@@ -427,6 +443,22 @@ class Company extends Eloquent implements Ownable
     }
 
     /**
+     * Sort by company phone
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param $direction
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function phoneSortable($query, $direction)
+    {
+        return $query->join('settings', 'companies.id', '=', 'settings.company_id')
+            ->where('key', 'company.phone')
+            ->orderBy('value', $direction)
+            ->select('companies.*');
+    }
+
+    /**
      * Sort by company tax number
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -526,8 +558,10 @@ class Company extends Eloquent implements Ownable
             $location[] = setting('company.state');
         }
 
-        if (setting('company.country')) {
-            $location[] = trans('countries.' . setting('company.country'));
+        $country = setting('company.country');
+
+        if ($country && array_key_exists($country, trans('countries'))) {
+            $location[] = trans('countries.' . $country);
         }
 
         return implode(', ', $location);
@@ -547,7 +581,10 @@ class Company extends Eloquent implements Ownable
                 'title' => trans('general.switch'),
                 'icon' => 'settings_ethernet',
                 'url' => route('companies.switch', $this->id),
-                'permission' => 'read-common-companies',
+                //'permission' => 'read-common-companies', remove this permission to allow switching to any company
+                'attributes' => [
+                    'id' => 'index-line-actions-switch-company-' . $this->id,
+                ],
             ];
         }
 
@@ -556,6 +593,9 @@ class Company extends Eloquent implements Ownable
             'icon' => 'edit',
             'url' => route('companies.edit', $this->id),
             'permission' => 'update-common-companies',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-company-' . $this->id,
+            ],
         ];
 
         $actions[] = [
@@ -563,6 +603,9 @@ class Company extends Eloquent implements Ownable
             'icon' => 'delete',
             'route' => 'companies.destroy',
             'permission' => 'delete-common-companies',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-company-' . $this->id,
+            ],
             'model' => $this,
         ];
 

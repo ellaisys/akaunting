@@ -18,7 +18,6 @@
                                 'service' => trans_choice('general.services', 1)
                             ]"
                             checked="{{ $item->type }}"
-                            @input="onType($event)"
                         />
 
                         <x-form.group.text name="name" label="{{ trans('general.name') }}" />
@@ -43,7 +42,7 @@
 
                         <x-form.group.text name="purchase_price" label="{{ trans('items.purchase_price') }}" v-bind:disabled="purchase_information" />
 
-                        <x-form.group.select multiple add-new name="tax_ids" label="{{ trans_choice('general.taxes', 1) }}" :options="$taxes" :selected="$item->tax_ids" not-required :path="route('modals.taxes.create')" :field="['key' => 'id', 'value' => 'title']" form-group-class="sm:col-span-3 el-select-tags-pl-38" />
+                        <x-form.group.tax name="tax_ids" multiple not-required />
                     </x-slot>
                 </x-form.section>
 

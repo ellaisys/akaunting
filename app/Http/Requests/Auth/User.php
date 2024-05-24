@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class User extends FormRequest
 {
@@ -26,14 +27,24 @@ class User extends FormRequest
         $picture = 'nullable';
 
         if ($this->files->get('picture')) {
-            $picture = 'mimes:' . config('filesystems.mimes') . '|between:0,' . config('filesystems.max_size') * 1024 . '|dimensions:max_width=1000,max_height=1000';
+            $picture = 'mimes:' . config('filesystems.mimes')
+                    . '|between:0,' . config('filesystems.max_size') * 1024
+                    . '|dimensions:max_width=' . config('filesystems.max_width') . ',max_height=' . config('filesystems.max_height');
         }
 
         $email = 'required|email:rfc,dns';
 
-        if ($this->getMethod() == 'PATCH') {
+        if (in_array($this->getMethod(), ['PATCH', 'PUT'])) {
             // Updating user
-            $id = is_numeric($this->user) ? $this->user : $this->user->getAttribute('id');
+            if (is_numeric($this->user)) {
+                $id = $this->user;
+                $user = user_model_class()::find($id);
+
+                $this->user = $user;
+            } else {
+                $id = $this->user->getAttribute('id');
+            }
+
             $companies = $this->user->can('read-common-companies') ? 'required' : '';
             $roles = $this->user->can('read-auth-roles') ? 'required|string' : '';
 
@@ -51,7 +62,7 @@ class User extends FormRequest
             $roles = 'required|string';
         }
 
-        $email .= '|unique:users,email,' . $id . ',id,deleted_at,NULL';
+        $email .= '|unique:users,email,' . ($id ?? 'null') . ',id,deleted_at,NULL';
 
         $change_password = $this->request->get('change_password') == true || $this->request->get('change_password') != null;
 
@@ -59,13 +70,27 @@ class User extends FormRequest
         $password = $change_password ? '|confirmed' : '';
 
         return [
-            'name' => 'required|string',
-            'email' => $email,
-            'current_password' => 'required_if:change_password,true' . $current_password,
-            'password' => 'required_if:change_password,true' . $password,
-            'companies' => $companies,
-            'roles' => $roles,
-            'picture' => $picture,
+            'name'              => 'required|string',
+            'email'             => $email,
+            'current_password'  => 'required_if:change_password,true' . $current_password,
+            'password'          => 'required_if:change_password,true' . $password,
+            'companies'         => $companies,
+            'roles'             => $roles,
+            'picture'           => $picture,
+            'landing_page'      => 'required|string',
+        ];
+    }
+
+    public function messages()
+    {
+        $picture_dimensions = trans('validation.custom.invalid_dimension', [
+            'attribute'     => Str::lower(trans_choice('general.pictures', 1)),
+            'width'         => config('filesystems.max_width'),
+            'height'        => config('filesystems.max_height'),
+        ]);
+
+        return [
+            'picture.dimensions' => $picture_dimensions,
         ];
     }
 }

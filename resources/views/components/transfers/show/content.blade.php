@@ -2,11 +2,13 @@
     <div class="w-full lg:w-5/12 space-y-12">
         <x-transfers.show.create :model="$transfer" />
 
+        <x-transfers.show.transactions :model="$transfer" />
+
         <x-transfers.show.attachment :model="$transfer" />
     </div>
 
     <div class="w-full lg:w-7/12">
-        <div class="p-7 shadow-2xl rounded-2xl">
+        <div class="p-3 sm:p-7 shadow-2xl rounded-2xl">
             <x-transfers.show.template :model="$transfer" />
         </div>
     </div>

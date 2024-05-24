@@ -12,7 +12,7 @@ class Content extends Component
 {
     public $counts;
 
-    public $totals;
+    public $summary_amounts;
 
     public $transactions;
 
@@ -72,11 +72,23 @@ class Content extends Component
             $totals['paid'] += $item->getAmountConvertedToDefault();
         });
 
-        $this->totals = $totals;
+        $open_amount = money($totals['open']);
+        $overdue_amount = money($totals['overdue']);
+        $paid_amount = money($totals['paid']);
 
-        $limit = (int) request('limit', setting('default.list_limit', '25'));
-        $this->transactions = $this->paginate($this->transactions->sortByDesc('paid_at'), $limit);
-        $this->documents = $this->paginate($this->documents->sortByDesc('issued_at'), $limit);
+        $summary_amounts = [
+            'open_exact'            => $open_amount->format(),
+            'open_for_humans'       => $open_amount->formatForHumans(),
+            'overdue_exact'         => $overdue_amount->format(),
+            'overdue_for_humans'    => $overdue_amount->formatForHumans(),
+            'paid_exact'            => $paid_amount->format(),
+            'paid_for_humans'       => $paid_amount->formatForHumans(),
+        ];
+
+        $this->summary_amounts = $summary_amounts;
+
+        $this->transactions = $this->paginate($this->transactions->sortByDesc('paid_at'));
+        $this->documents = $this->paginate($this->documents->sortByDesc('issued_at'));
 
         return view('components.contacts.show.content');
     }
@@ -91,7 +103,7 @@ class Content extends Component
      *
      * @return LengthAwarePaginator
      */
-    public function paginate($items, $perPage = 15, $page = null, $options = [])
+    public function paginate($items, $perPage = null, $page = null, $options = [])
     {
         $perPage = $perPage ?: (int) request('limit', setting('default.list_limit', '25'));
 

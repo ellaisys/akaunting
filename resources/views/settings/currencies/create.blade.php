@@ -20,9 +20,9 @@
                     <x-slot name="body">
                         <x-form.group.text name="name" label="{{ trans('general.name') }}" />
 
-                        <x-form.group.select name="code" label="{{ trans('currencies.code') }}" :options="$codes" change="onChangeCode" />
+                        <x-form.group.select name="code" label="{{ trans('currencies.code') }}" :options="$codes" searchable change="onChangeCode" />
 
-                        <x-form.group.text name="rate" label="{{ trans('currencies.rate') }}" @input="onChangeRate" />
+                        <x-form.group.text name="rate" label="{{ trans('currencies.rate') }}" @input="onChangeRate" ::disabled="form.default_currency == 1" />
 
                         <x-form.group.select name="precision" label="{{ trans('currencies.precision') }}" :options="$precisions" model="form.precision" />
 

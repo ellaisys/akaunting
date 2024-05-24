@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Common\Contact;
+use App\Models\Banking\Transaction;
+
 return [
 
 	/*
@@ -98,7 +101,7 @@ return [
     'fallback' => [
         'localisation' => [
             'financial_start'           => env('SETTING_FALLBACK_LOCALISATION_FINANCIAL_START', '01-01'),
-            'financial_denote'          => env('SETTING_FALLBACK_LOCALISATION_FINANCIAL_DENOTE', 'ends'),
+            'financial_denote'          => env('SETTING_FALLBACK_LOCALISATION_FINANCIAL_DENOTE', 'begins'),
             'timezone'                  => env('SETTING_FALLBACK_LOCALISATION_TIMEZONE', 'Europe/London'),
             'date_format'               => env('SETTING_FALLBACK_LOCALISATION_DATE_FORMAT', 'd M Y'),
             'date_separator'            => env('SETTING_FALLBACK_LOCALISATION_DATE_SEPARATOR', 'space'),
@@ -119,7 +122,7 @@ return [
             'hide_amount'               => env('SETTING_FALLBACK_INVOICE_HIDE_AMOUNT', false),
             'payment_terms'             => env('SETTING_FALLBACK_INVOICE_PAYMENT_TERMS', '0'),
             'template'                  => env('SETTING_FALLBACK_INVOICE_TEMPLATE', 'default'),
-            'color'                     => env('SETTING_FALLBACK_INVOICE_COLOR', '#55588b'),
+            'color'                     => env('SETTING_FALLBACK_INVOICE_COLOR', 'purple-500'),
             'logo_size_width'           => env('SETTING_FALLBACK_INVOICE_LOGO_SIZE_WIDTH', 128),
             'logo_size_height'          => env('SETTING_FALLBACK_INVOICE_LOGO_SIZE_HEIGHT', 128),
             'item_search_char_limit'    => env('SETTING_FALLBACK_INVOICE_ITEM_SEARCH_CHAR_LIMIT', 3),
@@ -138,7 +141,7 @@ return [
             'quantity_name'             => env('SETTING_FALLBACK_BILL_QUANTITY_NAME', 'settings.invoice.quantity'),
             'payment_terms'             => env('SETTING_FALLBACK_BILL_PAYMENT_TERMS', '0'),
             'template'                  => env('SETTING_FALLBACK_BILL_TEMPLATE', 'default'),
-            'color'                     => env('SETTING_FALLBACK_BILL_COLOR', '#55588b'),
+            'color'                     => env('SETTING_FALLBACK_BILL_COLOR', 'purple-500'),
             'item_search_char_limit'    => env('SETTING_FALLBACK_BILL_ITEM_SEARCH_CHAR_LIMIT', 3),
         ],
         'bill-recurring' => [
@@ -166,8 +169,9 @@ return [
         ],
         'contact' => [
             'type' => [
-                'customer'              => env('SETTING_FALLBACK_CONTACT_TYPE_CUSTOMER', 'customer'),
-                'vendor'                => env('SETTING_FALLBACK_CONTACT_TYPE_VENDOR', 'vendor'),
+                'customer'              => env('SETTING_FALLBACK_CONTACT_TYPE_CUSTOMER', Contact::CUSTOMER_TYPE),
+                'vendor'                => env('SETTING_FALLBACK_CONTACT_TYPE_VENDOR', Contact::VENDOR_TYPE),
+                'employee'              => env('SETTING_FALLBACK_CONTACT_TYPE_EMPLOYEE', Contact::EMPLOYEE_TYPE),
             ],
         ],
         'transaction' => [
@@ -175,8 +179,8 @@ return [
             'number_digit'              => env('SETTING_FALLBACK_TRANSACTION_NUMBER_DIGIT', '5'),
             'number_next'               => env('SETTING_FALLBACK_TRANSACTION_NUMBER_NEXT', '1'),
             'type' => [
-                'income'                => env('SETTING_FALLBACK_TRANSACTION_TYPE_INCOME', 'income'),
-                'expense'               => env('SETTING_FALLBACK_TRANSACTION_TYPE_EXPENSE', 'expense'),
+                'income'                => env('SETTING_FALLBACK_TRANSACTION_TYPE_INCOME', Transaction::INCOME_TYPE . ',' . Transaction::INCOME_TRANSFER_TYPE),
+                'expense'               => env('SETTING_FALLBACK_TRANSACTION_TYPE_EXPENSE', Transaction::EXPENSE_TYPE . ',' . Transaction::EXPENSE_TRANSFER_TYPE),
             ],
         ],
         'transaction-recurring' => [

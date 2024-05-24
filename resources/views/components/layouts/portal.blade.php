@@ -7,9 +7,9 @@
     </x-layouts.portal.head>
 
     @mobile
-    <body class="g-sidenav-hidden bg-body">
+    <body class="bg-body">
     @elsemobile
-    <body class="g-sidenav-show bg-body">
+    <body class="bg-body overflow-y-overlay">
     @endmobile
 
         @stack('body_start')
@@ -21,19 +21,25 @@
                 <div class="container">
                     <x-layouts.portal.header>
                         <x-slot name="title">
-                            {!! !empty($title->attributes->has('title')) ? $title->attributes->get('title') : $title !!}
+                            {!! ! empty($title->attributes->has('title')) ? $title->attributes->get('title') : $title !!}
                         </x-slot>
 
-                        @if (!empty($status))
+                        @if (! empty($status))
                             <x-slot name="status">
-                                {!! $status ?? '' !!}
+                                {!! $status !!}
                             </x-slot>
                         @endif
 
-                        @if (!empty($favorite) || (!empty($favorite) && $favorite->attributes->has('title')))
+                        @if (! empty($info))
+                            <x-slot name="info">
+                                {!! $info !!}
+                            </x-slot>
+                        @endif
+
+                        @if (! empty($favorite) || (! empty($favorite) && $favorite->attributes->has('title')))
                             @if (! $favorite->attributes->has('title'))
                                 <x-slot name="favorite">
-                                    {!! $favorite ?? '' !!}
+                                    {!! $favorite !!}
                                 </x-slot>
                             @else
                                 @php
@@ -66,6 +72,8 @@
                     </x-layouts.portal.header>
 
                     <x-layouts.portal.content>
+                        <notifications.browser />
+
                         {!! $content !!}
                     </x-layouts.portal.content>
 

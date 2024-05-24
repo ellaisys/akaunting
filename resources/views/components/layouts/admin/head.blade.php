@@ -1,5 +1,5 @@
 @props([
-    'metaTitle', 'title',
+    'metaTitle', 'title', 'currency'
 ])
 
 <head>
@@ -16,6 +16,8 @@
 
     <x-layouts.pwa.head />
 
+    <link rel="stylesheet" href="{{ asset('public/css/custom_loading.css?v=' . version('short')) }}" type="text/css">
+
     <!-- Favicon -->
     <link rel="icon" href="{{ asset('public/img/favicon.ico') }}" type="image/png">
 
@@ -29,7 +31,7 @@
     <link rel="stylesheet" href="{{ asset('public/css//third_party/swiper-bundle.min.css?v=' . version('short')) }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('public/css//third_party/vue-html-editor.css?v=' . version('short')) }}" type="text/css">
     <link rel="stylesheet" href="{{ asset('public/css/element.css?v=' . version('short')) }}" type="text/css">
-    <link rel="stylesheet" href="{{ asset('public/css/app.css') }}" type="text/css">
+    <link rel="stylesheet" href="{{ asset('public/css/app.css?v=' . version('short')) }}" type="text/css">
 
     @stack('css')
 
@@ -41,7 +43,10 @@
         var url = '{{ url("/" . company_id()) }}';
         var app_url = '{{ config("app.url") }}';
         var aka_currency = {!! !empty($currency) ? $currency : 'false' !!};
+        var all_currencies = {!! !empty($currencies) ? $currencies : '[]' !!};
     //--></script>
+
+    <x-script.exceptions.trackers />
 
     @stack('js')
 

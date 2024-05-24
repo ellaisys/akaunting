@@ -1,8 +1,8 @@
 <x-table>
     <x-table.thead>
-        <x-table.tr class="flex items-center px-1">
+        <x-table.tr>
             @if (! $hideBulkAction)
-            <x-table.th class="{{ $classBulkAction }}" override="class">
+            <x-table.th class="{{ $classBulkAction }}" hidden-mobile override="class">
                 <x-index.bulkaction.all />
             </x-table.th>
             @endif
@@ -16,15 +16,20 @@
                 </x-slot>
             </x-table.th>
 
-            <x-table.th class="w-2/12 ltr:pr-6 rtl:pl-6 py-3 ltr:text-left rtl:text-right text-xs font-medium text-black tracking-wider hidden sm:table-cell">
-                <x-sortablelink column="category.name" title="{{ trans_choice('general.categories', 1) }}" />
+            <x-table.th class="w-2/12 ltr:pr-6 rtl:pl-6 py-3 ltr:text-left rtl:text-right text-xs font-medium text-black tracking-wider" hidden-mobile>
+                <x-slot name="first">
+                    <x-sortablelink column="contact_name" title="{{ trans_choice($textContactName, 1) }}" />
+                </x-slot>
+                <x-slot name="second">
+                    <x-sortablelink column="category.name" title="{{ trans_choice('general.categories', 1) }}" />
+                </x-slot>
             </x-table.th>
 
             <x-table.th class="w-4/12 sm:w-3/12">
                 <x-sortablelink column="recurring.status" title="{{ trans_choice('general.statuses', 1) }}" />
             </x-table.th>
 
-            <x-table.th class="w-2/12 hidden sm:table-cell">
+            <x-table.th class="w-2/12" hidden-mobile>
                 <x-slot name="first">
                     {{ trans('recurring.frequency') }}
                 </x-slot>
@@ -33,7 +38,7 @@
                 </x-slot>
             </x-table.th>
 
-            <x-table.th class="w-4/12 sm:w-2/12 text-right pl-6 pr-0">
+            <x-table.th class="w-4/12 sm:w-2/12" kind="amount">
                 <x-sortablelink column="amount" title="{{ trans('general.amount') }}" />
             </x-table.th>
         </x-table.tr>
@@ -43,35 +48,61 @@
         @foreach($documents as $item)
             <x-table.tr href="{{ route($showRoute, $item->id) }}">
             @if (! $hideBulkAction)
-                <x-table.td class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                <x-table.td class="ltr:pr-6 rtl:pl-6" hidden-mobile override="class">
                     <x-index.bulkaction.single id="{{ $item->id }}" name="{{ $item->contact->name }}" />
                 </x-table.td>
             @endif
 
                 <x-table.td class="w-4/12 sm:w-3/12">
-                    <x-slot name="first">
+                    <x-slot name="first" class="font-bold">
                         <x-date date="{{ $item->recurring->started_at }}" />
                     </x-slot>
                     <x-slot name="second">
-                        @if ($last = $item->recurring->getLastRecurring())
-                            {{ $last->format(company_date_format()) }}
+                        @if ($item->recurring->status == 'ended')
+                            @if ($last = $item->recurring->documents->last()?->issued_at)
+                                {{ $last->format(company_date_format()) }}
+                            @else
+                                <x-empty-data />
+                            @endif
+                        @else
+                            @if ($last = $item->recurring->getLastRecurring())
+                                {{ $last->format(company_date_format()) }}
+                            @endif
                         @endif
                     </x-slot>
                 </x-table.td>
 
-                <x-table.td class="w-2/12 hidden sm:table-cell">
-                    <div class="flex items-center">
-                        <x-index.category :model="$item->category" />
-                    </div>
+                <x-table.td class="w-2/12" hidden-mobile>
+                    <x-slot name="first">
+                        {{ $item->contact_name }}
+                    </x-slot>
+                    <x-slot name="second">
+                        <div class="flex items-center">
+                            <x-index.category :model="$item->category" />
+                        </div>
+                    </x-slot>
                 </x-table.td>
 
                 <x-table.td class="w-4/12 sm:w-3/12">
                     <x-index.status status="{{ $item->recurring->status }}" background-color="bg-{{ $item->recurring_status_label }}" text-color="text-text-{{ $item->recurring_status_label }}" />
                 </x-table.td>
 
-                <x-table.td class="w-2/12 hidden sm:table-cell">
+                <x-table.td class="w-2/12" hidden-mobile>
                     <x-slot name="first">
-                        {{ trans('recurring.' . $item->recurring->frequency) }}
+                        @if ($item->recurring->interval > 1)
+                            <x-tooltip 
+                                id="tooltip-frequency-{{ $item->recurring->id }}"
+                                placement="top"
+                                message="{{ trans('recurring.custom_frequency_desc', [
+                                    'interval' => $item->recurring->interval,
+                                    'frequency' => str()->lower(trans('recurring.' . str_replace(['daily', 'ly'], ['days', 's'], $item->recurring->frequency)))
+                                ]) }}"
+                            >
+                                {{ trans('recurring.custom') }}
+                            </x-tooltip>
+                        @else
+                            {{ trans('recurring.' . $item->recurring->frequency) }}
+                        @endif
                     </x-slot>
                     <x-slot name="second">
                         @if ($item->recurring->limit_by == 'count')
@@ -86,8 +117,8 @@
                     </x-slot>
                 </x-table.td>
 
-                <x-table.td class="relative w-4/12 sm:w-2/12 text-right pl-6 pr-0">
-                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                <x-table.td class="w-4/12 sm:w-2/12" kind="amount">
+                    <x-money :amount="$item->amount" :currency="$item->currency_code" />
                 </x-table.td>
 
                 <x-table.td kind="action">

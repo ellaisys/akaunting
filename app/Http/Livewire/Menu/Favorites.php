@@ -27,8 +27,14 @@ class Favorites extends Component
 
             foreach ($favorites as $favorite) {
                 $favorite['active'] = false;
-                $favorite['url'] = $this->getUrl($favorite);
-                $favorite['id'] = $this->getId($favorite);
+
+                try {
+                    $favorite['url'] = $this->getUrl($favorite);
+                } catch (\Exception $e) {
+                    continue;
+                }
+
+                $favorite['id'] = $this->getFavoriteId($favorite);
 
                 if ($this->isActive($favorite['url'])) {
                     $favorite['active'] = true;
@@ -81,7 +87,7 @@ class Favorites extends Component
         }
     }
 
-    public function getId($favorite)
+    public function getFavoriteId($favorite)
     {
         $id = Str::of($favorite['url'])
                 ->replace(url('/'), '-')

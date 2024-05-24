@@ -1,12 +1,11 @@
 @stack($name . '_input_start')
-
     @if (! empty($remote))
     <akaunting-select-remote
     @else
     <akaunting-select
     @endif
         @class([
-            'form-group relative',
+            'relative',
             $formGroupClass,
             'required' => $required,
             'readonly' => $readonly,
@@ -47,6 +46,30 @@
         :dynamic-options="{{ $attributes['dynamicOptions'] }}"
         @endif
 
+        @if (! empty($attributes['searchable']))
+        searchable
+        @elseif (! empty($searchable))
+        searchable
+        @endif
+
+        @if (isset($attributes['fullOptions']) || isset($attributes['full-options']))
+        :full-options="{{ json_encode(! empty($attributes['fullOptions']) ? $attributes['fullOptions'] : $attributes['full-options']) }}"
+        @else
+        :full-options="{{ json_encode($fullOptions) }}"
+        @endif
+
+        @if (isset($attributes['searchText']) || isset($attributes['search-text']))
+        search-text="{{ ! empty($attributes['searchText']) ? $attributes['searchText'] : $attributes['search-text'] }}"
+        @else
+        search-text="{{ $searchText }}"
+        @endif
+
+        @if (! empty($attributes['force-dynamic-option-value']))
+        force-dynamic-option-value
+        @elseif (! empty($forceDynamicOptionValue))
+        force-dynamic-option-value
+        @endif
+
         @if (empty($multiple))
             @if (isset($selected) || old($name))
             value="{{ old($name, $selected) }}"
@@ -70,7 +93,7 @@
         @if (! empty($addNew))
         :add-new="{{ json_encode([
             'status' => true,
-            'text' => trans('general.title.new', ['type' => $label ?? '']),
+            'text' => isset($attributes['add-new-text']) ? $attributes['add-new-text'] : trans('general.title.new', ['type' => $label ?? '']),
             'path' => isset($attributes['path']) ? $attributes['path']: false,
             'type' => isset($attributes['type']) ? $attributes['type'] : 'modal',
             'field' => [
@@ -107,8 +130,16 @@
         @change="{{ $attributes['change'] }}($event)"
         @endif
 
+        @if (! empty($attributes['focus']))
+        @focus="{{ $attributes['focus'] }}"
+        @endif
+
         @if (! empty($attributes['visible-change']))
         @visible-change="{{ $attributes['visible-change'] }}"
+        @endif
+
+        @if (! empty($attributes['clear']))
+        @clear="{{ $attributes['clear'] }}($event)"
         @endif
 
         @if (isset($attributes['readonly']))
@@ -119,6 +150,14 @@
         :clearable="{{ $attributes['clearable'] }}"
         @else
         clearable
+        @endif
+
+        @if (isset($attributes['no-arrow']))
+        :no-arrow="{{ $attributes['no-arrow'] }}"
+        @endif
+
+        @if (!$required)
+        :not-required={{ $required ? 'false' : 'true' }}
         @endif
 
         @if (isset($attributes['v-disabled']))
@@ -134,8 +173,8 @@
         @if (! empty($remote))
         remote-action="{{ $attributes['remote_action'] }}"
 
-        @if (! empty($attributes['currecny_code']))
-        currency-code="{{ $attributes['currecny_code'] }}"
+        @if (! empty($attributes['currency_code']))
+        currency-code="{{ $attributes['currency_code'] }}"
         @endif
         @endif
 
@@ -146,7 +185,32 @@
         @if (isset($attributes['sort-options']))
         :sort-options="{{ $attributes['sort-options'] }}"
         @endif
+
+        @if (isset($attributes['option-style']))
+        option-style="{{ $attributes['option-style'] }}"
+        @endif
+
+        @if (isset($attributes['option_field']))
+        :option_field="{{ json_encode($attributes['option_field']) }}"
+        @endif
+
+        @if (isset($attributes['@index']))
+        @index="{{ $attributes['@index'] }}"
+        @endif
+
+        @if (isset($attributes['@value']))
+        @value="{{ $attributes['@value'] }}"
+        @endif
+
+        @if (isset($attributes['@option']))
+        @option="{{ $attributes['@option'] }}"
+        @endif
+
+        @if (isset($attributes['@label']))
+        @label="{{ $attributes['@label'] }}"
+        @endif
     >
+        {!! $slot ?? "" !!}
     @if (! empty($remote))
     </akaunting-select-remote>
     @else

@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Auth\UserInvitation;
+use Illuminate\Support\Facades\Route;
 
 trait Users
 {
@@ -28,7 +29,7 @@ trait Users
         $user = user();
 
         if (empty($user)) {
-            return false;
+            return app()->runningInConsole() ? true : false;
         }
 
         $company = $user->withoutEvents(function () use ($user, $id) {
@@ -102,40 +103,36 @@ trait Users
             return route('login');
         }
 
-        $route_name = $user->isCustomer() ? 'portal.dashboard' : $user->landing_page;
+        $route_name = $user->isCustomer()
+                    ? 'portal.dashboard'
+                    : (Route::has($user->landing_page) ? $user->landing_page : 'dashboard');
 
         $company_id = company_id() ?: $this->getFirstCompanyOfUser()?->id;
+
+        if (empty($company_id)) {
+            return route('login');
+        }
 
         return route($route_name, ['company_id' => $company_id]);
     }
 
     /**
-     * Checks if the given user has a pending invitation for the
-     * provided Company.
+     * Checks if the given user has a pending invitation.
      *
      * @return bool
      */
-    public function hasPendingInvitation($company_id = null)
+    public function hasPendingInvitation()
     {
-        $company_id = $company_id ?: company_id();
-
-        $invitation = UserInvitation::where('user_id', $this->id)->where('company_id', $company_id)->first();
-
-        return $invitation ? true : false;
+        return $this->getPendingInvitation() ? true : false;
     }
 
     /**
-     * Returns if the given user has a pending invitation for the
-     * provided Company.
+     * Returns if the given user has a pending invitation.
      *
      * @return null|UserInvitation
      */
-    public function getPendingInvitation($company_id = null)
+    public function getPendingInvitation()
     {
-        $company_id = $company_id ?: company_id();
-
-        $invitation = UserInvitation::where('user_id', $this->id)->where('company_id', $company_id)->first();
-
-        return $invitation;
+        return UserInvitation::where('user_id', $this->id)->first();
     }
 }

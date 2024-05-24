@@ -24,7 +24,17 @@ class Reconciliations extends Controller
     {
         $reconciliations = Reconciliation::with('account')->collect();
 
-        return $this->response('banking.reconciliations.index', compact('reconciliations'));
+        $reconciled_amount = money($reconciliations->where('reconciled', 1)->sum('closing_balance'));
+        $in_progress_amount = money($reconciliations->where('reconciled', 0)->sum('closing_balance'));
+
+        $summary_amounts = [
+            'amount_exact'              => $reconciled_amount->format(),
+            'amount_for_humans'         => $reconciled_amount->formatForHumans(),
+            'in_progress_exact'         => $in_progress_amount->format(),
+            'in_progress_for_humans'    => $in_progress_amount->formatForHumans(),
+        ];
+
+        return $this->response('banking.reconciliations.index', compact('reconciliations', 'summary_amounts'));
     }
 
     /**
@@ -73,7 +83,7 @@ class Reconciliations extends Controller
         if ($response['success']) {
             $response['redirect'] = route('reconciliations.index');
 
-            $message = trans('messages.success.added', ['type' => trans_choice('general.reconciliations', 1)]);
+            $message = trans('messages.success.created', ['type' => trans_choice('general.reconciliations', 1)]);
 
             flash($message)->success();
         } else {
@@ -236,9 +246,9 @@ class Reconciliations extends Controller
 
         $difference = $closing_balance - $cleared_amount;
 
-        $json->closing_balance = money($closing_balance, $currency_code, true)->format();
-        $json->cleared_amount = money($cleared_amount, $currency_code, true)->format();
-        $json->difference = money($difference, $currency_code, true)->format();
+        $json->closing_balance = money($closing_balance, $currency_code)->format();
+        $json->cleared_amount = money($cleared_amount, $currency_code)->format();
+        $json->difference = money($difference, $currency_code)->format();
         $json->difference_raw = (int) $difference;
 
         return response()->json($json);

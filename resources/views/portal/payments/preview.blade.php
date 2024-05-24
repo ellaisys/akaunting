@@ -24,9 +24,9 @@
             <div class="w-full lg:w-5/12 space-y-8">
                 <div class="border-b-2 border-gray-200 pb-1">
                     <div class="relative w-full text-left group">
-                        <span class="font-medium border-b border-transparent transition-all group-hover:border-black">
+                        <x-button.hover group-hover>
                             {{ trans('portal.received_date') }}
-                        </span>
+                        </x-button.hover>
                     </div>
 
                     <div class="relative overflow-hidden transition-all duration-700">
@@ -46,7 +46,7 @@
                     </div>
 
                     <span class="text-sm">
-                        {{ trans('portal.payment_detail.description', ['date' => date($payment->paid_at), 'amount' => money($payment->amount, $payment->currency_code, true)]) }}
+                        {{ trans('portal.payment_detail.description', ['date' => date($payment->paid_at), 'amount' => money($payment->amount, $payment->currency_code)]) }}
                     </span>
                 </div>
                 @endif

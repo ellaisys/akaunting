@@ -29,98 +29,137 @@ const app = new Vue({
         return {
             form: new Form('transaction'),
             bulk_action: new BulkAction('transactions'),
-            connect: {
-                show: false,
-                currency: {},
-                documents: [],
-            },
+            dynamic_taxes: [],
+            tax_summary: false,
+            tax_summary_total: 0,
+            tax_summary_html: '',
+        }
+    },
+
+    created() {
+        if (typeof transaction_taxes !== 'undefined' && transaction_taxes) {
+            this.dynamic_taxes = transaction_taxes;
         }
     },
 
     methods: {
-        onConnect(route) {
-            let dial_promise = Promise.resolve(window.axios.get(route));
+        //
+        onChangeTax(tax_id) {
+            if (tax_id == undefined || ! tax_id.length) {
+                this.tax_summary = false;
 
-            dial_promise.then(response => {
-                this.connect.show = true;
+                return;
+            }
 
-                this.connect.transaction = JSON.parse(response.data.transaction);
+            let tax_amount = 0;
+            let tax_total = 0;
+            let taxes = this.dynamic_taxes;
 
-                let currency = JSON.parse(response.data.currency);
+            let inclusives = [];
+            let fixed = [];
+            let normal = [];
+            let withholding = [];
+            let compounds = [];
 
-                this.connect.currency = {
-                    decimal_mark: currency.decimal_mark,
-                    precision: currency.precision,
-                    symbol: currency.symbol,
-                    symbol_first: currency.symbol_first,
-                    thousands_separator: currency.thousands_separator,
-                };
-    
-                this.connect.documents = JSON.parse(response.data.documents);
-            })
-            .catch(error => {
-            })
-            .finally(function () {
-                // always executed
+            tax_id.forEach(function(item_tax, item_tax_index) {
+                for (var index_taxes = 0; index_taxes < taxes.length; index_taxes++) {
+                    let tax = taxes[index_taxes];
+
+                    if (item_tax != tax.id) {
+                        continue;
+                    }
+
+                    switch (tax.type) {
+                        case 'inclusive':
+                            inclusives.push({
+                                tax_index: item_tax_index,
+                                tax_id: tax.id,
+                                tax_name: tax.title,
+                                tax_rate: tax.rate
+                            });
+                            break;
+                        case 'compound':
+                            compounds.push({
+                                tax_index: item_tax_index,
+                                tax_id: tax.id,
+                                tax_name: tax.title,
+                                tax_rate: tax.rate
+                            });
+                            break;
+                        case 'fixed':
+                            fixed.push({
+                                tax_index: item_tax_index,
+                                tax_id: tax.id,
+                                tax_name: tax.title,
+                                tax_rate: tax.rate
+                            });
+                            break;
+                        case 'withholding':
+                            withholding.push({
+                                tax_index: item_tax_index,
+                                tax_id: tax.id,
+                                tax_name: tax.title,
+                                tax_rate: tax.rate
+                            });
+                            break;
+                        default:
+                            normal.push({
+                                tax_index: item_tax_index,
+                                tax_id: tax.id,
+                                tax_name: tax.title,
+                                tax_rate: tax.rate
+                            });
+                            break;
+                    }
+                }
             });
-        },
 
-        async onEmail(route) {
-            let email = {
-                modal: false,
-                route: route,
-                title: '',
-                html: '',
-                buttons:{}
-            };
+            if (inclusives.length) {
+                inclusives.forEach(function(inclusive) {
+                    tax_amount = this.form.amount - (this.form.amount / (1 + inclusive.tax_rate / 100));
 
-            let email_promise = Promise.resolve(window.axios.get(email.route));
+                    tax_total += tax_amount;
+                }, this);
+            }
 
-            email_promise.then(response => {
-                email.modal = true;
-                email.title = response.data.data.title;
-                email.html = response.data.html;
-                email.buttons = response.data.data.buttons;
+            if (fixed.length) {
+                fixed.forEach(function(fix) {
+                    tax_amount = fix.tax_rate * parseFloat(1);
 
-                this.component = Vue.component('add-new-component', (resolve, reject) => {
-                    resolve({
-                        template: '<div id="dynamic-email-component"><akaunting-modal-add-new modal-dialog-class="max-w-screen-lg" :show="email.modal" @submit="onSubmit" @cancel="onCancel" :buttons="email.buttons" :title="email.title" :is_component=true :message="email.html"></akaunting-modal-add-new></div>',
+                    tax_total += tax_amount;
+                }, this);
+            }
 
-                        mixins: [
-                            Global
-                        ],
+            if (normal.length) {
+                normal.forEach(function(norm) {
+                    tax_amount = this.form.amount * (norm.tax_rate / 100);
 
-                        data: function () {
-                            return {
-                                form:{},
-                                email: email,
-                            }
-                        },
+                    tax_total += tax_amount;
+                }, this);
+            }
 
-                        methods: {
-                            onSubmit(event) {
-                                this.$emit('submit', event);
+            if (withholding.length) {
+                withholding.forEach(function(withhold) {
+                    tax_amount = -(this.form.amount * (withhold.tax_rate / 100));
 
-                                event.submit();
-                            },
+                    tax_total += tax_amount;
+                }, this);
+            }
 
-                            onCancel() {
-                                this.email.modal = false;
-                                this.email.html = null;
+            if (compounds.length) {
+                compounds.forEach(function(compound) {
+                    tax_amount = (this.form.amount / 100) * compound.tax_rate;
 
-                                let documentClasses = document.body.classList;
+                    tax_total += tax_amount;
+                }, this);
+            }
 
-                                documentClasses.remove("modal-open");
-                            },
-                        }
-                    })
-                });
-            })
-            .catch(error => {
-            })
-            .finally(function () {
-                // always executed
-            });
+            if (tax_total <= 0) {
+                return;
+            }
+
+            this.tax_summary = true;
+            this.tax_summary_total = tax_total.toFixed(this.currency.precision ?? 2);
         },
     },
 });

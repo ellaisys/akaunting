@@ -6,10 +6,12 @@
     <x-slot name="title">
         @if ($user_dashboards->count() > 1)
             <div class="flex items-center relative cursor-pointer">
-                <x-dropdown id="dashboard-list">
+                <x-dropdown id="show-dashboard-list">
                     <x-slot name="trigger" class="flex items-center" override="class">
-                        <span class="text-2xl xl:text-5xl text-black font-light truncate border-b border-transparent transition-all hover:text-black-700 hover:border-black">
-                            {{ $dashboard->name }}
+                        <span class="text-2xl xl:text-5xl text-black font-light truncate">
+                            <x-button.hover color="to-black-700">
+                                {{ $dashboard->name }}
+                            </x-button.hover>
                         </span>
 
                         <svg class="w-5 h-5 mt-1 text-gray-400" x-description="Heroicon name: solid/selector" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -18,7 +20,7 @@
                     </x-slot>
 
                     @foreach ($user_dashboards as $user_dashboard)
-                        <x-dropdown.link href="{{ route('dashboards.switch', $user_dashboard->id) }}">
+                        <x-dropdown.link href="{{ route('dashboards.switch', $user_dashboard->id) }}" id="show-dashboard-switch-{{ $user_dashboard->id }}">
                             {{ $user_dashboard->name }}
                         </x-dropdown.link>
                     @endforeach
@@ -40,56 +42,22 @@
             value-format="yyyy-MM-dd"
             @change="onChangeFilterDate"
             range-separator="-"
-            start-placeholder="{{ $date_picker_shortcuts[trans('reports.this_year')]['start'] }}"
-            end-placeholder="{{ $date_picker_shortcuts[trans('reports.this_year')]['end'] }}"
+            start-placeholder="{{ $date_picker_shortcuts[trans('general.date_range.this_year')]['start'] }}"
+            end-placeholder="{{ $date_picker_shortcuts[trans('general.date_range.this_year')]['end'] }}"
             popper-class="dashboard-picker"
             :picker-options="{
                 shortcuts: [
-                    {
-                        text: '{{ trans("reports.this_year") }}',
-                        onClick(picker) {
-                            const start = new Date('{{ $date_picker_shortcuts[trans("reports.this_year")]["start"] }}');
-                            const end = new Date('{{ $date_picker_shortcuts[trans("reports.this_year")]["end"] }}');
+                    @foreach ($date_picker_shortcuts as $text => $shortcut)
+                        {
+                            text: '{{ $text }}',
+                            onClick(picker) {
+                                const start = new Date('{{ $shortcut["start"] }}');
+                                const end = new Date('{{ $shortcut["end"] }}');
 
-                            picker.$emit('pick', [start, end]);
-                        }
-                    },
-                    {
-                        text: '{{ trans("reports.previous_year") }}',
-                        onClick(picker) {
-                            const start = new Date('{{ $date_picker_shortcuts[trans("reports.previous_year")]["start"] }}');
-                            const end = new Date('{{ $date_picker_shortcuts[trans("reports.previous_year")]["end"] }}');
-
-                            picker.$emit('pick', [start, end]);
-                        }
-                    },
-                    {
-                        text: '{{ trans("reports.this_quarter") }}',
-                        onClick(picker) {
-                            const start = new Date('{{ $date_picker_shortcuts[trans("reports.this_quarter")]["start"] }}');
-                            const end = new Date('{{ $date_picker_shortcuts[trans("reports.this_quarter")]["end"] }}');
-
-                            picker.$emit('pick', [start, end]);
-                        }
-                    },
-                    {
-                        text: '{{ trans("reports.previous_quarter") }}',
-                        onClick(picker) {
-                            const start = new Date('{{ $date_picker_shortcuts[trans("reports.previous_quarter")]["start"] }}');
-                            const end = new Date('{{ $date_picker_shortcuts[trans("reports.previous_quarter")]["end"] }}');
-
-                            picker.$emit('pick', [start, end]);
-                        }
-                    },
-                    {
-                        text: '{{ trans("reports.last_12_months") }}',
-                        onClick(picker) {
-                            const start = new Date('{{ $date_picker_shortcuts[trans("reports.last_12_months")]["start"] }}');
-                            const end = new Date('{{ $date_picker_shortcuts[trans("reports.last_12_months")]["end"] }}');
-
-                            picker.$emit('pick', [start, end]);
-                        }
-                    }
+                                picker.$emit('pick', [start, end]);
+                            }
+                        },
+                    @endforeach
                 ]
             }">
         </el-date-picker>
@@ -98,36 +66,38 @@
     @section('dashboard_action')
         @canany(['create-common-widgets', 'read-common-dashboards'])
             <div class="dashboard-action">
-                <x-dropdown id="dropdown-dashboard-company">
+                <x-dropdown id="show-more-actions-dashboard">
                     <x-slot name="trigger" class="flex" override="class">
-                        <span id="dashboard-more-actions" class="material-icons-outlined text-4xl text-purple cursor-pointer hover:bg-gray-100 hover:rounded-lg hover:shadow-md">more_vert</span>
+                        <span class="w-8 h-8 flex items-center justify-center px-2 py-2 ltr:ml-2 rtl:mr-2 hover:bg-gray-100 rounded-xl text-purple text-sm font-medium leading-6">
+                            <span class="material-icons pointer-events-none">more_vert</span>
+                        </span>
                     </x-slot>
 
                     @can('create-common-widgets')
-                        <x-button
-                            type="button"
-                            id="dashboard-add-widget"
-                            class="w-full flex items-center text-purple px-2 h-9 leading-9 whitespace-nowrap"
-                            override="class"
-                            title="{{ trans('general.title.add', ['type' => trans_choice('general.widgets', 1)]) }}"
-                            @click="onCreateWidget()"
-                        >
-                            <span class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100">
+                        <div class="w-full flex items-center text-purple px-2 h-9 leading-9 whitespace-nowrap">
+                            <x-button
+                                type="button"
+                                id="show-more-actions-add-widget"
+                                class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100"
+                                override="class"
+                                title="{{ trans('general.title.add', ['type' => trans_choice('general.widgets', 1)]) }}"
+                                @click="onCreateWidget()"
+                            >
                                 {{ trans('general.title.add', ['type' => trans_choice('general.widgets', 1)]) }}
-                            </span>
-                        </x-button>
+                            </x-button>
+                        </div>
 
                         <x-dropdown.divider />
                     @endcan
 
                     @can('update-common-dashboards')
                         @can('create-common-dashboards')
-                        <x-dropdown.link href="{{ route('dashboards.create') }}">
+                        <x-dropdown.link href="{{ route('dashboards.create') }}" id="show-more-actions-new-dashboard">
                             {{ trans('general.title.create', ['type' => trans_choice('general.dashboards', 1)]) }}
                         </x-dropdown.link>
                         @endcan
 
-                        <x-dropdown.link href="{{ route('dashboards.index') }}">
+                        <x-dropdown.link href="{{ route('dashboards.index') }}" id="show-more-actions-manage-dashboards">
                             {{ trans('general.title.manage', ['type' => trans_choice('general.dashboards', 2)]) }}
                         </x-dropdown.link>
                     @endcan
@@ -152,13 +122,13 @@
                 'name' => trans('general.form.enter', ['field' => trans('general.name')]),
                 'type' => trans('general.form.select.field', ['field' => trans_choice('general.types', 1)]),
                 'width' => trans('general.form.select.field', ['field' => trans('general.width')]),
-                'sort' => trans('general.form.enter', ['field' => trans('general.sprt')])
+                'sort' => trans('general.form.enter', ['field' => trans('general.sort')])
             ]);
         @endphp
 
         <akaunting-widget
             v-if="widget_modal"
-            :title="'{{ trans_choice('general.widgets', 1) }}'"
+            :title="'{{ trans('general.title.edit') }}'.replace(':type', widget.name)"
             :show="widget_modal"
             :widget_id="widget.id"
             :name="widget.name"
@@ -175,7 +145,7 @@
     @endsection
 
     <x-slot name="content">
-        <div class="dashboard flex flex-wrap -mx-12">
+        <div class="dashboard flex flex-wrap px-6 lg:-mx-12">
             @foreach($widgets as $widget)
                 @widget($widget)
             @endforeach

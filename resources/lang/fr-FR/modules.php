@@ -28,11 +28,12 @@ return [
     'yearly_pricing'        => 'Prix annuel',
     'monthly_price'         => 'à partir de :price',
     'per_month'             => 'par mois',
-    'billed_yearly'         => 'Facturé Annuellement',
+    'once'                  => 'une fois',
     'billed_monthly'        => 'Facturé Mensuellement',
+    'billed_yearly'         => 'Facturé Annuellement',
+    'billed_once'           => 'Facturé une fois',
     'save_year'             => 'Vous économisez <strong>:price</strong> par an !',
     'if_paid_year'          => 'Ou <strong>:price/mo</strong> si payé annuellement',
-    'information_monthly'   => 'Cette option n\'est valide que pour le <strong>Cloud Service</strong>',
     'install'               => 'Installation',
     'buy_now'               => 'Acheter maintenant',
     'get_api_key'           => '<a href=":url" target="_blank">Cliquez ici</a> pour obtenir votre clé API.
@@ -44,6 +45,16 @@ return [
     'apps_managing'         => 'Vérifiez les applications les plus populaires et commencez à gérer vos finances avec professionnalisme dès aujourd\'hui.',
     'ready'                 => 'Prêt',
     'popular_this_week'     => 'Populaire cette semaine',
+    'install_cloud'         => 'Utiliser sur le service Cloud',
+    'get_cloud'             => 'Obtenir le service Cloud',
+    'get_premium_cloud'     => 'Obtenez le Cloud Premium',
+    'switch_to_cloud'       => 'Passer au Cloud',
+    'hosted_on_akaunting'   => 'Hébergé sur akaunting.com',
+    'information_on_preme'  => 'L\'option :period n\'est disponible que sur le <a href=":url" target="_blank" class="to-black-400 hover:bg-full-2 bg-no-repeat bg-0-2 bg-0-full bg-gradient-to-b from-transparent transition-backgroundSize"><strong>Cloud.</strong></a>',
+    'information_monthly'   => 'Cette option n\'est valide que pour le <a href=":url" target="_blank" class="to-black-400 hover:bg-full-2 bg-no-repeat bg-0-2 bg-0-full bg-gradient-to-b from-transparent transition-backgroundSize"><strong>Cloud Service</strong></a>',
+    'only_works_cloud'      => 'Cette application ne fonctionne que sur le <strong>Service Cloud</strong>.',
+    'only_premium_plan'     => 'Cette application ne fonctionne que sur le <strong>Cloud Premium Service</strong>.',
+    'not_found'             => 'Aucune application trouvée',
 
     'about'                 => 'A propos',
 
@@ -94,6 +105,10 @@ return [
         'unzip'             => 'Impossible de décompresser :module',
         'file_copy'         => 'Impossible de copier les fichiers :module',
         'finish'            => 'Impossible de finaliser l\'installation de :module',
+    ],
+
+    'warning' => [
+        'latest_version'    => 'Vous utilisez déjà la dernière version de :module, aucune mise à jour n\'est disponible.',
     ],
 
     'badge' => [

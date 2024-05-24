@@ -11,7 +11,7 @@
 
     <x-slot name="buttons">
         @can('create-banking-accounts')
-            <x-link href="{{ route('accounts.create') }}" kind="primary">
+            <x-link href="{{ route('accounts.create') }}" kind="primary" id="index-more-actions-new-account">
                 {{ trans('general.title.new', ['type' => trans_choice('general.accounts', 1)]) }}
             </x-link>
         @endcan
@@ -26,8 +26,8 @@
 
             <x-table>
                 <x-table.thead>
-                    <x-table.tr class="flex items-center px-1">
-                        <x-table.th class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                    <x-table.tr>
+                        <x-table.th kind="bulkaction">
                             <x-index.bulkaction.all />
                         </x-table.th>
 
@@ -40,12 +40,12 @@
                             </x-slot>
                         </x-table.th>
 
-                        <x-table.th class="w-4/12 hidden sm:table-cell">
+                        <x-table.th class="w-4/12" hidden-mobile>
                             <x-slot name="first">
                                 <x-sortablelink column="bank_name" title="{{ trans('accounts.bank_name') }}" />
                             </x-slot>
                             <x-slot name="second">
-                                <x-sortablelink column="bank_phone" title="{{ trans('general.phone') }}" />
+                                <x-sortablelink column="bank_phone" title="{{ trans('accounts.bank_phone') }}" />
                             </x-slot>
                         </x-table.th>
 
@@ -58,15 +58,13 @@
                 <x-table.tbody>
                     @foreach($accounts as $item)
                         <x-table.tr href="{{ route('accounts.show', $item->id) }}">
-                            <x-table.td class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                            <x-table.td kind="bulkaction">
                                 <x-index.bulkaction.single id="{{ $item->id }}" name="{{ $item->name }}" />
                             </x-table.td>
 
-                            <x-table.td class="w-6/12 sm:w-5/12 truncate">
-                                <x-slot name="first" class="flex">
-                                    <div class="font-bold truncate">
-                                        {{ $item->name }}
-                                    </div>
+                            <x-table.td class="w-6/12 sm:w-5/12">
+                                <x-slot name="first" class="flex font-bold">
+                                    {{ $item->name }}
 
                                     @if (! $item->enabled)
                                         <x-index.disable text="{{ trans_choice('general.accounts', 1) }}" />
@@ -81,7 +79,7 @@
                                 </x-slot>
                             </x-table.td>
 
-                            <x-table.td class="w-4/12 truncate hidden sm:table-cell">
+                            <x-table.td class="w-4/12" hidden-mobile>
                                 <x-slot name="first">
                                     @if (! empty($item->bank_name))
                                         {{ $item->bank_name }}
@@ -90,8 +88,8 @@
                                     @endif
                                 </x-slot>
                                 <x-slot name="second">
-                                    @if (! empty($item->phone))
-                                        {{ $item->phone }}
+                                    @if (! empty($item->bank_phone))
+                                        {{ $item->bank_phone }}
                                     @else
                                         <x-empty-data />
                                     @endif
@@ -99,7 +97,7 @@
                             </x-table.td>
 
                             <x-table.td class="w-6/12 sm:w-3/12" kind="amount">
-                                <x-money :amount="$item->balance" :currency="$item->currency_code" convert />
+                                <x-money :amount="$item->balance" :currency="$item->currency_code" />
                             </x-table.td>
 
                             <x-table.td kind="action">

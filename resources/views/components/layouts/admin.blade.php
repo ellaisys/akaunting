@@ -13,33 +13,41 @@
     </x-layouts.admin.head>
 
     @mobile
-    <body class="g-sidenav-hidden bg-body">
+    <body class="bg-body">
     @elsemobile
-    <body class="g-sidenav-show bg-body">
+    <body class="bg-body overflow-y-overlay">
     @endmobile
 
         @stack('body_start')
 
         <x-layouts.admin.menu />
 
+        <!-- loading component will add this line -->
+
         <div class="main-content xl:ltr:ml-64  xl:rtl:mr-64 transition-all ease-in-out" id="panel">
             <div id="main-body">
                 <div class="container">
                     <x-layouts.admin.header>
                         <x-slot name="title">
-                            {!! !empty($title->attributes->has('title')) ? $title->attributes->get('title') : $title !!}
+                            {!! ! empty($title->attributes->has('title')) ? $title->attributes->get('title') : $title !!}
                         </x-slot>
 
-                        @if (!empty($status))
+                        @if (! empty($status))
                             <x-slot name="status">
-                                {!! $status ?? '' !!}
+                                {!! $status !!}
                             </x-slot>
                         @endif
 
-                        @if (!empty($favorite) || (!empty($favorite) && $favorite->attributes->has('title')))
+                        @if (! empty($info))
+                            <x-slot name="info">
+                                {!! $info !!}
+                            </x-slot>
+                        @endif
+
+                        @if (! empty($favorite) || (! empty($favorite) && $favorite->attributes->has('title')))
                             @if (! $favorite->attributes->has('title'))
                                 <x-slot name="favorite">
-                                    {!! $favorite ?? '' !!}
+                                    {!! $favorite !!}
                                 </x-slot>
                             @else
                                 @php
@@ -72,6 +80,8 @@
                     </x-layouts.admin.header>
 
                     <x-layouts.admin.content>
+                        <livewire:notification.browser />
+
                         <x-layouts.admin.notifications />
 
                         {!! $content !!}

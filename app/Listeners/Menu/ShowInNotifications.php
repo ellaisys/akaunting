@@ -3,9 +3,10 @@
 namespace App\Listeners\Menu;
 
 use App\Events\Menu\NotificationsCreated as Event;
+use App\Models\Common\Notification;
 use App\Traits\Modules;
+use App\Utilities\Date;
 use App\Utilities\Versions;
-use Illuminate\Notifications\DatabaseNotification;
 
 class ShowInNotifications
 {
@@ -23,6 +24,14 @@ class ShowInNotifications
             return;
         }
 
+        static $notifications;
+
+        if (! empty($notifications)) {
+            $event->notifications->notifications = $notifications;
+
+            return;
+        }
+
         // Notification tables
         $notifications = collect();
 
@@ -33,22 +42,28 @@ class ShowInNotifications
             foreach ($updates as $key => $update) {
                 $prefix = ($key == 'core') ? 'core' : 'module';
 
-                $new = new DatabaseNotification();
+                if ($prefix == 'module' && ! module($key)) {
+                    continue;
+                }
+
+                $name = ($prefix == 'core') ? 'Akaunting' : module($key)?->getName();
+
+                $new = new Notification();
                 $new->id = $key;
                 $new->type = 'updates';
                 $new->notifiable_type = "users";
                 $new->notifiable_id = user()->id;
                 $new->data = [
-                    'title' => $key . ' (v' . $update . ')',
-                    'description' => '<a href="' . route('updates.index') . '">' . trans('install.update.' . $prefix) . '</a>',
+                    'title' => $name . ' (v' . $update?->latest . ')',
+                    'description' => trans('install.update.' . $prefix, ['module' => $name, 'url' => route('updates.index')]),
                 ];
-                $new->created_at = \Carbon\Carbon::now();
+                $new->created_at = Date::now();
 
                 $notifications->push($new);
             }
         }
 
-        // New app notifcations
+        // New app notifications
         $new_apps = $this->getNotifications('new-apps');
 
         foreach ($new_apps as $key => $new_app) {
@@ -58,14 +73,21 @@ class ShowInNotifications
                 continue;
             }
 
-            $new = new DatabaseNotification();
+            $app_url = route('apps.app.show', [
+                'alias'         => $new_app->alias,
+                'utm_source'    => 'notification',
+                'utm_medium'    => 'app',
+                'utm_campaign'  => str_replace('-', '_', $new_app->alias),
+            ]);
+
+            $new = new Notification();
             $new->id = $key;
             $new->type = 'new-apps';
             $new->notifiable_type = "users";
             $new->notifiable_id = user()->id;
             $new->data = [
                 'title' => $new_app->name,
-                'description' => '', // $new_app->message,
+                'description' => trans('notifications.new_apps', ['app' => $new_app->name, 'url' => $app_url]),
                 'alias' => $new_app->alias,
             ];
             $new->created_at = $new_app->started_at->date;
@@ -73,10 +95,8 @@ class ShowInNotifications
             $notifications->push($new);
         }
 
-        $unReadNotifications = user()->unReadNotifications;
-
-        foreach ($unReadNotifications as $unReadNotification) {
-            $notifications->push($unReadNotification);
+        foreach (user()->unreadNotifications as $unreadNotification) {
+            $notifications->push($unreadNotification);
         }
 
         $event->notifications->notifications = $notifications;

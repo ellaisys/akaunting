@@ -29,10 +29,14 @@ const app = new Vue({
         AkauntingSlider
     },
 
+    created() {
+        document.addEventListener('click', this.closeIfClickedOutside);
+    },
+
     mounted() {
         if (typeof app_slug !== 'undefined') {
-            this.onReleases(1);
-            this.onReviews(1);
+            //this.onReleases(1);
+            //this.onReviews(1);
         }
     },
 
@@ -82,38 +86,39 @@ const app = new Vue({
                 html: ''
             },
 
+            addToCartLoading: false,
             loadMoreLoading: false,
+            live_search: {
+                data: [],
+                modal: false,
+                not_found: false
+            },
+            route_url: url
         }
     },
 
     methods: {
         addToCart(alias, subscription_type) {
+            this.addToCartLoading = true;
+
             let add_to_cart_promise = Promise.resolve(axios.get(url + '/apps/' + alias + '/' + subscription_type +'/add'));
 
             add_to_cart_promise.then(response => {
                 if (response.data.success) {
                     this.$notify({
+                        verticalAlign: 'bottom',
+                        horizontalAlign: 'left',
                         message: response.data.message,
                         timeout: 0,
-                        icon: "fas fa-bell",
+                        icon: "shopping_cart_checkout",
                         type: 'success'
                     });
                 }
 
-                if (response.data.error) {
-                    this.installation.status = 'exception';
-                    this.installation.html = '<div class="text-red">' + response.data.message + '</div>';
-                }
-
-                // Set steps
-                if (response.data.data) {
-                    this.installation.steps = response.data.data;
-                    this.installation.steps_total = this.installation.steps.length;
-
-                    this.next();
-                }
+                this.addToCartLoading = false;
             })
             .catch(error => {
+                this.addToCartLoading = false;
             });
         },
 
@@ -295,5 +300,34 @@ const app = new Vue({
                 this.loadMoreLoading = false;
             });
         },
+
+        closeIfClickedOutside(event) {
+            let el = this.$refs.liveSearchModal;
+            let target = event.target;
+
+            if (el !== target && target.contains(el)) {
+                this.live_search.modal = false;
+            }
+        },
+
+        onLiveSearch(event) {
+            let target_length = event.target.value.length;
+
+            if (target_length > 2) {
+                window.axios.get(url + '/apps/search?keyword=' + event.target.value)
+                .then(response => {
+                    this.live_search.data = response.data.data.data;
+                    this.live_search.modal = true;
+                    this.live_search.not_found = false;
+                })
+                .catch(error => {
+                    this.live_search.not_found = true;
+                    this.live_search.data = [];
+                    console.log(error);
+                })
+            } else if (target_length == 0) {
+                this.live_search.modal = false;
+            }
+        }
     }
 });

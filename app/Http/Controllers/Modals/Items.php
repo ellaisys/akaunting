@@ -31,7 +31,7 @@ class Items extends Controller
     {
         $taxes = Tax::enabled()->orderBy('name')->get()->pluck('title', 'id');
 
-        $currency = Currency::where('code', setting('default.currency'))->first();
+        $currency = Currency::where('code', default_currency())->first();
 
         $html = view('modals.items.create', compact('taxes', 'currency'))->render();
 
@@ -68,7 +68,7 @@ class Items extends Controller
         $response = $this->ajaxDispatch(new CreateItem($request));
 
         if ($response['success']) {
-            $response['message'] = trans('messages.success.added', ['type' => trans_choice('general.items', 1)]);
+            $response['message'] = trans('messages.success.created', ['type' => trans_choice('general.items', 1)]);
         }
 
         return response()->json($response);

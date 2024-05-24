@@ -38,13 +38,17 @@
                     </x-slot>
 
                     <x-slot name="body">
-                        @can('read-common-companies')
-                            <x-form.group.select multiple remote name="companies" label="{{ trans_choice('general.companies', 2) }}" :options="$companies" remote_action="{{ route('companies.index') }}" form-group-class="sm:col-span-6" />
-                        @endcan
+                        <x-form.group.select multiple remote name="companies" label="{{ trans_choice('general.companies', 2) }}" :options="$companies" remote_action="{{ route('companies.index') }}" form-group-class="sm:col-span-6" />
 
-                        @role('admin|manager')
-                            <x-form.group.select name="roles" label="{{ trans_choice('general.roles', 1) }}" :options="$roles" />
-                        @endrole
+                        @if (module_is_enabled('roles'))
+                            @can('read-roles-roles')
+                                <x-form.group.select name="roles" label="{{ trans_choice('general.roles', 1) }}" :options="$roles" change="onChangeRole" />
+                            @endcan
+                        @else
+                            @role('admin|manager')
+                                <x-form.group.select name="roles" label="{{ trans_choice('general.roles', 1) }}" :options="$roles" change="onChangeRole" />
+                            @endrole
+                        @endif
                     </x-slot>
                 </x-form.section>
 
@@ -54,7 +58,7 @@
                     </x-slot>
 
                     <x-slot name="body">
-                        <x-form.group.select name="landing_page" label="{!! trans('auth.landing_page') !!}" :options="$landing_pages" selected="dashboard" />
+                        <x-form.group.select name="landing_page" label="{!! trans('auth.landing_page') !!}" :options="$landing_pages" dynamicOptions="landing_pages" selected="dashboard" />
 
                         <x-form.group.locale />
                     </x-slot>

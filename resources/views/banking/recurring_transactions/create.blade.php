@@ -19,14 +19,14 @@
                     </x-slot>
 
                     <x-slot name="body">
-                        <div class="form-group form-group relative sm:col-span-3">
-                            <label class="form-control-label">
+                        <div class="relative sm:col-span-3">
+                            <x-form.label>
                                 {{ trans('general.date') }}
-                            </label>
+                            </x-form.label>
 
                             <x-tooltip id="tooltip-paid" placement="bottom" message="{{ trans('documents.recurring.tooltip.document_date', ['type' => Str::lower(trans_choice('general.transactions', 1))]) }}">
                                 <div class="relative focused has-label">
-                                    <x-form.input.text name="disabled_transaction_paid" value="{{ trans('documents.recurring.auto_generated') }}" class="form-element" disabled />
+                                    <x-form.input.text name="disabled_transaction_paid" value="{{ trans('documents.recurring.auto_generated') }}" disabled />
                                 </div>
                             </x-tooltip>
 
@@ -54,7 +54,7 @@
                     <x-slot name="body">
                         <x-form.group.category type="{{ $real_type }}" :selected="setting('default.' . $real_type . '_category')" />
 
-                        <x-form.group.contact type="{{ config('type.transaction.' . $real_type . '.contact_type') }}" not-required />
+                        <x-form.group.contact :type="$contact_type" not-required />
                     </x-slot>
                 </x-form.section>
 
@@ -74,14 +74,14 @@
                     </x-slot>
 
                     <x-slot name="body">
-                        <div class="form-group form-group relative sm:col-span-3">
-                            <label class="form-control-label">
+                        <div class="relative sm:col-span-3">
+                            <x-form.label>
                                 {{ trans_choice('general.numbers', 1) }}
-                            </label>
+                            </x-form.label>
 
                             <x-tooltip id="tooltip-number" placement="bottom" message="{{ trans('documents.recurring.tooltip.document_number', ['type' => Str::lower(trans_choice('general.transactions', 1))]) }}">
                                 <div class="relative focused has-label">
-                                    <x-form.input.text name="disabled_transaction_number" value="{{ trans('documents.recurring.auto_generated') }}" class="form-element" disabled />
+                                    <x-form.input.text name="disabled_transaction_number" value="{{ trans('documents.recurring.auto_generated') }}" disabled />
                                 </div>
                             </x-tooltip>
 
@@ -105,6 +105,16 @@
             </x-form>
         </x-form.container>
     </x-slot>
+
+    @push('scripts_start')
+        <script type="text/javascript">
+            if (typeof aka_currency !== 'undefined') {
+                aka_currency = {!! json_encode(! empty($currency) ? $currency : config('money.currencies.' . company()->currency)) !!};
+            } else {
+                var aka_currency = {!! json_encode(! empty($currency) ? $currency : config('money.currencies.' . company()->currency)) !!};
+            }
+        </script>
+    @endpush
 
     <x-script folder="banking" file="transactions" />
 </x-layouts.admin>

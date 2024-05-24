@@ -139,6 +139,8 @@ class Route extends Provider
         $this->mapPortalRoutes();
 
         $this->mapSignedRoutes();
+
+        $this->mapWebRoutes();
     }
 
     /**
@@ -276,6 +278,20 @@ class Route extends Provider
     }
 
     /**
+     * Define the "web" routes for the application.
+     *
+     * These routes all receive session state, CSRF protection, etc.
+     *
+     * @return void
+     */
+    protected function mapWebRoutes()
+    {
+        Facade::middleware('web')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/web.php'));
+    }
+
+    /**
      * Configure the rate limiters for the application.
      *
      * @return void
@@ -288,6 +304,13 @@ class Route extends Provider
 
         RateLimiter::for('import', function (Request $request) {
             return Limit::perMinute(config('app.throttles.import'));
+        });
+
+        RateLimiter::for('email', function (Request $request) {
+            return [
+                Limit::perDay(config('app.throttles.email.month'), 30),
+                Limit::perMinute(config('app.throttles.email.minute')),
+            ];
         });
     }
 }

@@ -28,7 +28,7 @@
                             @if (setting('default.use_gravatar', '0') == '1')
                                 <x-form.group.text name="fake_picture" label="{{ trans_choice('general.pictures', 1) }}" disabled placeholder="{{ trans('settings.default.use_gravatar') }}" form-group-class="sm:col-span-3 sm:row-span-3" />
                             @else
-                                <x-form.group.file name="picture" label="{{ trans_choice('general.pictures', 1) }}" not-required form-group-class="sm:col-span-3 sm:row-span-3" />
+                                <x-form.group.file name="picture" label="{{ trans_choice('general.pictures', 1) }}" :value="$user->picture" not-required form-group-class="sm:col-span-3 sm:row-span-3" />
                             @endif
 
                             <x-form.group.password name="current_password" :label="trans('auth.password.current')" v-show="show_password" />
@@ -47,8 +47,8 @@
                         <x-form.group.text name="tax_number" label="{{ trans('general.tax_number') }}" value="{{ $user->contact->tax_number }}" not-required />
 
                         <x-form.group.locale />
-
-                        <x-form.group.country :selected="$user->contact->country" />
+                            
+                        <x-form.group.textarea name="address" label="{{ trans('general.address') }}" :value="$user->contact->address" v-model="form.address" not-required />
 
                         <x-form.group.text name="city" label="{{ trans_choice('general.cities', 1) }}" value="{{ $user->contact->city }}" not-required />
 
@@ -56,7 +56,7 @@
 
                         <x-form.group.text name="state" label="{{ trans('general.state') }}" value="{{ $user->contact->state }}" not-required />
 
-                        <x-form.group.textarea name="address" label="{{ trans('general.address') }}" :value="$user->contact->address" />
+                        <x-form.group.country :selected="$user->contact->country" not-required />
                     </x-slot>
                 </x-form.section>
 

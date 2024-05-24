@@ -20,7 +20,7 @@
     <x-slot name="moreButtons">
         <x-dropdown id="dropdown-more-actions">
             <x-slot name="trigger">
-                <span class="material-icons">more_horiz</span>
+                <span class="material-icons pointer-events-none">more_horiz</span>
             </x-slot>
 
             @can('create-banking-transfers')
@@ -45,12 +45,12 @@
 
                 <x-table>
                     <x-table.thead>
-                        <x-table.tr class="flex items-center px-1">
-                            <x-table.th class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                        <x-table.tr>
+                            <x-table.th kind="bulkaction">
                                 <x-index.bulkaction.all />
                             </x-table.th>
 
-                            <x-table.th class="w-3/12 hidden sm:table-cell">
+                            <x-table.th class="w-3/12" hidden-mobile>
                                 <x-slot name="first">
                                     <x-sortablelink column="expense_transaction.paid_at" title="{{ trans('general.created_date') }}" />
                                 </x-slot>
@@ -91,19 +91,23 @@
                     <x-table.tbody>
                         @foreach($transfers as $item)
                             @php
+                                if (empty($item->expense_transaction->amount)) {
+                                    continue;
+                                }
+
                                 $item->name = trans('transfers.messages.delete', [
                                     'from' => $item->expense_transaction->account->name,
                                     'to' => $item->income_transaction->account->name,
-                                    'amount' => money($item->expense_transaction->amount, $item->expense_transaction->currency_code, true)
+                                    'amount' => money($item->expense_transaction->amount, $item->expense_transaction->currency_code)
                                 ]);
                             @endphp
 
                             <x-table.tr href="{{ route('transfers.show', $item->id) }}">
-                                <x-table.td class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                                <x-table.td kind="bulkaction">
                                     <x-index.bulkaction.single id="{{ $item->id }}" name="{{ $item->expense_transaction->account->name }}" />
                                 </x-table.td>
 
-                                <x-table.td class="w-3/12 truncate hidden sm:table-cell">
+                                <x-table.td class="w-3/12" hidden-mobile>
                                     <x-slot name="first" class="flex items-center font-bold" override="class">
                                         <x-date date="{{ $item->expense_transaction->paid_at }}" />
                                     </x-slot>
@@ -116,7 +120,7 @@
                                     </x-slot>
                                 </x-table.td>
 
-                                <x-table.td class="w-4/12 sm:w-3/12 truncate">
+                                <x-table.td class="w-4/12 sm:w-3/12">
                                     <x-slot name="first">
                                         {{ $item->expense_transaction->account->name }}
                                     </x-slot>
@@ -125,7 +129,7 @@
                                     </x-slot>
                                 </x-table.td>
 
-                                <x-table.td class="w-4/12 sm:w-3/12 truncate">
+                                <x-table.td class="w-4/12 sm:w-3/12">
                                     <x-slot name="first">
                                         {{ $item->expense_transaction->currency_rate }}
                                     </x-slot>
@@ -136,10 +140,10 @@
 
                                 <x-table.td class="w-4/12 sm:w-3/12" kind="amount">
                                     <x-slot name="first">
-                                        <x-money :amount="$item->expense_transaction->amount" :currency="$item->expense_transaction->currency_code" convert />
+                                        <x-money :amount="$item->expense_transaction->amount" :currency="$item->expense_transaction->currency_code" />
                                     </x-slot>
                                     <x-slot name="second">
-                                        <x-money :amount="$item->income_transaction->amount" :currency="$item->income_transaction->currency_code" convert />
+                                        <x-money :amount="$item->income_transaction->amount" :currency="$item->income_transaction->currency_code" />
                                     </x-slot>
                                 </x-table.td>
 

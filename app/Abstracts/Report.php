@@ -2,7 +2,7 @@
 
 namespace App\Abstracts;
 
-use Akaunting\Apexcharts\Charts as Apexcharts;
+use Akaunting\Apexcharts\Chart;
 use App\Events\Report\DataLoaded;
 use App\Events\Report\DataLoading;
 use App\Events\Report\FilterApplying;
@@ -10,6 +10,8 @@ use App\Events\Report\FilterShowing;
 use App\Events\Report\GroupApplying;
 use App\Events\Report\GroupShowing;
 use App\Events\Report\RowsShowing;
+use App\Events\Report\TotalCalculating;
+use App\Events\Report\TotalCalculated;
 use App\Exports\Common\Reports as Export;
 use App\Models\Common\Report as Model;
 use App\Models\Document\Document;
@@ -38,6 +40,8 @@ abstract class Report
 
     public $has_money = true;
 
+    public $groups = [];
+
     public $year;
 
     public $views = [];
@@ -56,14 +60,28 @@ abstract class Report
 
     public $loaded = false;
 
+    public $bar_formatter_type = 'money';
+
+    public $donut_formatter_type = 'percent';
+
     public $chart = [
         'bar' => [
             'colors' => [
                 '#6da252',
             ],
+
+            'yaxis' => [
+                'labels' => [
+                    'formatter' => '',
+                ],
+            ],
         ],
         'donut' => [
-            //
+            'yaxis' => [
+                'labels' => [
+                    'formatter' => '',
+                ],
+            ],
         ],
     ];
 
@@ -101,6 +119,7 @@ abstract class Report
         $this->setRows();
         $this->loadData();
         $this->setColumnWidth();
+        $this->setChartLabelFormatter();
 
         $this->loaded = true;
     }
@@ -130,40 +149,21 @@ abstract class Report
 
     public function getCategoryDescription()
     {
-        if (!empty($this->category_description)) {
+        if (! empty($this->category_description)) {
             return trans($this->category_description);
         }
 
         return $this->findTranslation([
             $this->category . '_desc',
             $this->category . '_description',
+            str_replace('general.', 'reports.', $this->category) . '_desc',
+            str_replace('general.', 'reports.', $this->category) . '_description',
         ]);
     }
 
     public function getIcon()
     {
         return $this->icon;
-    }
-
-    public function getGrandTotal()
-    {
-        if (!$this->loaded) {
-            $this->load();
-        }
-
-        if (!empty($this->footer_totals)) {
-            $sum = 0;
-
-            foreach ($this->footer_totals as $total) {
-                $sum += is_array($total) ? array_sum($total) : $total;
-            }
-
-            $total = $this->has_money ? money($sum, setting('default.currency'), true)->format() : $sum;
-        } else {
-            $total = trans('general.na');
-        }
-
-        return $total;
     }
 
     public function getCharts($table_key)
@@ -176,7 +176,7 @@ abstract class Report
 
     public function getBarChart($table_key)
     {
-        $chart = new Apexcharts();
+        $chart = new Chart();
 
         if (empty($this->chart)) {
             return $chart;
@@ -186,6 +186,8 @@ abstract class Report
 
         $chart->setType('bar')
             ->setOptions($options)
+            ->setDefaultLocale($this->getDefaultLocaleOfChart())
+            ->setLocales($this->getLocaleTranslationOfChart())
             ->setLabels(array_values($this->dates))
             ->setDataset($this->tables[$table_key], 'column', array_values($this->footer_totals[$table_key]));
 
@@ -194,7 +196,7 @@ abstract class Report
 
     public function getDonutChart($table_key)
     {
-        $chart = new Apexcharts();
+        $chart = new Chart();
 
         if (empty($this->chart)) {
             return $chart;
@@ -224,7 +226,9 @@ abstract class Report
         foreach ($tmp_values as $id => $value) {
             $labels[$id] = $this->row_names[$table_key][$id];
 
-            $colors[$id] = ($group == 'category') ? Category::find($id)?->color : '#' . dechex(rand(0x000000, 0xFFFFFF));
+            $colors[$id] = ($group == 'category')
+                            ? Category::withSubCategory()->find($id)?->colorHexCode
+                            : $this->randHexColor();
 
             $values[$id] = round(($value * 100 / $total), 0);
         }
@@ -233,6 +237,8 @@ abstract class Report
 
         $chart->setType('donut')
             ->setOptions($options)
+            ->setDefaultLocale($this->getDefaultLocaleOfChart())
+            ->setLocales($this->getLocaleTranslationOfChart())
             ->setLabels(array_values($labels))
             ->setColors(array_values($colors))
             ->setDataset($this->tables[$table_key], 'donut', array_values($values));
@@ -253,6 +259,22 @@ abstract class Report
         return view($this->views['print'])->with('class', $this);
     }
 
+    public function pdf()
+    {
+        $view = view($this->views['print'])->with('class', $this)->render();
+
+        $html = mb_convert_encoding($view, 'HTML-ENTITIES', 'UTF-8');
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadHTML($html);
+
+        $pdf->setPaper('A4', 'landscape');
+
+        $file_name = $this->model->name . ' - ' . company()->name . '.pdf';
+
+        return $pdf->download($file_name);
+    }
+
     public function export()
     {
         return ExportHelper::toExcel(new Export($this->views[$this->type], $this), $this->model->name);
@@ -260,7 +282,7 @@ abstract class Report
 
     public function setColumnWidth()
     {
-        if (!$period = $this->getSetting('period')) {
+        if (! $period = $this->getPeriod()) {
             return;
         }
 
@@ -274,7 +296,10 @@ abstract class Report
                 $width = 'w-4/12 col-4';
                 break;
             case 'monthly':
-                $width = 'col-1';
+                $width = 'col-1 w-20';
+                break;
+            case 'weekly':
+                $width = 'col-1 w-20';
                 break;
         }
 
@@ -285,9 +310,26 @@ abstract class Report
         $this->column_name_width = $this->column_value_width = $width;
     }
 
+    public function setChartLabelFormatter()
+    {
+        if (count($this->tables) > 1) {
+            foreach ($this->tables as $table_key => $table) {
+                if (empty($this->chart[$table_key])) {
+                    continue;
+                }
+
+                $this->chart[$table_key]['bar']['yaxis']['labels']['formatter'] = $this->getChartLabelFormatter($this->bar_formatter_type);
+                $this->chart[$table_key]['donut']['yaxis']['labels']['formatter'] = $this->getChartLabelFormatter($this->donut_formatter_type);
+            }
+        } else {
+            $this->chart['bar']['yaxis']['labels']['formatter'] = $this->getChartLabelFormatter($this->bar_formatter_type);
+            $this->chart['donut']['yaxis']['labels']['formatter'] = $this->getChartLabelFormatter($this->donut_formatter_type);
+        }
+    }
+
     public function setYear()
     {
-        $this->year = $this->getSearchStringValue('year', Date::now()->year);
+        $this->year = request()->filled('start_date') ? Date::parse(request('start_date'))->year : Date::now()->year;
     }
 
     public function setViews()
@@ -327,41 +369,34 @@ abstract class Report
 
     public function setDates()
     {
-        if (! $period = $this->getSetting('period')) {
+        if (! $period = $this->getPeriod()) {
             return;
         }
 
-        $function = 'sub' . ucfirst(str_replace('ly', '', $period));
+        [$start, $end] = $this->getStartAndEndDates($this->year);
 
-        $start = $this->getFinancialStart($this->year)->copy()->$function();
+        $counter = match ($period) {
+            'weekly'    => $end->diffInWeeks($start),
+            'quarterly' => $end->diffInQuarters($start),
+            'yearly'    => $end->diffInYears($start),
+            default     => $end->diffInMonths($start),
+        };
 
-        for ($j = 1; $j <= 12; $j++) {
-            switch ($period) {
-                case 'yearly':
-                    $start->addYear();
-
-                    $j += 11;
-
-                    break;
-                case 'quarterly':
-                    $start->addQuarter();
-
-                    $j += 2;
-
-                    break;
-                default:
-                    $start->addMonth();
-
-                    break;
-            }
-
-            $date = $this->getFormattedDate($start);
+        for ($j = 0; $j <= $counter; $j++) {
+            $date = $this->getPeriodicDate($start, $this->getPeriod(), $this->year);
 
             $this->dates[] = $date;
 
             foreach ($this->tables as $table_key => $table_name) {
                 $this->footer_totals[$table_key][$date] = 0;
             }
+
+            match ($period) {
+                'weekly'    => $start->addWeek(),
+                'quarterly' => $start->addQuarter(),
+                'yearly'    => $start->addYear(),
+                default     => $start->addMonth(),
+            };
         }
     }
 
@@ -372,8 +407,6 @@ abstract class Report
 
     public function setGroups()
     {
-        $this->groups = [];
-
         event(new GroupShowing($this));
     }
 
@@ -384,13 +417,15 @@ abstract class Report
 
     public function setTotals($items, $date_field, $check_type = false, $table = 'default', $with_tax = true)
     {
+        event(new TotalCalculating($this, $items, $date_field, $check_type, $table, $with_tax));
+
         $group_field = $this->getSetting('group') . '_id';
 
         foreach ($items as $item) {
             // Make groups extensible
             $item = $this->applyGroups($item);
 
-            $date = $this->getFormattedDate(Date::parse($item->$date_field));
+            $date = $this->getPeriodicDate(Date::parse($item->$date_field), $this->getPeriod(), $this->year);
 
             if (!isset($item->$group_field)) {
                 continue;
@@ -420,6 +455,8 @@ abstract class Report
                 $this->footer_totals[$table][$date] -= $amount;
             }
         }
+
+        event(new TotalCalculated($this, $items, $date_field, $check_type, $table, $with_tax));
     }
 
     public function setArithmeticTotals($items, $date_field, $operator = 'add', $table = 'default', $amount_field = 'amount')
@@ -432,7 +469,7 @@ abstract class Report
             // Make groups extensible
             $item = $this->applyGroups($item);
 
-            $date = $this->getFormattedDate(Date::parse($item->$date_field));
+            $date = $this->getPeriodicDate(Date::parse($item->$date_field), $this->getPeriod(), $this->year);
 
             if (!isset($item->$group_field)) {
                 continue;
@@ -499,56 +536,21 @@ abstract class Report
         return $model;
     }
 
-    public function getFormattedDate($date)
-    {
-        $formatted_date = null;
-
-        switch ($this->getSetting('period')) {
-            case 'yearly':
-                $financial_year = $this->getFinancialYear($this->year);
-
-                if ($date->greaterThanOrEqualTo($financial_year->getStartDate()) && $date->lessThanOrEqualTo($financial_year->getEndDate())) {
-                    if (setting('localisation.financial_denote') == 'begins') {
-                        $formatted_date = $financial_year->getStartDate()->copy()->format($this->getYearlyDateFormat());
-                    } else {
-                        $formatted_date = $financial_year->getEndDate()->copy()->format($this->getYearlyDateFormat());
-                    }
-                }
-
-                break;
-            case 'quarterly':
-                $quarters = $this->getFinancialQuarters($this->year);
-
-                foreach ($quarters as $quarter) {
-                    if ($date->lessThan($quarter->getStartDate()) || $date->greaterThan($quarter->getEndDate())) {
-                        continue;
-                    }
-
-                    $start = $quarter->getStartDate()->format($this->getQuarterlyDateFormat($this->year));
-                    $end = $quarter->getEndDate()->format($this->getQuarterlyDateFormat($this->year));
-
-                    $formatted_date = $start . '-' . $end;
-                }
-
-                break;
-            default:
-                $formatted_date = $date->copy()->format($this->getMonthlyDateFormat($this->year));
-
-                break;
-        }
-
-        return $formatted_date;
-    }
-
     public function getUrl($action = 'print')
     {
         $url = company_id() . '/common/reports/' . $this->model->id . '/' . $action;
 
-        $search = request('search');
+        $request = request()->all();
+        $parameters = '';
 
-        if (!empty($search)) {
-            $url .= '?search=' . $search;
+        foreach ($request as $key => $value) {
+            $parameters .= empty($parameters) ? ('?' . $key . '=' . $value) : ('&' . $key . '=' . $value);
         }
+
+        if (!empty($parameters)) {
+            $url .= $parameters;
+        }
+
 
         return $url;
     }
@@ -561,6 +563,11 @@ abstract class Report
     public function getBasis()
     {
         return $this->getSearchStringValue('basis', $this->getSetting('basis'));
+    }
+
+    public function getPeriod()
+    {
+        return $this->getSearchStringValue('period', $this->getSetting('period'));
     }
 
     public function getFields()
@@ -597,6 +604,7 @@ abstract class Report
             'title' => trans('general.period'),
             'icon' => 'calendar',
             'values' => [
+                'weekly' => trans('general.weekly'),
                 'monthly' => trans('general.monthly'),
                 'quarterly' => trans('general.quarterly'),
                 'yearly' => trans('general.yearly'),
@@ -624,5 +632,21 @@ abstract class Report
                 'required' => 'required',
             ],
         ];
+    }
+
+    public function randHexColorPart(): string
+    {
+        return str_pad( dechex( mt_rand( 0, 255 ) ), 2, '0', STR_PAD_LEFT);
+    }
+
+    public function randHexColor(): string
+    {
+        return '#' . $this->randHexColorPart() . $this->randHexColorPart() . $this->randHexColorPart();
+    }
+
+    // @deprecated 3.1
+    public function getFormattedDate($date)
+    {
+        return $this->getPeriodicDate($date, $this->getPeriod(), $this->year);
     }
 }

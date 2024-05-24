@@ -32,8 +32,9 @@ class Tax extends Model
      * @var array
      */
     protected $casts = [
-        'rate' => 'double',
-        'enabled' => 'boolean',
+        'rate'          => 'double',
+        'enabled'       => 'boolean',
+        'deleted_at'    => 'datetime',
     ];
 
     /**
@@ -41,7 +42,7 @@ class Tax extends Model
      *
      * @var array
      */
-    public $sortable = ['name', 'rate', 'enabled'];
+    public $sortable = ['name', 'type', 'rate'];
 
     public function items()
     {
@@ -150,6 +151,9 @@ class Tax extends Model
             'icon' => 'edit',
             'url' => route('taxes.edit', $this->id),
             'permission' => 'update-settings-taxes',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-tax-' . $this->id,
+            ],
         ];
 
         $actions[] = [
@@ -157,6 +161,9 @@ class Tax extends Model
             'icon' => 'delete',
             'route' => 'taxes.destroy',
             'permission' => 'delete-settings-taxes',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-tax-' . $this->id,
+            ],
             'model' => $this,
         ];
 

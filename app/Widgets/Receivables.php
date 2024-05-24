@@ -40,8 +40,8 @@ class Receivables extends Widget
                     $arr[2] = '9999';
                 }
 
-                $start = Date::today()->subDays($arr[2])->toDateString() . ' 00:00:00';
-                $end = Date::today()->subDays($arr[1])->toDateString() . ' 23:59:59';
+                $start = Date::today()->subDays($arr[2])->startOfDay()->toDateString();
+                $end = Date::today()->subDays($arr[1])->endOfDay()->toDateString();
 
                 if (! Date::parse($invoice->due_at)->isBetween($start, $end)) {
                     continue;
@@ -52,7 +52,7 @@ class Receivables extends Widget
         });
 
         foreach ($periods as $period_name => $period_amount) {
-            $periods[$period_name] = money($period_amount, setting('default.currency'), true);
+            $periods[$period_name] = money($period_amount);
         }
 
         $has_progress = !empty($open) || !empty($overdue);
@@ -61,9 +61,9 @@ class Receivables extends Widget
         $grand = $open + $overdue;
 
         $totals = [
-            'grand'     => money($grand, setting('default.currency'), true),
-            'open'      => money($open, setting('default.currency'), true),
-            'overdue'   => money($overdue, setting('default.currency'), true),
+            'grand'     => money($grand),
+            'open'      => money($open),
+            'overdue'   => money($overdue),
         ];
 
         $grand_total_text = trans('widgets.total_unpaid_invoices');

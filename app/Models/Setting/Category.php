@@ -5,8 +5,11 @@ namespace App\Models\Setting;
 use App\Abstracts\Model;
 use App\Builders\Category as Builder;
 use App\Models\Document\Document;
+use App\Interfaces\Export\WithParentSheet;
 use App\Relations\HasMany\Category as HasMany;
 use App\Scopes\Category as Scope;
+use App\Traits\Categories;
+use App\Traits\Tailwind;
 use App\Traits\Transactions;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +17,7 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 
 class Category extends Model
 {
-    use HasFactory, Transactions;
+    use Categories, HasFactory, Tailwind, Transactions;
 
     public const INCOME_TYPE = 'income';
     public const EXPENSE_TYPE = 'expense';
@@ -23,21 +26,14 @@ class Category extends Model
 
     protected $table = 'categories';
 
+    protected $appends = ['display_name'];
+
     /**
      * Attributes that should be mass-assignable.
      *
      * @var array
      */
     protected $fillable = ['company_id', 'name', 'type', 'color', 'enabled', 'created_from', 'created_by', 'parent_id'];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'enabled' => 'boolean',
-    ];
 
     /**
      * Sortable columns.
@@ -92,6 +88,7 @@ class Category extends Model
     {
         return $this->resolveRouteBindingQuery($this, $value, $field)
             ->withoutGlobalScope(Scope::class)
+            ->getWithoutChildren()
             ->first();
     }
 
@@ -206,17 +203,6 @@ class Category extends Model
     }
 
     /**
-     * Scope transfer category.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeTransfer($query)
-    {
-        return (int) $query->other()->pluck('id')->first();
-    }
-
-    /**
      * Scope gets only parent categories.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -225,6 +211,57 @@ class Category extends Model
     public function scopeWithSubCategory($query)
     {
         return $query->withoutGlobalScope(new Scope);
+    }
+
+    /**
+     * Scope to export the rows of the current page filtered and sorted.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param $ids
+     * @param $sort
+     * @param $id_field
+     *
+     * @return \Illuminate\Support\LazyCollection
+     */
+    public function scopeCollectForExport($query, $ids = [], $sort = 'name', $id_field = 'id')
+    {
+        $request = request();
+
+        if (!empty($ids)) {
+            $query->whereIn($id_field, (array) $ids);
+        }
+
+        $search = $request->get('search');
+
+        $query->withSubcategory();
+
+        $query->usingSearchString($search)->sortable($sort);
+
+        $page = (int) $request->get('page');
+        $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
+        $offset = $page ? ($page - 1) * $limit : 0;
+
+        if (! $this instanceof WithParentSheet && count((array) $ids) < $limit) {
+            $query->offset($offset)->limit($limit);
+        }
+
+        return $query->cursor();
+    }
+
+    /**
+     * Get the hex code of the color.
+     */
+    public function getColorHexCodeAttribute(): string
+    {
+        return $this->getHexCodeOfTailwindClass($this->color);
+    }
+
+    /**
+     * Get the display name of the category.
+     */
+    public function getDisplayNameAttribute()
+    {
+        return $this->name . ' (' . ucfirst($this->type) . ')';
     }
 
     /**
@@ -241,11 +278,12 @@ class Category extends Model
             'icon' => 'create',
             'url' => route('categories.edit', $this->id),
             'permission' => 'update-settings-categories',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-category-' . $this->id,
+            ],
         ];
 
-        $transfer_id = Category::transfer();
-
-        if ($this->id == $transfer_id) {
+        if ($this->isTransferCategory()) {
             return $actions;
         }
 
@@ -254,6 +292,9 @@ class Category extends Model
             'icon' => 'delete',
             'route' => 'categories.destroy',
             'permission' => 'delete-settings-categories',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-category-' . $this->id,
+            ],
             'model' => $this,
         ];
 

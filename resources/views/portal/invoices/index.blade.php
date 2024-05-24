@@ -10,11 +10,11 @@
 
                 <x-table>
                     <x-table.thead>
-                        <x-table.tr class="flex items-center px-1">
+                        <x-table.tr>
                             <x-table.th override="class" class="p-0"></x-table.th>
                             @stack('issued_at_th_start')
 
-                            <x-table.th class="w-4/12 hidden sm:table-cell">
+                            <x-table.th class="w-4/12" hidden-mobile>
                                 @stack('due_at_th_inside_start')
 
                                 <x-slot name="first">
@@ -36,7 +36,7 @@
 
                             @stack('status_th_start')
 
-                            <x-table.th class="w-3/12 hidden sm:table-cell">
+                            <x-table.th class="w-3/12" hidden-mobile>
                                 @stack('status_th_inside_start')
 
                                 <x-sortablelink column="status" title="{{ trans_choice('general.statuses', 1) }}" />
@@ -79,7 +79,7 @@
                                 <x-table.td kind="action"></x-table.td>
                                 @stack('issued_at_td_start')
 
-                                <x-table.td class="w-4/12 hidden sm:table-cell">
+                                <x-table.td class="w-4/12" hidden-mobile>
                                     @stack('due_at_td_inside_start')
 
                                     <x-slot name="first" class="font-bold truncate" override="class">
@@ -101,7 +101,7 @@
 
                                 @stack('status_td_start')
 
-                                <x-table.td class="w-3/12 hidden sm:table-cell">
+                                <x-table.td class="w-3/12" hidden-mobile>
                                     @stack('status_td_inside_start')
 
                                     <x-index.status status="{{ $item->status }}" background-color="bg-{{ $item->status_label }}" text-color="text-text-{{ $item->status_label }}" />
@@ -117,12 +117,12 @@
                                 <x-table.td class="w-3/12  sm:table-cell">
                                     @stack('document_number_td_inside_start')
 
-                                    <x-slot name="first" class="relative w-20 font-normal group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class,data-tooltip-target,data-tooltip-placement">
+                                    <x-slot name="first" class="w-20 font-normal group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class">
                                         <span class="border-black border-b border-dashed">
                                             {{ $item->document_number }}
                                         </span>
 
-                                        <div class="w-full absolute h-10 -left-10 -mt-6"></div>
+                                        <div class="w-28 absolute h-10 -ml-12 -mt-6"></div>
 
                                         <x-documents.index.information :document="$item" show-route="portal.invoices.show"/>
                                     </x-slot>
@@ -137,7 +137,7 @@
                                 <x-table.td class="w-6/12 sm:w-2/12" kind="amount">
                                     @stack('amount_td_inside_start')
 
-                                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                                    <x-money :amount="$item->amount" :currency="$item->currency_code" />
 
                                         @stack('amount_td_inside_end')
                                 </x-table.td>
@@ -151,27 +151,35 @@
                 <x-pagination :items="$invoices" />
             </x-index.container>
         @else
-            <x-empty-page
-                group="sales"
-                page="invoices"
-                hide-button-import
-                :buttons="[
-                    [
-                        'url' =>  route('transactions.create', ['type' => 'income']),
-                        'permission' => 'create-sales-invoices',
-                        'text' => trans('general.title.new', ['type' => trans_choice('general.incomes', 1)]),
-                        'description' => trans('general.empty.actions.new', ['type' => trans_choice('general.incomes', 1)]),
-                        'active_badge' => false
-                    ],
-                    [
-                        'url' => 'https://akaunting.com/premium-cloud',
-                        'permission' => 'create-sales-invoices',
-                        'text' => trans('import.title', ['type' => trans_choice('general.bank_transactions', 2)]),
-                        'description' => '',
-                        'active_badge' => false
-                    ]
-                ]"
-            />
+            <div class="flex">
+                <div class="w-full text-center">
+                    <div class="my-10">
+                        {{ trans('portal.create_your_invoice') }}
+                    </div>
+
+                    <div class="my-10">
+                        <x-link
+                            href="https://akaunting.com/accounting-software?utm_source=software&utm_medium=invoice_index&utm_campaign=plg"
+                            class="bg-purple text-white px-3 py-1.5 mb-3 sm:mb-0 rounded-xl text-sm font-medium leading-6 hover:bg-purple-700"
+                            override="class"
+                        >
+                            {{ trans('portal.get_started') }}
+                        </x-link>
+                    </div>
+
+                    <div class="my-10">
+                        <img src="https://assets.akaunting.com/software/portal/invoice.gif" class="inline" alt="Get Started" />
+                    </div>
+                </div>
+            </div>
+
+            @push('css')
+                <style>
+                    .hide-empty-page {
+                        display: none;
+                    }
+                </style>
+            @endpush
         @endif
     </x-slot>
 

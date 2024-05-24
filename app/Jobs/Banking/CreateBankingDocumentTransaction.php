@@ -3,6 +3,8 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Events\Banking\DocumentTransactionCreated;
+use App\Events\Banking\DocumentTransactionCreating;
 use App\Jobs\Banking\CreateTransaction;
 use App\Jobs\Document\CreateDocumentHistory;
 use App\Events\Document\PaidAmountCalculated;
@@ -27,6 +29,8 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
 
     public function handle(): Transaction
     {
+        event(new DocumentTransactionCreating($this->model, $this->request));
+
         $this->prepareRequest();
 
         $this->checkAmount();
@@ -46,6 +50,8 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
             $this->createHistory();
         });
 
+        event(new DocumentTransactionCreated($this->model, $this->transaction));
+
         return $this->transaction;
     }
 
@@ -61,9 +67,9 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
         $currency_code = !empty($this->request['currency_code']) ? $this->request['currency_code'] : $this->model->currency_code;
 
         $this->request['company_id'] = $this->model->company_id;
-        $this->request['currency_code'] = isset($this->request['currency_code']) ? $this->request['currency_code'] : $this->model->currency_code;
-        $this->request['paid_at'] = isset($this->request['paid_at']) ? $this->request['paid_at'] : Date::now()->format('Y-m-d');
-        $this->request['currency_rate'] = config('money.' . $currency_code . '.rate');
+        $this->request['currency_code'] = $currency_code;
+        $this->request['paid_at'] = isset($this->request['paid_at']) ? $this->request['paid_at'] : Date::now()->toDateTimeString();
+        $this->request['currency_rate'] = isset($this->request['currency_rate']) ? $this->request['currency_rate'] : currency($currency_code)->getRate();
         $this->request['account_id'] = isset($this->request['account_id']) ? $this->request['account_id'] : setting('default.account');
         $this->request['document_id'] = isset($this->request['document_id']) ? $this->request['document_id'] : $this->model->id;
         $this->request['contact_id'] = isset($this->request['contact_id']) ? $this->request['contact_id'] : $this->model->contact_id;
@@ -77,7 +83,7 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
         $code = $this->request['currency_code'];
         $rate = $this->request['currency_rate'];
 
-        $precision = config('money.' . $code . '.precision');
+        $precision = currency($code)->getPrecision();
 
         $amount = $this->request['amount'] = round($this->request['amount'], $precision);
 
@@ -98,17 +104,13 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
         $compare = bccomp($amount, $total_amount, $precision);
 
         if ($compare === 1) {
-            $error_amount = $total_amount;
+            if ($this->model->currency_code == $code) {
+                $message = trans('messages.error.over_payment', ['amount' => money($total_amount, $code)]);
 
-            if ($this->model->currency_code != $code) {
-                $converted_amount = $this->convertBetween($total_amount, $this->model->currency_code, $this->model->currency_rate, $code, $rate);
-
-                $error_amount = round($converted_amount, $precision);
+                throw new \Exception($message);
+            } else {
+                $this->model->status = 'paid';
             }
-
-            $message = trans('messages.error.over_payment', ['amount' => money($error_amount, $code, true)]);
-
-            throw new \Exception($message);
         } else {
             $this->model->status = ($compare === 0) ? 'paid' : 'partial';
         }
@@ -118,7 +120,7 @@ class CreateBankingDocumentTransaction extends Job implements ShouldCreate
 
     protected function createHistory(): void
     {
-        $history_desc = money((double) $this->transaction->amount, (string) $this->transaction->currency_code, true)->format() . ' ' . trans_choice('general.payments', 1);
+        $history_desc = money((double) $this->transaction->amount, (string) $this->transaction->currency_code)->format() . ' ' . trans_choice('general.payments', 1);
 
         $this->dispatch(new CreateDocumentHistory($this->model, 0, $history_desc));
     }

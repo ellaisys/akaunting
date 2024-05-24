@@ -1,10 +1,11 @@
 <x-loading.content />
+
 <div class="relative mt-4">
     <x-form 
         id="{{ $formId }}"
         :route="$formRoute"
         method="{{ $formMethod }}"
-        :model="$contact"
+        :model="$document"
     >
         @if (! $hideCompany)
             <x-documents.form.company :type="$type" />

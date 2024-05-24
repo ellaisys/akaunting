@@ -6,7 +6,7 @@
     <x-slot name="favorite"
         title="{{ trans('general.title.new', ['type' => trans_choice('general.tax_rates', 1)]) }}"
         icon="percent"
-        route="tax_rates.create"
+        route="taxes.create"
     ></x-slot>
 
     <x-slot name="content">
@@ -20,7 +20,7 @@
                     <x-slot name="body">
                         <x-form.group.text name="name" label="{{ trans('general.name') }}" />
 
-                        <x-form.group.text name="rate" label="{{ trans('taxes.rate_percent') }}" not-required @input="onChangeTaxRate" />
+                        <x-form.group.text name="rate" label="{{ trans('taxes.rate_percent') }}" @input="onChangeTaxRate" />
 
                         <x-form.group.select name="type" label="{{ trans_choice('general.types', 1) }}" :options="$types" selected="normal" :disabledOptions="$disable_options" />
                     </x-slot>

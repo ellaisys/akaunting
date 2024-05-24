@@ -28,8 +28,10 @@ return [
     'yearly_pricing'        => 'Preço anual',
     'monthly_price'         => 'de :price',
     'per_month'             => 'por mês',
-    'billed_yearly'         => 'Cobrado anualmente',
+    'once'                  => 'uma vez',
     'billed_monthly'        => 'Cobrado mensalmente',
+    'billed_yearly'         => 'Cobrado anualmente',
+    'billed_once'           => 'Faturado Uma Vez',
     'save_year'             => 'Você economiza <strong>:price</strong> por ano!',
     'if_paid_year'          => 'Ou <strong>:price/mo</strong> se pago anualmente',
     'information_monthly'   => 'Esta opção é válida apenas para o <strong>serviço de nuvem</strong>',
@@ -43,6 +45,14 @@ return [
     'apps_managing'         => 'Verifique os apps mais populares e comece a gerenciar suas finanças profissionalmente hoje.',
     'ready'                 => 'Disponível',
     'popular_this_week'     => 'Popular dessa semana',
+    'install_cloud'         => 'Usar Serviço na Nuvem',
+    'get_cloud'             => 'Obter Serviço de Nuvem',
+    'get_premium_cloud'     => 'Obter Nuvem Premium',
+    'switch_to_cloud'       => 'Trocar para Nuvem',
+    'hosted_on_akaunting'   => 'Hospedado em akaunting.com',
+    'only_works_cloud'      => 'Este aplicativo está disponível apenas em <strong>Nuvem</strong>.',
+    'only_premium_plan'     => 'Este aplicativo funciona apenas com o <strong>Serviço Premium na Nuvem</strong>.',
+    'not_found'             => 'Nenhum módulo encontrado',
 
     'about'                 => 'Sobre',
 
@@ -92,6 +102,10 @@ return [
         'unzip'             => 'Não é possível descompactar :module',
         'file_copy'         => 'Não é possível copiar os arquivos :module',
         'finish'            => 'Não é possível finalizar a instalação de :module',
+    ],
+
+    'warning' => [
+        'latest_version'    => 'Você está usando a versão mais recente do :module, não há atualizações disponíveis.',
     ],
 
     'badge' => [

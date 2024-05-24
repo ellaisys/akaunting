@@ -6,8 +6,8 @@
                     <div class="w-full h-33 bg-white hover:bg-gray-100 rounded-lg border border-light-gray disabled:bg-gray-200 mt-1 text-purple font-medium" :class="[{'border-red': error}]">
                         <div class="text-black h-full">
                             <button type="button" class="w-full h-full flex flex-col items-center justify-center" @click="onContactList">
-                                <span class="material-icons-outlined text-7xl text-black-400">person_add</span>
-                                <span class="text-add-contact"> {{ addContactText }} </span>
+                                <span class="material-icons-outlined text-7xl text-black-400 pointer-events-none">person_add</span>
+                                <span class="text-add-contact pointer-events-none"> {{ addContactText }} </span>
                             </button>
                         </div>
                     </div>
@@ -22,17 +22,17 @@
                             <input
                                 type="text"
                                 data-input="true"
-                                class="form-element px-10 border-t-0 border-l-0 border-r-0 border-gray-200 rounded-none"
+                                class="w-full text-sm py-2.5 mt-1 border text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple px-10 border-t-0 border-l-0 border-r-0 border-gray-200 rounded-none"
                                 autocapitalize="default" autocorrect="ON"
                                 :placeholder="placeholder"
                                 :ref="'input-contact-field-' + _uid"
-                                v-model="search"
-                                @input="onInput"
-                                @keyup.enter="onInput"
+                                :value="search"
+                                @input="onInput($event)"
+                                @keyup.enter="onInput($event)"
                             />
                         </div>
 
-                        <ul class="form-element p-0 border-0 mt-0 cursor-pointer">
+                        <ul class="w-full text-sm rounded-lg border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple p-0 border-0 mt-0 cursor-pointer">
                             <div class="hover:bg-gray-100 px-4 py-2" v-for="(contact, index) in sortContacts" :key="index" @click="onContactSeleted(index, contact.id)">
                                 <span>{{ contact.name }}</span>
                             </div>
@@ -52,13 +52,11 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
+            </div>  
             <div v-else class="document-contact-with-contact-bill-to">
                 <div>
                     <span class="text-sm">{{ contactInfoText }}</span>
-                </div>
-
+                </div>  
                 <div class="overflow-x-visible mt-0">
                     <table class="table table-borderless p-0">
                         <tbody>
@@ -88,28 +86,26 @@
                                 <th class="font-normal text-xs text-left p-0">
                                     {{ contact.phone }} &nbsp;
                                     <span v-if="contact.email">
-                                       - {{ contact.email }}
+                                    - {{ contact.email }}
                                     </span>
                                 </th>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
-                <div class="absolute flex flex-col mt-2">
-                    <button type="button" class="p-0 text-xs text-purple ltr:text-left rtl:text-right" @click="onContactEdit">
-                        <span class="border-b border-transparent transition-all hover:border-purple">
-                            {{ editContactText.replace(':contact_name', contact.name).replace(':field', contact.name) }}
-                        </span>
-                    </button>
-                    <button type="button" class="p-0 text-xs text-purple ltr:text-left rtl:text-right" @click="onContactList">
-                        <span class="border-b border-transparent transition-all hover:border-purple">
-                            {{ chooseDifferentContactText }}
-                        </span>
-                    </button>
-                </div>
-            </div>
-
+            </div>  
+            <div :class="show.contact_selected ? 'flex' : 'hidden'" class="absolute flex-col mt-2">
+                <button type="button" class="p-0 text-xs text-purple ltr:text-left rtl:text-right" @click="onContactEdit">
+                    <span class="bg-no-repeat bg-0-2 bg-0-full hover:bg-full-2 bg-gradient-to-b from-transparent to-purple transition-backgroundSize">
+                        {{ editContactText.replace(':contact_name', contact.name).replace(':field', contact.name) }}
+                    </span>
+                </button>
+                <button type="button" class="p-0 text-xs text-purple ltr:text-left rtl:text-right" @click="onContactList">
+                    <span class="bg-no-repeat bg-0-2 bg-0-full hover:bg-full-2 bg-gradient-to-b from-transparent to-purple transition-backgroundSize">
+                        {{ chooseDifferentContactText }}
+                    </span>
+                </button>
+            </div>  
             <component v-bind:is="add_new_html" @submit="onSubmit" @cancel="onCancel"></component>
         </div>
     </div>
@@ -177,6 +173,7 @@ export default {
                     id: 0,
                     name: '',
                     email: '',
+                    has_email: '',
                     tax_number: '',
                     currency_code: '',
                     phone: '',
@@ -290,6 +287,7 @@ export default {
                 id: 0,
                 name: '',
                 email: '',
+                has_email: '',
                 tax_number: '',
                 currency_code: '',
                 phone: '',
@@ -304,7 +302,9 @@ export default {
             });
         },
 
-        onInput() {
+        onInput(event) {
+            this.search = event.target.value;
+
             window.axios.get(this.searchRoute + '?search="' + this.search + '" enabled:1 limit:10')
             .then(response => {
                 this.contact_list = [];
@@ -312,26 +312,29 @@ export default {
                 let contacts = response.data.data;
 
                 contacts.forEach(function (contact, index) {
-                    this.contact_list.push({
-                        index: index,
-                        key: contact.id,
-                        value: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
-                        type: (contact.type) ? contact.type : 'customer',
-                        id: contact.id,
-                        name: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
-                        email: (contact.email) ? contact.email : '',
-                        tax_number: (contact.tax_number) ? contact.tax_number : '',
-                        currency_code: (contact.currency_code) ? contact.currency_code : '',
-                        phone: (contact.phone) ? contact.phone : '',
-                        website: (contact.website) ? contact.website : '',
-                        address: (contact.address) ? contact.address : '',
-                        city: (contact.city) ? contact.city : '',
-                        zip_code: (contact.zip_code) ? contact.zip_code : '',
-                        state: (contact.state) ? contact.state : '',
-                        country: (contact.country) ? contact.country : '',
-                        location: (contact.location) ? contact.location : '',
-                        reference: (contact.reference) ? contact.reference : ''
-                    });
+                    if (contact.enabled) {
+                        this.contact_list.push({
+                            index: index,
+                            key: contact.id,
+                            value: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
+                            type: (contact.type) ? contact.type : 'customer',
+                            id: contact.id,
+                            name: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
+                            email: (contact.email) ? contact.email : '',
+                            has_email: (contact.has_email) ? contact.has_email : '',
+                            tax_number: (contact.tax_number) ? contact.tax_number : '',
+                            currency_code: (contact.currency_code) ? contact.currency_code : '',
+                            phone: (contact.phone) ? contact.phone : '',
+                            website: (contact.website) ? contact.website : '',
+                            address: (contact.address) ? contact.address : '',
+                            city: (contact.city) ? contact.city : '',
+                            zip_code: (contact.zip_code) ? contact.zip_code : '',
+                            state: (contact.state) ? contact.state : '',
+                            country: (contact.country) ? contact.country : '',
+                            location: (contact.location) ? contact.location : '',
+                            reference: (contact.reference) ? contact.reference : ''
+                        });
+                    }
                 }, this);
             })
             .catch(error => {
@@ -522,13 +525,33 @@ export default {
                     this.add_new.html = '';
                     this.add_new_html = null;
 
+                    this.contact_list.push({
+                        key: contact.id,
+                        value: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
+                        type: (contact.type) ? contact.type : 'customer',
+                        id: contact.id,
+                        name: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
+                        email: (contact.email) ? contact.email : '',
+                        has_email: (contact.has_email) ? contact.has_email : '',
+                        tax_number: (contact.tax_number) ? contact.tax_number : '',
+                        currency_code: (contact.currency_code) ? contact.currency_code : '',
+                        phone: (contact.phone) ? contact.phone : '',
+                        website: (contact.website) ? contact.website : '',
+                        address: (contact.address) ? contact.address : '',
+                        city: (contact.city) ? contact.city : '',
+                        zip_code: (contact.zip_code) ? contact.zip_code : '',
+                        state: (contact.state) ? contact.state : '',
+                        country: (contact.country) ? contact.country : '',
+                        location: (contact.location) ? contact.location : '',
+                        reference: (contact.reference) ? contact.reference : ''
+                    });
+                    
                     this.$emit('new', contact);
-
                     this.$emit('change', this.contact);
 
                     let documentClasses = document.body.classList;
 
-                    documentClasses.remove("overflow-hidden");
+                    documentClasses.remove('overflow-y-hidden', 'overflow-overlay');
                 }
             })
             .catch(error => {
@@ -544,11 +567,11 @@ export default {
 
             let documentClasses = document.body.classList;
 
-            documentClasses.remove("overflow-hidden");
+            documentClasses.remove('overflow-y-hidden', 'overflow-overlay');
         },
 
         closeIfClickedOutside(event) {
-            if (!document.getElementById('select-contact-card-' + this._uid).contains(event.target) && event.target.className != 'btn btn-link p-0') {
+            if (!document.getElementById('select-contact-card-' + this._uid).contains(event.target)) {
                 this.show.contact_list = false;
 
                 document.removeEventListener('click', this.closeIfClickedOutside);
@@ -570,6 +593,7 @@ export default {
                     id: key,
                     name: value,
                     email: '',
+                    has_email: '',
                     tax_number: '',
                     currency_code: '',
                     phone: '',
@@ -595,6 +619,7 @@ export default {
                     id: contact.id,
                     name: (contact.title) ? contact.title : (contact.display_name) ? contact.display_name : contact.name,
                     email: (contact.email) ? contact.email : '',
+                    has_email: (contact.has_email) ? contact.has_email : '',
                     tax_number: (contact.tax_number) ? contact.tax_number : '',
                     currency_code: (contact.currency_code) ? contact.currency_code : '',
                     phone: (contact.phone) ? contact.phone : '',

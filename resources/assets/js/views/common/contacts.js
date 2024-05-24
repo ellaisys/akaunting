@@ -31,12 +31,35 @@ const app = new Vue({
         return {
             form: new Form('contact'),
             bulk_action: new BulkAction('contacts'),
-            can_login : false
+            can_login : false,
+            contact_persons: false,
         }
     },
 
     mounted() {
-        this.form.create_user = false;
+        if (! this.form.create_user) {
+            this.form.create_user = false;
+        }
+
+        this.form.contact_persons = [];
+
+        if (this.form.method) {
+            this.onAddPerson();
+        }
+
+        if (typeof contact_persons !== 'undefined' && contact_persons) {
+            let persons = [];
+
+            contact_persons.forEach(function(item) {
+                persons.push({
+                    name: item.name,
+                    email: item.email,
+                    phone: item.phone
+                });
+            });
+
+            this.form.contact_persons = persons;
+        }
     },
 
     methods:{
@@ -67,6 +90,8 @@ const app = new Vue({
 
                         if (response.data.error) {
                             this.$notify({
+                                verticalAlign: 'bottom',
+                                horizontalAlign: 'left',
                                 message: response.data.message,
                                 timeout: 0,
                                 icon: 'fas fa-bell',
@@ -109,6 +134,33 @@ const app = new Vue({
 
                 return false;
             }
-        }
+        },
+
+        onAddPerson() {
+            var row = [];
+
+            let keys = Object.keys(this.form.item_backup[0]);
+
+            keys.forEach(function(item) {
+                row[item] = '';
+            });
+
+            this.form.contact_persons.push(Object.assign({}, row));
+
+            // Force update to re-render the component
+            this.$forceUpdate();
+        },
+
+        onDeletePerson(index) {
+            this.form.contact_persons.splice(index, 1);
+
+            // Force update to re-render the component
+            this.$forceUpdate();
+        },
+
+        forceUpdate() {
+            // Force update to re-render the component
+            this.$forceUpdate();
+        },
     }
 });

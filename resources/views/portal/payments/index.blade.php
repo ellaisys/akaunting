@@ -10,7 +10,7 @@
 
                 <x-table>
                     <x-table.thead>
-                        <x-table.tr class="flex items-center px-1">
+                        <x-table.tr>
                             <x-table.th override="class" class="p-0"></x-table.th>
 
                             <x-table.th class="w-4/12 sm:w-3/12">
@@ -21,7 +21,7 @@
                                 <x-sortablelink column="payment_method" title="{{ trans_choice('general.payment_methods', 1) }}" />
                             </x-table.th>
 
-                            <x-table.th class="w-4/12 sm:w-3/12">
+                            <x-table.th class="w-4/12 sm:w-3/12" hidden-mobile>
                                 <x-sortablelink column="description" title="{{ trans('general.description') }}" />
                             </x-table.th>
 
@@ -35,21 +35,21 @@
                         @foreach($payments as $item)
                             <x-table.tr href="{{ route('portal.payments.show', $item->id) }}">
                                 <x-table.td kind="action"></x-table.td>
-                                
+
                                 <x-table.td class="w-4/12 sm:w-3/12">
                                     <span class="font-bold"><x-date date="{{ $item->paid_at }}" /></span>
                                 </x-table.td>
 
                                 <x-table.td class="w-4/12 sm:w-3/12">
-                                    {{ $payment_methods[$item->payment_method] }}
+                                    <x-payment-method :method="$item->payment_method" type="customer" />
                                 </x-table.td>
 
-                                <x-table.td class="w-3/12 hidden sm:table-cell">
+                                <x-table.td class="w-3/12" hidden-mobile>
                                     {{ $item->description }}
                                 </x-table.td>
 
                                 <x-table.td class="w-3/12" kind="amount">
-                                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                                    <x-money :amount="$item->amount" :currency="$item->currency_code" />
                                 </x-table.td>
                             </x-table.tr>
                         @endforeach
@@ -59,34 +59,35 @@
                 <x-pagination :items="$payments" />
             </x-index.container>
         @else
-            <x-empty-page
-                group="banking"
-                page="transactions"
-                hide-button-import
-                :buttons="[
-                    [
-                        'url' =>  route('transactions.create', ['type' => 'income']),
-                        'permission' => 'create-banking-transactions',
-                        'text' => trans('general.title.new', ['type' => trans_choice('general.incomes', 1)]),
-                        'description' => trans('general.empty.actions.new', ['type' => trans_choice('general.incomes', 1)]),
-                        'active_badge' => false
-                    ],
-                    [
-                        'url' => route('transactions.create', ['type' => 'expense']),
-                        'permission' => 'create-banking-transactions',
-                        'text' => trans('general.title.new', ['type' => trans_choice('general.expenses', 1)]),
-                        'description' => trans('general.empty.actions.new', ['type' => trans_choice('general.expenses', 1)]),
-                        'active_badge' => false
-                    ],
-                    [
-                        'url' => 'https://akaunting.com/premium-cloud',
-                        'permission' => 'create-banking-transactions',
-                        'text' => trans('import.title', ['type' => trans_choice('general.bank_transactions', 2)]),
-                        'description' => '',
-                        'active_badge' => false
-                    ]
-                ]"
-            />
+            <div class="flex">
+                <div class="w-full text-center">
+                    <div class="my-10">
+                        {{ trans('portal.create_your_invoice') }}
+                    </div>
+
+                    <div class="my-10">
+                        <x-link
+                            href="https://akaunting.com/accounting-software?utm_source=software&utm_medium=payment_index&utm_campaign=plg"
+                            class="bg-purple text-white px-3 py-1.5 mb-3 sm:mb-0 rounded-xl text-sm font-medium leading-6 hover:bg-purple-700"
+                            override="class"
+                        >
+                            {{ trans('portal.get_started') }}
+                        </x-link>
+                    </div>
+
+                    <div class="my-10">
+                        <img src="https://assets.akaunting.com/software/portal/payment.gif" class="inline" alt="Get Started" />
+                    </div>
+                </div>
+            </div>
+
+            @push('css')
+                <style>
+                    .hide-empty-page {
+                        display: none;
+                    }
+                </style>
+            @endpush
         @endif
     </x-slot>
 

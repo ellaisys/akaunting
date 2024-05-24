@@ -10,12 +10,14 @@ return [
     'related_bill'          => 'Facture connexe',
     'recurring_income'      => 'Revenus récurrents',
     'recurring_expense'     => 'Dépense récurrente',
+    'included_tax'          => 'Toutes taxes comprises',
+    'connected'             => 'Connecté',
 
     'form_description' => [
         'general'           => 'Ici, vous pouvez entrer les informations générales du journal manuel tels que la date, le numéro, la devise, la description, etc.',
         'assign_income'     => 'Sélectionnez une catégorie et un client pour rendre vos rapports plus détaillés.',
-        'assign_expense'    => 'Sélectionnez une catégorie et un vendeur pour rendre vos rapports plus détaillés.',
-        'other'             => 'Entrez une référence pour conserver la transaction liée à vos dossiers.',
+        'assign_expense'    => 'Sélectionnez une catégorie et un fournisseur pour rendre vos rapports plus détaillés.',
+        'other'             => 'Entrez un numéro et une référence pour conserver la transaction liée à vos dossiers.',
     ],
 
     'slider' => [
@@ -24,6 +26,9 @@ return [
         'create_recurring'  => ':user a créé ce modèle récurrent le :date',
         'schedule'          => 'Répéter chaque :interval :frequency depuis :date',
         'children'          => ':count transactions ont été créées automatiquement',
+        'connect'           => 'Cette transaction est connectée à :count autres transactions',
+        'transfer_headline' => '<div> <span class="font-bold"> De: </span> :from_account </div> <div> <span class="font-bold"> à: </span> :to_account </div>',
+        'transfer_desc'     => 'Transfert créé le :date.',
     ],
 
     'share' => [
@@ -33,8 +38,8 @@ return [
         ],
 
         'expense' => [
-            'show_link'     => 'Votre vendeur peut voir la transaction avec ce lien',
-            'copy_link'     => 'Copiez le lien et partagez-le avec votre vendeur.',
+            'show_link'     => 'Votre fournisseur peut voir la transaction avec ce lien',
+            'copy_link'     => 'Copiez le lien et partagez-le avec votre fournisseur.',
         ],
     ],
 

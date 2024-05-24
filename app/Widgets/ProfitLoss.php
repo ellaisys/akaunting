@@ -6,7 +6,7 @@ use App\Abstracts\Widget;
 use App\Utilities\Recurring;
 use App\Models\Document\Document;
 use App\Models\Banking\Transaction;
-use Akaunting\Apexcharts\Charts as Apexcharts;
+use Akaunting\Apexcharts\Chart;
 use App\Traits\Currencies;
 use App\Traits\DateTime;
 use App\Utilities\Date;
@@ -31,31 +31,18 @@ class ProfitLoss extends Widget
     {
         $this->setFilter();
 
-        $labels = $this->getLabels();
-
-        $income = $this->getIncome();
-
-        $expense = $this->getExpense();
-
-        $colors = $this->getColors();
-
-        $chart = new Apexcharts();
-
-        $options = [
-            'legend' => [
-                'position'      => 'top',
-                'markers' => [
-                    'radius'    => '12',
-                ],
-            ],
-        ];
+        $chart = new Chart();
 
         $chart->setType('bar')
-            ->setOptions($options)
-            ->setLabels(array_values($labels))
-            ->setColors($colors)
-            ->setDataset(trans_choice('general.incomes', 1), 'column', array_values($income))
-            ->setDataset(trans_choice('general.expenses', 1), 'column', array_values($expense));
+            ->setDefaultLocale($this->getDefaultLocaleOfChart())
+            ->setLocales($this->getLocaleTranslationOfChart())
+            ->setLegendPosition('top')
+            ->setLegendMarkers(['radius' => '12'])
+            ->setYaxisLabels(['formatter' => $this->getChartLabelFormatter()])
+            ->setLabels(array_values($this->getLabels()))
+            ->setColors($this->getColors())
+            ->setDataset(trans_choice('general.incomes', 1), 'column', array_values($this->getIncome()))
+            ->setDataset(trans_choice('general.expenses', 1), 'column', array_values($this->getExpense()));
 
         return $this->view('widgets.bar_chart', [
             'chart' => $chart,
@@ -64,46 +51,29 @@ class ProfitLoss extends Widget
 
     public function setFilter(): void
     {
-        $financial_start = $this->getFinancialStart()->format('Y-m-d');
+        $financial_year = $this->getFinancialYear();
 
-        // check and assign year start
-        if (($year_start = Date::today()->startOfYear()->format('Y-m-d')) !== $financial_start) {
-            $year_start = $financial_start;
-        }
-
-        $this->start_date = Date::parse(request('start_date', $year_start));
-        $this->end_date = Date::parse(request('end_date', Date::parse($year_start)->addYear(1)->subDays(1)->format('Y-m-d')));
+        $this->start_date = Date::parse(request('start_date', $financial_year->copy()->getStartDate()->toDateString()))->startOfDay();
+        $this->end_date = Date::parse(request('end_date', $financial_year->copy()->getEndDate()->toDateString()))->endOfDay();
         $this->period = request('period', 'month');
     }
 
     public function getLabels(): array
     {
-        $range = request('range', 'custom');
-
-        $start_month = $this->start_date->month;
-        $end_month = $this->end_date->month;
-
-        // Monthly
         $labels = [];
 
-        $s = clone $this->start_date;
+        $start_date = $this->start_date->copy();
 
-        if ($range == 'last_12_months') {
-            $end_month   = 12;
-            $start_month = 0;
-        } elseif ($range == 'custom') {
-            $end_month   = $this->end_date->diffInMonths($this->start_date);
-            $start_month = 0;
-        }
+        $counter = $this->end_date->diffInMonths($this->start_date);
 
-        for ($j = $end_month; $j >= $start_month; $j--) {
-            $labels[$end_month - $j] = $s->format('M Y');
+        for ($j = 0; $j <= $counter; $j++) {
+            $labels[$j] = $start_date->format($this->getMonthlyDateFormat());
 
             if ($this->period == 'month') {
-                $s->addMonth();
+                $start_date->addMonth();
             } else {
-                $s->addMonths(3);
-                $j -= 2;
+                $start_date->addMonths(3);
+                $j += 2;
             }
         }
 
@@ -208,7 +178,7 @@ class ProfitLoss extends Widget
             $totals[$i] += $item->getAmountConvertedToDefault();
         }
 
-        $precision = config('money.' . setting('default.currency') . '.precision');
+        $precision = currency()->getPrecision();
 
         foreach ($totals as $key => $value) {
             $totals[$key] = round($value, $precision);

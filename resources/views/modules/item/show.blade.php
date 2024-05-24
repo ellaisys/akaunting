@@ -14,8 +14,8 @@
     </x-slot>
 
     <x-slot name="content">
-        <div class="flex flex-col space-y-16 py-4">
-            <div class="flex flex-col lg:flex-row w-full space-x-16 space-y-0">
+        <div class="flex flex-col space-y-16 py-4 cursor-default">
+            <div class="flex flex-col lg:flex-row w-full lg:space-x-16 rtl:space-x-reverse space-y-0">
                 <div class="w-full lg:w-7/12 flex flex-col space-x-2 banner">
                     @foreach ($module->files as $file)
                         @if ($loop->first)
@@ -42,16 +42,27 @@
                         <div class="flex justify-between">
                             <span>
                                 @foreach ($module->categories as $module_category)
-                                    <a href="{{ route('apps.categories.show', $module_category->slug) }}">{{ $module_category->name }}</a> </br>
+                                    <a href="{{ route('apps.categories.show', $module_category->slug) }}" class="text-sm">
+                                        {{ $module_category->name }}
+                                    </a>
+                                    @if (! $loop->last)
+                                    ,
+                                    @endif
                                 @endforeach
                             </span>
                         </div>
                     @endif
                 </div>
 
-                <div class="w-full lg:w-5/12" x-data="{ price_type : true }">
+                <div class="relative w-full lg:w-5/12"
+                    @if (in_array('cloud', $module->where_to_use) && count($module->where_to_use) == 1)
+                        x-data="{ price_type : 'lifetime' }"
+                    @else
+                        x-data="{ price_type : 'yearly' }"
+                    @endif
+                >
                     <div class="flex flex-col space-y-6">
-                        <div class="flex flex-col">
+                        <div class="flex flex-col cursor-default">
                             <div class="flex flex-col space-y-4">
                                 @if ($module->vote)
                                     <div class="flex items-center space-x-4">
@@ -92,14 +103,14 @@
                             </div>
                         </div>
 
-                        <div class="text-sm truncate line-clamp-1">
-                            {!! $module->description !!}
+                        <div class="text-sm line-clamp-1 cursor-default">
+                            {!! ! empty($module->sort_desc) ? $module->sort_desc : strip_tags($module->description) !!}
                         </div>
 
-                        <div class="relative flex flex-col lg:flex-row space-x-4 justify-between">
+                        <div class="flex items-center space-x-4 justify-between">
                             <x-layouts.modules.show.price :module="$module" />
 
-                            <div class="flex w-1/2 lg:justify-center">
+                            <div class="flex lg:justify-center">
                                 @if ($module->price != '0.0000')
                                     <x-layouts.modules.show.toggle />
                                 @endif
@@ -109,14 +120,18 @@
                         <x-layouts.modules.show.information :module="$module" />
                     </div>
 
-                    <div class="flex justify-around space-x-12 mt-5">
+                    <div class="flex justify-around mt-5">
                         <x-layouts.modules.show.buttons :module="$module" :installed="$installed" :enable="$enable" />
                     </div>
                 </div>
             </div>
 
             <div class="tabs w-full">
-                <x-tabs class="flex border-b -mb-1 space-x-2 overflow-x-scroll lg:overflow-visible" active="{{ ! empty($module->call_to_actions) ? 'features' : 'description' }}">
+                <x-tabs
+                    class="w-full lg:w-auto"
+                    active="{{ ! empty($module->call_to_actions) ? 'features' : 'description' }}"
+                    data-disable-slider
+                >
                     <x-slot name="navs">
                         @stack('features_nav_start')
 
@@ -125,14 +140,12 @@
                                 id="features"
                                 name="{{ trans('modules.tab.features') }}"
                                 active
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @else
                             <x-tabs.nav
                                 id="description"
                                 name="{{ trans('general.description') }}"
                                 active
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
@@ -142,27 +155,24 @@
                             <x-tabs.nav
                                 id="reviews"
                                 name="{{ trans('modules.tab.reviews') }}"
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
                         @stack('installation_nav_start')
 
-                        @if ($module->installation)
+                        @if ($module->install && $module->installation)
                             <x-tabs.nav
                                 id="installation"
                                 name="{{ trans('modules.tab.installation') }}"
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
                         @stack('documentation_nav_start')
 
-                        @if ($module->documentation)
+                        @if ($module->install && $module->documentation)
                             <x-tabs.nav
                                 id="documentation"
                                 name="{{ trans('modules.documentation') }}"
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
@@ -172,17 +182,15 @@
                             <x-tabs.nav
                                 id="screenshots"
                                 name="{{ trans('modules.tab.screenshots') }}"
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
                         @stack('changelog_nav_start')
 
-                        @if ($module->changelog)
+                        @if ($module->install && $module->changelog)
                             <x-tabs.nav
                                 id="changelog"
                                 name="{{ trans('modules.tab.changelog') }}"
-                                class="relative px-8 text-sm text-black text-center pb-2 cursor-pointer transition-all border-b tabs-link"
                             />
                         @endif
 
@@ -213,7 +221,7 @@
 
                             @stack('installation_tab_start')
 
-                            @if ($module->installation)
+                            @if ($module->install && $module->installation)
                                 <x-tabs.tab id="installation">
                                     <x-layouts.modules.show.installation :module="$module" />
                                 </x-tabs.tab>
@@ -221,7 +229,7 @@
 
                             @stack('documentation_tab_start')
 
-                            @if ($module->documentation)
+                            @if ($module->install && $module->documentation)
                                 <x-tabs.tab id="documentation">
                                     <x-layouts.modules.show.documentation :module="$module" />
                                 </x-tabs.tab>
@@ -237,7 +245,7 @@
 
                             @stack('changelog_tab_start')
 
-                            @if ($module->changelog)
+                            @if ($module->install && $module->changelog)
                                 <x-tabs.tab id="changelog">
                                     <x-layouts.modules.show.releases :module="$module" />
                                 </x-tabs.tab>

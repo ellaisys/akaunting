@@ -11,11 +11,11 @@
 
     <x-slot name="buttons">
         @can('create-banking-transactions')
-            <x-link href="{{ route('transactions.create', ['type' => 'income']) }}" kind="primary">
+            <x-link href="{{ route('transactions.create', ['type' => 'income']) }}" kind="primary" id="index-more-actions-new-income-transaction">
                 {{ trans('general.title.new', ['type' => trans_choice('general.incomes', 1)]) }}
             </x-link>
 
-            <x-link href="{{ route('transactions.create', ['type' => 'expense']) }}" kind="primary">
+            <x-link href="{{ route('transactions.create', ['type' => 'expense']) }}" kind="primary" id="index-more-actions-new-expense-transaction">
                 {{ trans('general.title.new', ['type' => trans_choice('general.expenses', 1)]) }}
             </x-link>
         @endcan
@@ -24,7 +24,7 @@
     <x-slot name="moreButtons">
         <x-dropdown id="dropdown-more-actions">
             <x-slot name="trigger">
-                <span class="material-icons">more_horiz</span>
+                <span class="material-icons pointer-events-none">more_horiz</span>
             </x-slot>
 
             @can('create-banking-transactions')
@@ -44,38 +44,55 @@
             <x-index.summary>
                 <x-slot name="first"
                     href="{{ route('transactions.index', ['search' => 'type:income']) }}"
-                    amount="{{ money($totals['income'], setting('default.currency'), true) }}"
+                    amount="{{ $summary_amounts['incoming_for_humans'] }}"
                     title="{{ trans_choice('general.incomes', 1) }}"
+                    tooltip="{{ $summary_amounts['incoming_exact'] }}"
                     divider="remove"
                 ></x-slot>
 
                 <x-slot name="second"
                     href="{{ route('transactions.index', ['search' => 'type:expense']) }}"
-                    amount="{{ money($totals['expense'], setting('default.currency'), true) }}"
+                    amount="{{ $summary_amounts['expense_for_humans'] }}"
                     title="{{ trans_choice('general.expenses', 2) }}"
+                    tooltip="{{ $summary_amounts['expense_exact'] }}"
                     divider="drag_handle"
                 ></x-slot>
 
                 <x-slot name="third"
-                    amount="{{ money($totals['profit'], setting('default.currency'), true) }}"
+                    amount="{{ $summary_amounts['profit_for_humans'] }}"
                     title="{{ trans_choice('general.profits', 1) }}"
+                    tooltip="{{ $summary_amounts['profit_exact'] }}"
+                    class="cursor-default"
                 ></x-slot>
             </x-index.summary>
 
             <x-index.container>
-                <x-tabs active="transactions">
-                    <x-slot name="navs">
-                        <x-tabs.nav
-                            id="transactions"
-                            name="{{ trans_choice('general.transactions', 2) }}"
-                            active
-                        />
+                @php
+                    $search_type = search_string_value('type');
+                    $active_tab = empty($search_type) ? 'transactions' : (($search_type == 'income') ? 'transactions-income' : 'transactions-expense');
+                @endphp
 
-                        <x-tabs.nav-link
-                            id="recurring-templates"
-                            name="{{ trans_choice('general.recurring_templates', 2) }}"
-                            href="{{ route('recurring-transactions.index') }}"
-                        />
+                <x-tabs active="{{ $active_tab }}">
+                    <x-slot name="navs">
+                        @if ($search_type == 'income')
+                            <x-tabs.nav id="transactions-income" name="{{ trans_choice('general.incomes', 1) }}" active />
+                        @else
+                            <x-tabs.nav-link id="transactions-income" name="{{ trans_choice('general.incomes', 1) }}" href="{{ route('transactions.index', ['search' => 'type:income']) }}" />
+                        @endif
+
+                        @if ($search_type == 'expense')
+                            <x-tabs.nav id="transactions-expense" name="{{ trans_choice('general.expenses', 1) }}" active />
+                        @else
+                            <x-tabs.nav-link id="transactions-expense" name="{{ trans_choice('general.expenses', 1) }}" href="{{ route('transactions.index', ['search' => 'type:expense']) }}" />
+                        @endif
+
+                        @if (empty($search_type))
+                            <x-tabs.nav id="transactions" name="{{ trans('general.all_type', ['type' => trans_choice('general.transactions', 2)]) }}" active />
+                        @else
+                            <x-tabs.nav-link id="transactions" name="{{ trans('general.all_type', ['type' => trans_choice('general.transactions', 2)]) }}" href="{{ route('transactions.index') }}" />
+                        @endif
+
+                        <x-tabs.nav-link id="recurring-templates" name="{{ trans_choice('general.recurring_templates', 2) }}" href="{{ route('recurring-transactions.index') }}" />
                     </x-slot>
 
                     <x-slot name="content">
@@ -84,11 +101,11 @@
                             bulk-action="App\BulkActions\Banking\Transactions"
                         />
 
-                        <x-tabs.tab id="transactions">
+                        <x-tabs.tab id="{{ $active_tab }}">
                             <x-table>
                                 <x-table.thead>
-                                    <x-table.tr class="flex items-center px-1">
-                                        <x-table.th class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                                    <x-table.tr>
+                                        <x-table.th kind="bulkaction">
                                             <x-index.bulkaction.all />
                                         </x-table.th>
 
@@ -101,7 +118,7 @@
                                             </x-slot>
                                         </x-table.th>
 
-                                        <x-table.th class="w-2/12 hidden sm:table-cell">
+                                        <x-table.th class="w-2/12" hidden-mobile>
                                             <x-slot name="first">
                                                 <x-sortablelink column="type" title="{{ trans_choice('general.types', 1) }}" />
                                             </x-slot>
@@ -114,7 +131,7 @@
                                             <x-sortablelink column="account.name" title="{{ trans_choice('general.accounts', 1) }}" />
                                         </x-table.th>
 
-                                        <x-table.th class="w-2/12 hidden sm:table-cell">
+                                        <x-table.th class="w-2/12" hidden-mobile>
                                             <x-slot name="first">
                                                 <x-sortablelink column="contact.name" title="{{ trans_choice('general.contacts', 1) }}" />
                                             </x-slot>
@@ -132,7 +149,7 @@
                                 <x-table.tbody>
                                     @foreach($transactions as $item)
                                         <x-table.tr href="{{ route('transactions.show', $item->id) }}">
-                                            <x-table.td class="ltr:pr-6 rtl:pl-6 hidden sm:table-cell" override="class">
+                                            <x-table.td kind="bulkaction">
                                                 <x-index.bulkaction.single id="{{ $item->id }}" name="{{ $item->contact->name }}" />
                                             </x-table.td>
 
@@ -145,7 +162,7 @@
                                                 </x-slot>
                                             </x-table.td>
 
-                                            <x-table.td class="w-2/12 hidden sm:table-cell">
+                                            <x-table.td class="w-2/12" hidden-mobile>
                                                 <x-slot name="first">
                                                     {{ $item->type_title }}
                                                 </x-slot>
@@ -158,19 +175,22 @@
                                                 {{ $item->account->name }}
                                             </x-table.td>
 
-                                            <x-table.td class="w-2/12 hidden sm:table-cell">
+                                            <x-table.td class="w-2/12" hidden-mobile>
                                                 <x-slot name="first">
                                                     {{ $item->contact->name }}
                                                 </x-slot>
-                                                <x-slot name="second" class="w-20 font-normal group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class">
+                                                <x-slot name="second" class="w-20 font-normal group">
                                                     @if ($item->document)
-                                                        <a href="{{ route($item->route_name, $item->route_id) }}" class="font-normal truncate border-b border-black border-dashed">
-                                                            {{ $item->document->document_number }}
-                                                        </a>
+                                                        <div data-tooltip-target="tooltip-information-{{ $item->document_id }}" data-tooltip-placement="left" override="class">
+                                                            <x-link href="{{ route($item->route_name, $item->route_id) }}" class="font-normal truncate border-b border-black border-dashed" override="class">
+                                                                {{ $item->document->document_number }}
+                                                            </x-link>
 
-                                                        <div class="w-28 absolute h-10 -ml-12 -mt-6"></div>
+                                                            <div class="w-28 absolute h-10 -ml-12 -mt-6">
+                                                            </div>
 
-                                                        <x-documents.index.information :document="$item->document" />
+                                                            <x-documents.index.information :document="$item->document" />
+                                                        </div>
                                                     @else
                                                         <x-empty-data />
                                                     @endif
@@ -178,7 +198,7 @@
                                             </x-table.td>
 
                                             <x-table.td class="relative w-4/12 sm:w-2/12" kind="amount">
-                                                <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                                                <x-money :amount="$item->amount" :currency="$item->currency_code" />
                                             </x-table.td>
 
                                             <x-table.td kind="action">
@@ -200,7 +220,7 @@
                 :transaction="connect.transaction"
                 :currency="connect.currency"
                 :documents="connect.documents"
-                :translations="{{ json_encode($translations) }}"
+                :translations="connect.translations"
                 modal-dialog-class="max-w-screen-lg"
                 v-on:close-modal="connect.show = false"
             ></akaunting-connect-transactions>
@@ -224,13 +244,6 @@
                         'description' => trans('general.empty.actions.new', ['type' => trans_choice('general.expenses', 1)]),
                         'active_badge' => false
                     ],
-                    [
-                        'url' => 'https://akaunting.com/premium-cloud',
-                        'permission' => 'create-banking-transactions',
-                        'text' => trans('import.title', ['type' => trans_choice('general.bank_transactions', 2)]),
-                        'description' => '',
-                        'active_badge' => false
-                    ]
                 ]"
             />
         @endif

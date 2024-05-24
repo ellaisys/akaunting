@@ -1,6 +1,6 @@
 <x-table>
     <x-table.thead>
-        <x-table.tr class="flex items-center px-1">
+        <x-table.tr>
             @if (! $hideBulkAction)
             <x-table.th class="{{ $classBulkAction }}" override="class">
                 <x-index.bulkaction.all />
@@ -96,7 +96,7 @@
                 <x-table.td class="{{ $classDueAtAndIssueAt }}">
                     @stack('due_at_td_start')
                     @if (! $hideDueAt)
-                    <x-slot name="first" class="font-bold truncate" override="class">
+                    <x-slot name="first" class="font-bold" override="class">
                         @stack('due_at_td_inside_start')
                         <x-date :date="$item->due_at" function="diffForHumans" />
                         @stack('due_at_td_inside_end')
@@ -121,9 +121,7 @@
                 @if (!$hideStatus)
                     <x-table.td class="{{ $classStatus }}">
                         @stack('status_td_inside_start')
-                        <span class="px-2.5 py-1 text-xs font-medium rounded-xl bg-{{ $item->status_label }} text-text-{{ $item->status_label }}">
-                            {{ trans($textDocumentStatus . $item->status) }}
-                        </span>
+                        <x-show.status status="{{ $item->status }}" background-color="bg-{{ $item->status_label }}" text-color="text-text-{{ $item->status_label }}" />
                         @stack('status_td_inside_end')
                     </x-table.td>
                 @endif
@@ -144,7 +142,7 @@
 
                     @stack('document_number_td_start')
                     @if (! $hideDocumentNumber)
-                    <x-slot name="second" class="w-20 font-normal group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class">
+                    <x-slot name="second" class="w-20 group" data-tooltip-target="tooltip-information-{{ $item->id }}" data-tooltip-placement="left" override="class">
                         @stack('document_number_td_inside_start')
                         <span class="border-black border-b border-dashed">
                             {{ $item->document_number }}
@@ -165,7 +163,7 @@
                 @if (! $hideAmount)
                 <x-table.td class="{{ $classAmount }}" kind="amount">
                     @stack('amount_td_inside_start')
-                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                    <x-money :amount="$item->amount" :currency="$item->currency_code" />
                     @stack('amount_td_inside_end')
                 </x-table.td>
 

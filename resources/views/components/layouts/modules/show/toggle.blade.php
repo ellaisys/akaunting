@@ -1,23 +1,31 @@
 <x-form>
-    <div class="lg:absolute lg:ltr:right-0 lg:rtl:left-0 top-4">
-        <label for="priceToggle" class="flex items-center cursor-pointer" x-on:click="price_type = ! price_type">
-            <div class="relative">
-                <input type="checkbox" id="priceToggle" class="sr-only" x-model="price_type">
+    <div>
+        <div class="relative" x-model="price_type">
+            <div class="w-58 flex items-center">
+                <button type="button"
+                    x-on:click="price_type = 'monthly'"
+                    class="w-18 flex justify-center text-base px-2 py-1 rounded-tl-lg rounded-bl-lg"
+                    x-bind:class="price_type == 'monthly' ? 'bg-black-700 text-white' : 'bg-gray-200 btn-outline-primary'"
+                >
+                    {{ trans('general.monthly') }}
+                </button>
 
-                <div class="bg-purple-300 w-24 h-7 rounded-full">
-                    <span id="apps-toggle-monthly" class="monthly-badge text-xs text-white float-left ml-3 mt-1.5" x-show="price_type == true">
-                        {{ trans('general.monthly') }}
-                    </span>
+                <button type="button"
+                    x-on:click="price_type = 'yearly'"
+                    class="w-18 flex justify-center text-base px-2 py-1 border-r border-l border-gray-300"
+                    x-bind:class="price_type == 'yearly' ? 'bg-black-700 text-white' : 'bg-gray-200 btn-outline-primary'"
+                >
+                    {{ trans('general.yearly') }}
+                </button>
 
-                    <span id="apps-toggle-yearly" class="yearly-badge text-xs text-white float-right mr-3 mt-1.5" x-show="price_type == false">
-                        {{ trans('general.yearly') }}
-                    </span>
-                </div>
-
-                <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition"
-                    x-bind:style="price_type == true ? 'transform: translateX(333%)' : '  transform: translateX(0) '"
-                ></div>
+                <button type="button"
+                    x-on:click="price_type = 'lifetime'"
+                    class="w-18 flex justify-center text-base px-2 py-1 rounded-tr-lg rounded-br-lg"
+                    x-bind:class="price_type == 'lifetime' ? 'bg-black-700 text-white' : 'bg-gray-200 btn-outline-primary'"
+                >
+                    {{ trans('general.lifetime') }}
+                </button>
             </div>
-        </label>
+        </div>
     </div>
 </x-form>

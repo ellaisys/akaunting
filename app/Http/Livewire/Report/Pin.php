@@ -13,7 +13,7 @@ class Pin extends Component
 
     public $pinned = false;
 
-    public $reportId = null;
+    public $report;
 
     public function render(): View
     {
@@ -38,7 +38,7 @@ class Pin extends Component
                         continue;
                     }
 
-                    if (in_array($this->reportId, $pins)) {
+                    if (in_array($this->report->id, $pins)) {
                         $this->pinned = true;
 
                         break;
@@ -81,7 +81,7 @@ class Pin extends Component
 
         setting(['favorites.report.' . user()->id => json_encode($pins)])->save();
 
-        $this->emit('addedPin');
+        $this->dispatch('addedPin');
     }
 
     public function removePin($report_id)
@@ -105,6 +105,6 @@ class Pin extends Component
 
         setting(['favorites.report.' . user()->id => json_encode($pins)])->save();
 
-        $this->emit('removedPin');
+        $this->dispatch('removedPin');
     }
 }

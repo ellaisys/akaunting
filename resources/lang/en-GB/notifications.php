@@ -6,9 +6,10 @@ return [
     'hello'               => 'Hello!',
     'salutation'          => 'Regards,<br> :company_name',
     'subcopy'             => 'If you’re having trouble clicking the ":text" button, copy and paste the URL below into your web browser: [:url](:url)',
-    'mark_read'           => 'Mark Read',
-    'mark_read_all'       => 'Mark Read All',
+    'mark_read'           => 'Mark as Read',
+    'mark_read_all'       => 'Mark as All Read',
     'empty'               => 'Woohoo, notification zero!',
+    'new_apps'            => ':app is available. <a href=":url">Check it out now</a>!',
 
     'update' => [
 
@@ -62,6 +63,17 @@ return [
 
     ],
 
+    'email' => [
+
+        'invalid' => [
+
+            'title'         => 'Invalid :type Email',
+            'description'   => 'The :email email address has been reported as invalid, and the person has been disabled. Please check the following error message and fix the email address:',
+
+        ],
+
+    ],
+
     'menu' => [
 
         'export_completed' => [
@@ -74,7 +86,7 @@ return [
         'export_failed' => [
 
             'title'         => 'Export failed',
-            'description'   => 'Not able to create the export file due to the following issue: :issues',
+            'description'   => 'Not able to create the export file due to several issues. Check out your email for the details.',
 
         ],
 
@@ -82,6 +94,13 @@ return [
 
             'title'         => 'Import completed',
             'description'   => 'Your <strong>:type</strong> lined <strong>:count</strong> data is imported successfully.',
+
+        ],
+
+        'import_failed' => [
+
+            'title'         => 'Import failed',
+            'description'   => 'Not able to import the file due to several issues. Check out your email for the details.',
 
         ],
 
@@ -169,6 +188,13 @@ return [
 
         ],
 
+        'invalid_email' => [
+
+            'title'         => 'Invalid :type Email',
+            'description'   => 'The <strong>:email</strong> email address has been reported as invalid, and the person has been disabled. Please check and fix the email address.',
+
+        ],
+
     ],
 
     'messages' => [
@@ -177,4 +203,16 @@ return [
         'mark_read_all'         => ':type is read all notifications!',
 
     ],
+
+    'browser' => [
+
+        'firefox' => [
+
+            'title' => 'Firefox Icon Configuration',
+            'description'  => '<span class="font-medium">If your icons not appear please;</span> <br /> <span class="font-medium">Please Allow pages to choose their own fonts, instead of your selections above</span> <br /><br /> <span class="font-bold"> Settings (Preferences) > Fonts > Advanced </span>',
+
+        ],
+
+    ],
+
 ];

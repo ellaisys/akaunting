@@ -10,8 +10,6 @@
 
 @stack('body_scripts')
 
-@livewireScripts
-
-<script src="{{ asset('public/vendor/alpinejs/alpine.min.js') }}"></script>
+<script type="text/javascript" src="{{ asset('vendor/livewire/livewire/dist/livewire.min.js') }}" defer></script>
 
 @stack('scripts_end')

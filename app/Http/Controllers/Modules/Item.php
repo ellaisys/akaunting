@@ -239,19 +239,33 @@ class Item extends Controller
         try {
             event(new \App\Events\Module\Installing($request['alias'], company_id()));
 
-            $this->dispatch(new InstallModule($request['alias'], company_id()));
+            $this->dispatch(new InstallModule($request['alias'], company_id(), setting('default.locale')));
 
             $name = module($request['alias'])->getName();
+            $module_routes = module_attribute($request['alias'], 'routes', []);
 
             $message = trans('modules.installed', ['module' => $name]);
 
             flash($message)->success();
 
+            $redirect = route('apps.app.show', $request['alias']);
+
+            // Get module.json redirect route
+            if (! empty($module_routes['redirect_after_install'])) {
+                if (is_array($module_routes['redirect_after_install'])) {
+                    $route = array_shift($module_routes['redirect_after_install']);
+
+                    $redirect = route($route, $module_routes['redirect_after_install']);
+                } else {
+                    $redirect = route($module_routes['redirect_after_install']);
+                }
+            }
+
             $json = [
                 'success' => true,
                 'error' => false,
                 'message' => null,
-                'redirect' => route('apps.app.show', $request['alias']),
+                'redirect' => $redirect,
                 'data' => [
                     'name' => $name,
                     'alias' => $request['alias'],
@@ -276,9 +290,9 @@ class Item extends Controller
     public function uninstall($alias)
     {
         try {
-            $this->dispatch(new UninstallModule($alias, company_id()));
-
             $name = module($alias)->getName();
+
+            $this->dispatch(new UninstallModule($alias, company_id(), setting('default.locale')));
 
             $message = trans('modules.uninstalled', ['module' => $name]);
 
@@ -295,9 +309,9 @@ class Item extends Controller
     public function enable($alias)
     {
         try {
-            $this->dispatch(new EnableModule($alias, company_id()));
-            
             $name = module($alias)->getName();
+
+            $this->dispatch(new EnableModule($alias, company_id(), setting('default.locale')));
 
             $message = trans('modules.enabled', ['module' => $name]);
 
@@ -314,9 +328,9 @@ class Item extends Controller
     public function disable($alias)
     {
         try {
-            $this->dispatch(new DisableModule($alias, company_id()));
-
             $name = module($alias)->getName();
+
+            $this->dispatch(new DisableModule($alias, company_id(), setting('default.locale')));
 
             $message = trans('modules.disabled', ['module' => $name]);
 

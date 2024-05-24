@@ -22,6 +22,7 @@ return [
         'extension'         => 'L\'extension :extension doit être installée et chargée !',
         'directory'         => ':directory doit être accessible en écriture !',
         'executable'        => 'Le fichier exécutable PHP CLI n\'est pas défini, ou sa version n\'est pas :php_version ou supérieure! Veuillez demander à votre hébergeur de définir correctement la variable d\'environnement PHP_BINARY ou PHP_PATH.',
+        'npm'               => '<b>Il manque certains fichiers JavaScript !</b> <br><br><span>Vous devez lancer les commandes <em class="underline">npm install</em> puis <em class="underline">npm run dev</em></span>', 
     ],
 
     'database' => [
@@ -44,7 +45,7 @@ return [
     ],
 
     'update' => [
-        'core'              => 'La nouvelle version de Akaunting est disponible ! Veuillez mettre à jour votre installation.',
-        'module'            => 'La nouvelle version de :module est disponible! Veuillez mettre à jour votre installation.',
+        'core'              => 'La nouvelle version de Akaunting est disponible ! Veuillez mettre à jour <a href=":url">votre installation.</a>',
+        'module'            => 'La nouvelle version de :module est disponible ! Veuillez mettre à jour  <a href=":url">votre installation.</a>',
     ],
 ];

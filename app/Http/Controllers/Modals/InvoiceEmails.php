@@ -7,9 +7,13 @@ use App\Models\Document\Document;
 use App\Notifications\Sale\Invoice as Notification;
 use App\Jobs\Document\SendDocumentAsCustomMail;
 use App\Http\Requests\Common\CustomMail as Request;
+use Illuminate\Http\JsonResponse;
+use App\Traits\Emails;
 
 class InvoiceEmails extends Controller
 {
+    use Emails;
+
     /**
      * Instantiate a new controller instance.
      */
@@ -22,20 +26,15 @@ class InvoiceEmails extends Controller
         $this->middleware('permission:delete-sales-invoices')->only('destroy');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @param  Document  $invoice
-     *
-     * @return Response
-     */
-    public function create(Document $invoice)
+    public function create(Document $invoice): JsonResponse
     {
+        $contacts = $invoice->contact->withPersons();
+
         $notification = new Notification($invoice, 'invoice_new_customer', true);
 
         $store_route = 'modals.invoices.emails.store';
 
-        $html = view('modals.invoices.email', compact('invoice', 'notification', 'store_route'))->render();
+        $html = view('modals.invoices.email', compact('invoice', 'contacts', 'notification', 'store_route'))->render();
 
         return response()->json([
             'success' => true,
@@ -58,16 +57,9 @@ class InvoiceEmails extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param Request $request
-     *
-     * @return Response
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $response = $this->ajaxDispatch(new SendDocumentAsCustomMail($request, 'invoice_new_customer'));
+        $response = $this->sendEmail(new SendDocumentAsCustomMail($request, 'invoice_new_customer'));
 
         if ($response['success']) {
             $invoice = Document::find($request->get('document_id'));

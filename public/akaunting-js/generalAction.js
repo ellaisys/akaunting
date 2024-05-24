@@ -11,7 +11,7 @@ document.querySelectorAll("[data-table-list]").forEach((row) => {
 
 //redirect edit or show page for table row click
 document.querySelectorAll("[data-table-body]").forEach((table) => {
-    if (document.body.clientWidth >= 991) {
+    if (document.body.clientWidth < 768 || document.body.clientWidth > 1200) {
         let rows = table.querySelectorAll("tr");
 
         rows.forEach((row) => {
@@ -27,10 +27,44 @@ document.querySelectorAll("[data-table-body]").forEach((table) => {
             if (row_href) {
                 for (let i = first_selector; i < td.length - 1; i++) {
                     let td_item = td[i];
-                    td_item.addEventListener("click", () => {
+
+                    td_item.addEventListener("click", (event) => {
+                        if (document.body.clientWidth < 768 && event.target.closest('[overflow-x-hidden]')) {
+                            return;
+                        }
+                        // click disabled when preview dialog is open
+                        if (event.target.closest('[data-tooltip-target]')) {
+                            return;
+                        }
+                        // click disabled when preview dialog is open
                         window.location.href = row_href;
                     });
+
+                    // added target blank for click mouse middle button
+                    td_item.addEventListener('mousedown', (event) => {
+                        if (event.button == 1 || event.buttons == 4) {
+                            window.open(row_href, "_blank");
+                        }
+                     });
+                     // added target blank for click mouse middle button
                 }
+            }
+        });
+    }
+
+    if (document.body.clientWidth <= 768) {
+        table.querySelectorAll('[data-table-list]').forEach((actions) => {
+            let actions_html = actions.querySelector('[data-mobile-actions]');
+            if (actions_html) {
+                actions_html.addEventListener('click', function() {
+                    this.closest('td').querySelector('[data-mobile-actions-modal]').classList.add('show');
+                    this.closest('td').querySelector('[data-mobile-actions-modal]').classList.remove('opacity-0', 'invisible');
+            
+                    this.closest('td').querySelector('[data-mobile-actions-modal]').addEventListener('click', function() {
+                        this.classList.add('opacity-0', 'invisible');
+                        this.classList.remove('show');
+                    });
+                });
             }
         });
     }
@@ -91,7 +125,7 @@ function expandSub(key, event) {
 //collapse accordion
 
 // run dropdown and tooltip functions for Virtual DOM
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {    
     const triggers = [
         { event: "mouseover", checker: isHoverable },
         { event: "mouseout", checker: isHoverable },
@@ -157,37 +191,40 @@ function runDropdown(dropdownToggleEl) {
         ],
     }); // toggle when click on the button
 
-    dropdownMenuEl.classList.toggle("hidden");
-    dropdownMenuEl.classList.toggle("block");
+    if (dropdownMenuEl !== null) {
+        dropdownMenuEl.classList.toggle("hidden");
+        dropdownMenuEl.classList.toggle("block");
 
-    function handleDropdownOutsideClick(event) {
-        var targetElement = event.target; // clicked element
-
-        if (
-            targetElement !== dropdownMenuEl &&
-            targetElement !== dropdownToggleEl &&
-            !dropdownToggleEl.contains(targetElement)
-        ) {
-            dropdownMenuEl.classList.add("hidden");
-            dropdownMenuEl.classList.remove("block");
-            document.body.removeEventListener(
-                "click",
-                handleDropdownOutsideClick,
-                true
-            );
+        function handleDropdownOutsideClick(event) {
+            var targetElement = event.target; // clicked element
+    
+            if (
+                targetElement !== dropdownMenuEl &&
+                targetElement !== dropdownToggleEl &&
+                !dropdownToggleEl.contains(targetElement)
+            ) {
+                dropdownMenuEl.classList.add("hidden");
+                dropdownMenuEl.classList.remove("block");
+                document.body.removeEventListener(
+                    "click",
+                    handleDropdownOutsideClick,
+                    true
+                );
+            }
+        } // hide popper when clicking outside the element
+    
+        document.body.addEventListener("click", handleDropdownOutsideClick, true);
+    
+        if (dropdownMenuEl.getAttribute("data-click-outside-none") != null) {
+            if (event.target.getAttribute("data-click-outside") != null || event.target.parentElement.getAttribute("data-click-outside") != null) {
+                dropdownMenuEl.classList.add("hidden");
+                dropdownMenuEl.classList.remove("block");
+                return;
+            }
+            
+            dropdownMenuEl.classList.add("block");
+            dropdownMenuEl.classList.remove("hidden");
         }
-    } // hide popper when clicking outside the element
-
-    document.body.addEventListener("click", handleDropdownOutsideClick, true);
-
-    if (dropdownMenuEl.getAttribute("data-click-outside-none") != null) {
-        if (event.target.getAttribute("data-click-outside") != null || event.target.parentElement.getAttribute("data-click-outside") != null) {
-            dropdownMenuEl.classList.add("hidden");
-            dropdownMenuEl.classList.remove("block");
-            return;
-        }
-        dropdownMenuEl.classList.add("block");
-        dropdownMenuEl.classList.remove("hidden");
     }
 }
 // Toggle dropdown elements using [data-dropdown-toggle]
@@ -213,42 +250,51 @@ function runTooltip(tooltipToggleEl) {
 
     function show() {
         // Make the tooltip visible
-        tooltipEl.classList.remove("opacity-0");
-        tooltipEl.classList.add("opacity-100");
-        tooltipEl.classList.remove("invisible");
-        tooltipEl.classList.add("visible"); // Enable the event listeners
+        if (tooltipEl !== null) {
+            if (tooltipEl.classList.contains("opacity-0", "invisible")) {
+                tooltipEl.classList.remove("opacity-0", "invisible");
+            } else {
+                tooltipEl.classList.add("opacity-100", "visible");
+            }
 
-        popperInstance.setOptions((options) => ({
-            ...options,
-            modifiers: [
-                ...options.modifiers,
-                {
-                    name: "eventListeners",
-                    enabled: true,
-                },
-            ],
-        })); // Update its position
+             // Enable the event listeners
 
-        popperInstance.update();
+            popperInstance.setOptions((options) => ({
+                ...options,
+                modifiers: [
+                    ...options.modifiers,
+                    {
+                        name: "eventListeners",
+                        enabled: true,
+                    },
+                ],
+            })); // Update its position
+
+            popperInstance.update();
+        }
     }
 
     function hide() {
-        // Hide the tooltip
-        tooltipEl.classList.remove("opacity-100");
-        tooltipEl.classList.add("opacity-0");
-        tooltipEl.classList.remove("visible");
-        tooltipEl.classList.add("invisible"); // Disable the event listeners
+        if (tooltipEl !== null) {
+            // Hide the tooltip
+            if (tooltipEl.classList.contains("opacity-100", "visible")) {
+                tooltipEl.classList.remove("opacity-100", "visible");
+            } else {
+                tooltipEl.classList.add("opacity-0", "invisible");
+            }
+            // Disable the event listeners
 
-        popperInstance.setOptions((options) => ({
-            ...options,
-            modifiers: [
-                ...options.modifiers,
-                {
-                    name: "eventListeners",
-                    enabled: false,
-                },
-            ],
-        }));
+            popperInstance.setOptions((options) => ({
+                ...options,
+                modifiers: [
+                    ...options.modifiers,
+                    {
+                        name: "eventListeners",
+                        enabled: false,
+                    },
+                ],
+            }));
+        }
     }
 
     var showEvents = [];
@@ -291,3 +337,154 @@ function OnInput() {
   this.style.height = (this.scrollHeight) + 'px';
 }
 //Auto Height for Textarea
+
+//Loading scenario for href links
+document.querySelectorAll('[data-link-loading]').forEach((href) => {
+    let target_link_html = href.parentElement;
+    target_link_html.classList.add('relative');
+
+    target_link_html.addEventListener('click', function () {
+        this.classList.add('disabled-link');
+
+        this.querySelector('[data-link-spin]').classList.remove('hidden');
+        this.querySelector('[data-link-text]').classList.add('opacity-0');
+        this.querySelector('[data-link-text]').classList.remove('opacity-1');
+    });
+});
+//Loading scenario for href links
+
+//margue animation for truncated text
+function marqueeAnimation(truncate) {
+    if (truncate.closest('[disable-marquee]') !== null) {
+        truncate.parentElement.classList.add('truncate');
+        truncate.closest('[disable-marquee]').setAttribute('disable-marquee', 'data-disable-marquee');
+        return;
+    }
+    // offsetwidth = width of the text, clientWidth = width of parent text (div)
+    // because some index page has icons, we use two time parent element
+
+    if (truncate.children.length < 1 && truncate.offsetWidth > truncate.parentElement.clientWidth || truncate.offsetWidth > truncate.parentElement.parentElement.parentElement.clientWidth) {
+        truncate.addEventListener('mouseover', function () {
+            truncate.parentElement.style.animationPlayState = 'running';
+
+            if (truncate.offsetWidth > 400 && truncate.parentElement.clientWidth < 150) {
+                truncate.parentElement.classList.remove('animate-marquee');
+                truncate.parentElement.classList.add('animate-marquee_long');
+            } else {
+                truncate.parentElement.classList.remove('animate-marquee_long');
+                truncate.parentElement.classList.add('animate-marquee');
+            }
+    
+            if (truncate.parentElement.classList.contains('truncate')) {
+                truncate.parentElement.classList.remove('truncate');
+            }
+        });
+    
+        truncate.addEventListener('mouseout', function () {
+            truncate.parentElement.style.animationPlayState = 'paused';
+            truncate.parentElement.classList.remove('animate-marquee');
+            truncate.parentElement.classList.remove('animate-marquee_long');
+            truncate.parentElement.classList.add('truncate');
+        });
+
+        truncate.classList.add('truncate');
+
+        // if truncate has truncate class, text marquee animate doesn't pretty work
+        if (truncate.querySelector('.truncate') !== null && truncate.querySelector('.truncate').classList.contains('truncate')) {
+            let old_element = truncate.querySelector('.truncate');
+            let parent = old_element.parentNode;
+            
+            let new_element = document.createElement('span');
+            new_element.innerHTML = old_element.innerHTML;
+            new_element.classList = old_element.classList;
+
+            parent.replaceChild(new_element, old_element);
+        }
+        // if truncate has truncate class, text marquee animate doesn't pretty work
+        
+        // There needs to be two div for disable/enable icons. If I don't create this div, animation will work with disable/enable icons.-->
+        let animate_element = document.createElement('div');
+        animate_element.classList.add('truncate');
+        truncate.parentElement.append(animate_element);
+        animate_element.append(truncate);
+        // There needs to be two div for disable/enable icons. If I don't create this div, animation will work with disable/enable icons.-->
+
+        //there is overflow class for the animation does not overflow the width
+        truncate.parentElement.parentElement.classList.add('overflow-x-hidden');
+        truncate.parentElement.parentElement.setAttribute('overflow-x-hidden', true);
+    }
+}
+
+document.querySelectorAll('[data-truncate-marquee]').forEach((truncate) => {
+    marqueeAnimation(truncate);
+});
+
+//disable/enable icons ejected from data-truncate-marquee, HTML of icons ejected from parent element (data-truncate-marquee)
+document.querySelectorAll('[data-index-icon]').forEach((defaultText) => {
+    if (defaultText.closest('[data-table-list]')) {
+        let icon_parents_element = defaultText.parentElement.parentElement.parentElement;
+    
+        if (icon_parents_element.classList.contains('flex')) {
+            icon_parents_element.appendChild(defaultText);
+            icon_parents_element.classList.remove('truncate');
+        } else {
+            if (icon_parents_element.classList.contains('overflow-x-hidden')) {
+                icon_parents_element.parentElement.appendChild(defaultText);
+            } else {
+                defaultText.parentElement.appendChild(defaultText);
+            }
+        }
+    }
+});
+//disable/enable icons ejected from data-truncate-marquee
+
+//margue animation for truncated text
+
+// set with for page header
+document.querySelectorAll('[data-page-title-first]').forEach((first) => {
+    document.querySelectorAll('[data-page-title-second]').forEach((second) => {
+        let title_truncate = first.querySelector('[data-title-truncate]');
+
+        if (title_truncate !== null) {
+            //added for equalize h1 width and parent element width. Because parent element has -ml-0.5 so didn't equalize
+            first.querySelector('h1').classList.add('mr-0.5');
+            //added for equalize h1 width and parent element width. Because parent element has -ml-0.5 so didn't equalize
+            
+            if (first.clientWidth < title_truncate.clientWidth && second.clientHeight > 0) {
+                // added specific width styling for truncate text
+                title_truncate.style.width = first.clientWidth + 'px';
+                let subtract = title_truncate.clientWidth - 40;
+                title_truncate.style.width = subtract + 'px';
+                title_truncate.classList.add('truncate');
+                // added specific width styling for truncate text
+    
+                // added specific width styling into the parent title element for truncate text
+                first.classList.add('w-full', 'sm:w-6/12');
+                // added specific width styling into the parent title element for truncate text
+    
+                title_truncate.parentNode.classList.add('overflow-x-hidden', 'hide-scroll-bar');
+        
+                // added truncate animation for truncated text
+                title_truncate.addEventListener('mouseover', function () {
+                    this.classList.add('animate-marquee');
+                    this.classList.remove('truncate');
+                    this.style.animationPlayState = 'running';
+                });
+        
+                title_truncate.addEventListener('mouseout', function () {
+                    this.style.animationPlayState = 'paused';
+                    this.classList.remove('animate-marquee');
+                    this.classList.add('truncate');
+                });
+                // added truncate animation for truncated text
+
+                first.querySelector('h1').classList.remove('mr-0.5');
+            }
+        }
+
+        // remove width class name for extend the right side
+        first.classList.remove('w-full', 'sm:w-6/12');
+        // remove width class name for extend the right side
+    });
+});
+// set with for page header

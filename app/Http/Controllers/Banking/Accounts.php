@@ -10,9 +10,9 @@ use App\Jobs\Banking\UpdateAccount;
 use App\Models\Banking\Account;
 use App\Models\Banking\Transaction;
 use App\Models\Banking\Transfer;
-use App\Utilities\Reports as Utility;
+use App\Utilities\Date;
+use App\Utilities\Reports;
 use App\Models\Setting\Currency;
-use Date;
 
 class Accounts extends Controller
 {
@@ -35,23 +35,27 @@ class Accounts extends Controller
      */
     public function show(Account $account)
     {
-        // Handle transactions
-        $transactions = Transaction::with('account', 'category')->where('account_id', $account->id)->collect('paid_at');
+        $transactions = Transaction::with('category', 'contact', 'contact.media', 'document', 'document.totals', 'document.media', 'recurring', 'media')->where('account_id', $account->id)->collect(['paid_at'=> 'desc']);
 
-        $transfers = Transfer::with('expense_transaction', 'income_transaction')->get()->filter(function ($transfer) use($account) {
-            if ($transfer->expense_account->id == $account->id || $transfer->income_account->id == $account->id) {
-                return true;
-            }
+        $transfers = Transfer::with('expense_transaction', 'expense_transaction.account', 'income_transaction', 'income_transaction.account')
+                                ->whereHas('expense_transaction', fn ($query) => $query->where('account_id', $account->id))
+                                ->orWhereHas('income_transaction', fn ($query) => $query->where('account_id', $account->id))
+                                ->collect(['expense_transaction.paid_at' => 'desc']);
 
-            return false;
-        })->sortByDesc(function ($transfer) {
-            return $transfer->expense_transaction->paid_at;
-        });
+        $incoming_amount = money($account->income_balance, $account->currency_code);
+        $outgoing_amount = money($account->expense_balance, $account->currency_code);
+        $current_amount = money($account->balance, $account->currency_code);
 
-        $limit = (int) request('limit', setting('default.list_limit', '25'));
-        $transfers = $this->paginate($transfers, $limit);
+        $summary_amounts = [
+            'incoming_exact'        => $incoming_amount->format(),
+            'incoming_for_humans'   => $incoming_amount->formatForHumans(),
+            'outgoing_exact'        => $outgoing_amount->format(),
+            'outgoing_for_humans'   => $outgoing_amount->formatForHumans(),
+            'current_exact'         => $current_amount->format(),
+            'current_for_humans'    => $current_amount->formatForHumans(),
+        ];
 
-        return view('banking.accounts.show', compact('account', 'transactions', 'transfers'));
+        return view('banking.accounts.show', compact('account', 'transactions', 'transfers', 'summary_amounts'));
     }
 
     /**
@@ -61,7 +65,7 @@ class Accounts extends Controller
      */
     public function create()
     {
-        $currency = Currency::where('code', '=', setting('default.currency'))->first();
+        $currency = Currency::where('code', '=', default_currency())->first();
 
         return view('banking.accounts.create', compact('currency'));
     }
@@ -80,7 +84,7 @@ class Accounts extends Controller
         if ($response['success']) {
             $response['redirect'] = route('accounts.show', $response['data']->id);
 
-            $message = trans('messages.success.added', ['type' => trans_choice('general.accounts', 1)]);
+            $message = trans('messages.success.created', ['type' => trans_choice('general.accounts', 1)]);
 
             flash($message)->success();
         } else {
@@ -248,7 +252,7 @@ class Accounts extends Controller
             'account_id'    => $account->id,
         ];
 
-        $report = Utility::getClassInstance('App\Reports\IncomeExpenseSummary');
+        $report = Reports::getClassInstance('App\Reports\IncomeExpenseSummary');
 
         if (empty($report) || empty($report->model)) {
             $message = trans('accounts.create_report');
@@ -275,7 +279,7 @@ class Accounts extends Controller
             return response()->json([]);
         }
 
-        $currency_code = setting('default.currency');
+        $currency_code = default_currency();
 
         if (isset($account->currency_code)) {
             $currencies = Currency::enabled()->pluck('name', 'code')->toArray();

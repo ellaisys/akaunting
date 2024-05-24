@@ -28,11 +28,12 @@ return [
     'yearly_pricing'        => 'Preu anual',
     'monthly_price'         => 'des de :price',
     'per_month'             => 'al mes',
-    'billed_yearly'         => 'Facturat anualment',
+    'once'                  => 'una vegada',
     'billed_monthly'        => 'Facturat mensualment',
+    'billed_yearly'         => 'Facturat anualment',
+    'billed_once'           => 'Facturat una vegada',
     'save_year'             => 'T\'estalvies <strong>:price</strong> a l\'any!',
     'if_paid_year'          => 'O <strong>:price/mes</strong> si pagues anualment',
-    'information_monthly'   => 'Aquesta opció només està disponible per al <strong>Cloud Service</strong>',
     'install'               => 'Instal·la',
     'buy_now'               => 'Compra ara',
     'get_api_key'           => '<a href=":url" target="_blank">Prem aquí</a> per obtenir la teva clau de l\'API.',
@@ -43,6 +44,16 @@ return [
     'apps_managing'         => 'Comprova les aplicacions més actuals i comença a gestionar les finances de manera professional avui mateix.',
     'ready'                 => 'Llest',
     'popular_this_week'     => 'Popular aquesta setmana',
+    'install_cloud'         => 'Utilitza Serveis al Núvol',
+    'get_cloud'             => 'Serveis al Núvol',
+    'get_premium_cloud'     => 'Fes-te prèmium ara',
+    'switch_to_cloud'       => 'Canvia al Núvol',
+    'hosted_on_akaunting'   => 'Allotjat a akaunting.com',
+    'information_on_preme'  => 'L\'opció :period només està disponible a <a href=":url" target="_blank" class="to-black-400 hover:bg-full-2 bg-no-repeat bg-0-2 bg-0-full bg-gradient-to-b from-transparent transition-backgroundSize">per al <strong>Cloud.</strong>',
+    'information_monthly'   => 'Aquesta opció només està disponible per al <strong>Cloud Service</strong>',
+    'only_works_cloud'      => 'Aquesta opció només està disponible per al <strong>Cloud Service</strong> (Servei al Núvol).',
+    'only_premium_plan'     => 'Aquesta opció només està disponible per al <strong>servei Prèmium</strong> (Cloud Premium Service).',
+    'not_found'             => 'No s\'ha trobat cap App',
 
     'about'                 => 'Sobre',
 
@@ -92,6 +103,10 @@ return [
         'unzip'             => 'No s\'ha pogut descomprimir :module',
         'file_copy'         => 'No s\'ha pogut copiar els fitxers de :module',
         'finish'            => 'No s\'ha pogut acabar la instal·lació de :module',
+    ],
+
+    'warning' => [
+        'latest_version'    => 'Ja tens l\'última versió del mòdul :module. No hi ha cap actualització pendent.',
     ],
 
     'badge' => [

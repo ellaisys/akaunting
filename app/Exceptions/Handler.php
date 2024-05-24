@@ -2,6 +2,8 @@
 
 namespace App\Exceptions;
 
+use Akaunting\Money\Exceptions\UnexpectedAmountException;
+use App\Events\Email\InvalidEmailDetected;
 use App\Exceptions\Http\Resource as ResourceException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -10,31 +12,57 @@ use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\ViewException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Mailer\Exception\HttpTransportException as MailerHttpTransportException;
 use Throwable;
 
 class Handler extends ExceptionHandler
 {
     /**
+     * A list of exception types with their corresponding custom log levels.
+     *
+     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
+     */
+    protected $levels = [
+        //
+    ];
+
+    /**
      * A list of the exception types that are not reported.
      *
-     * @var array
+     * @var array<int, class-string<\Throwable>>
      */
     protected $dontReport = [
         //
     ];
 
     /**
-     * A list of the inputs that are never flashed for validation exceptions.
+     * A list of the inputs that are never flashed to the session on validation exceptions.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $dontFlash = [
+        'current_password',
         'password',
         'password_confirmation',
     ];
+
+    /**
+     * Register the exception handling callbacks for the application.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->reportable(function (Throwable $e) {
+            if (config('logging.default') == 'bugsnag') {
+                call_user_func(config('bugsnag.before_send'), $e);
+            }
+        });
+    }
 
     /**
      * Report or log an exception.
@@ -46,6 +74,14 @@ class Handler extends ExceptionHandler
      */
     public function report(Throwable $exception)
     {
+        if ($exception instanceof MailerHttpTransportException) {
+            $email = $this->handleMailerExceptions($exception);
+
+            if (! empty($email)) {
+                return;
+            }
+        }
+
         parent::report($exception);
     }
 
@@ -60,7 +96,7 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        if ($request->isApi()) {
+        if (request_is_api($request)) {
             return $this->handleApiExceptions($request, $exception);
         }
 
@@ -95,7 +131,9 @@ class Handler extends ExceptionHandler
         if ($exception instanceof NotFoundHttpException) {
             // ajax 404 json feedback
             if ($request->ajax()) {
-                return response()->json(['error' => 'Not Found'], 404);
+                return response()->json([
+                    'error' => trans('errors.header.404'),
+                ], 404);
             }
 
             flash(trans('errors.body.page_not_found'))->error()->important();
@@ -109,7 +147,9 @@ class Handler extends ExceptionHandler
         if ($exception instanceof ModelNotFoundException) {
             // ajax 404 json feedback
             if ($request->ajax()) {
-                return response()->json(['error' => 'Not Found'], 404);
+                return response()->json([
+                    'error' => trans('errors.header.404'),
+                ], 404);
             }
 
             try {
@@ -130,7 +170,9 @@ class Handler extends ExceptionHandler
         if ($exception instanceof FatalThrowableError) {
             // ajax 500 json feedback
             if ($request->ajax()) {
-                return response()->json(['error' => 'Error Page'], 500);
+                return response()->json([
+                    'error' => trans('errors.header.500'),
+                ], 500);
             }
 
             // normal 500 view page feedback
@@ -140,7 +182,43 @@ class Handler extends ExceptionHandler
         if ($exception instanceof ThrottleRequestsException) {
             // ajax 500 json feedback
             if ($request->ajax()) {
-                return response()->json(['error' => $exception->getMessage()], 429);
+                return response()->json([
+                    'error' => $exception->getMessage(),
+                ], 429);
+            }
+        }
+
+        if ($exception instanceof ViewException) {
+            $real_exception = $this->getRealException($exception, ViewException::class);
+
+            if ($real_exception instanceof UnexpectedAmountException) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'error' => trans('errors.message.amount'),
+                    ], 500);
+                }
+
+                return response()->view('errors.500', [
+                    'message' => trans('errors.message.amount'),
+                ], 500);
+            }
+        }
+
+        if ($exception instanceof MailerHttpTransportException) {
+            $email = $this->handleMailerExceptions($exception);
+
+            if (! empty($email)) {
+                $message = trans('notifications.menu.invalid_email.description', ['email' => $email]);
+
+                if ($request->ajax()) {
+                    return response()->json([
+                        'error' => $message,
+                    ], $exception->getCode());
+                }
+
+                return response()->view('errors.403', [
+                    'message' => $message,
+                ], $exception->getCode());
             }
         }
 
@@ -162,6 +240,28 @@ class Handler extends ExceptionHandler
         $response = $this->recursivelyRemoveEmptyApiReplacements($response);
 
         return new Response($response, $this->getStatusCode($exception), $this->getHeaders($exception));
+    }
+
+    protected function handleMailerExceptions(MailerHttpTransportException $exception): string
+    {
+        /**
+         * Couldn't access the SentMessage object to get the email address
+         * https://symfony.com/doc/current/mailer.html#debugging-emails
+         *
+         * https://codespeedy.com/extract-email-addresses-from-a-string-in-php
+         * https://phpliveregex.com/p/IMG
+         */
+        preg_match("/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}/", $exception->getMessage(), $matches);
+
+        if (empty($matches[0])) {
+            return '';
+        }
+
+        $email = $matches[0];
+
+        event(new InvalidEmailDetected($email, $exception->getMessage()));
+
+        return $email;
     }
 
     /**
@@ -273,15 +373,25 @@ class Handler extends ExceptionHandler
 
     /**
      * Get the headers from the exception.
-     *
-     * @param Throwable $exception
-     *
-     * @return array
      */
     protected function getHeaders(Throwable $exception): array
     {
         return ($exception instanceof HttpExceptionInterface)
                 ? $exception->getHeaders()
                 : [];
+    }
+
+    /**
+     * Get the real exception.
+     */
+    protected function getRealException(Throwable $exception, string $current): Throwable
+    {
+        $previous = $exception->getPrevious() ?? $exception;
+
+        while (($previous instanceof $current) && $previous->getPrevious()) {
+            $previous = $previous->getPrevious();
+        }
+
+        return $previous;
     }
 }

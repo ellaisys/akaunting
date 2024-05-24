@@ -3,17 +3,28 @@
 namespace Database\Factories;
 
 use App\Abstracts\Factory;
-use App\Models\Auth\User as Model;
 use Illuminate\Support\Str;
 
 class User extends Factory
 {
     /**
+    * The name of the factory's corresponding model.
+    *
+    * @var string
+    */
+    protected $model = false;
+
+    /**
      * The name of the factory's corresponding model.
      *
      * @var string
      */
-    protected $model = Model::class;
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->model = user_model_class();
+    }
 
     /**
      * Define the model's default state.
@@ -34,6 +45,7 @@ class User extends Factory
             'companies' => ['1'],
             'roles' => '1',
             'enabled' => $this->faker->boolean ? 1 : 0,
+            'landing_page' => 'dashboard',
             'created_from' => 'core::factory',
         ];
     }

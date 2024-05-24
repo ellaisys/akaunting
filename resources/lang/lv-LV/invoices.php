@@ -42,7 +42,7 @@ return [
     'send_invoice'          => 'Sūtīt rēķinu',
     'get_paid'              => 'Saņemt apmaksu',
     'accept_payments'       => 'Pieņemt tiešsaistes maksājumus',
-    'payment_received'      => 'Saņemts maksājums',
+    'payments_received'     => 'Saņemtie maksājumi',
 
     'form_description' => [
         'billing'           => 'Norēķinu informācija tiek parādīta jūsu rēķinā. Informācijas panelī un pārskatos tiek izmantots rēķina datums. Kā Apmaksas datumu atlasiet datumu, kurā plānojat veikt maksājumu.',
@@ -79,7 +79,7 @@ return [
     ],
 
     'sticky' => [
-        'description' => 'Jūsu priekšskatījums, kā jūsu klients redzēs jūsu rēķina tīmekļa versiju.',
+        'description'       => 'Jūsu priekšskatījums, kā jūsu klients redzēs jūsu rēķina tīmekļa versiju.',
     ],
 
 ];

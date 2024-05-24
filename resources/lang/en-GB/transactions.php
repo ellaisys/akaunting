@@ -10,12 +10,14 @@ return [
     'related_bill'          => 'Related Bill',
     'recurring_income'      => 'Recurring Income',
     'recurring_expense'     => 'Recurring Expense',
+    'included_tax'          => 'Included tax amount',
+    'connected'             => 'Connected',
 
     'form_description' => [
         'general'           => 'Here you can enter the general information of transaction such as date, amount, account, description, etc.',
         'assign_income'     => 'Select a category and customer to make your reports more detailed.',
         'assign_expense'    => 'Select a category and vendor to make your reports more detailed.',
-        'other'             => 'Enter a reference to keep the transaction linked to your records.',
+        'other'             => 'Enter a number and reference to keep the transaction linked to your records.',
     ],
 
     'slider' => [
@@ -24,6 +26,9 @@ return [
         'create_recurring'  => ':user created this recurring template on :date',
         'schedule'          => 'Repeat every :interval :frequency since :date',
         'children'          => ':count transactions were created automatically',
+        'connect'           => 'This transaction is connected to :count transactions',
+        'transfer_headline' => '<div> <span class="font-bold"> From: </span> :from_account </div> <div> <span class="font-bold"> to: </span> :to_account </div>',
+        'transfer_desc'     => 'Transfer created on :date.',
     ],
 
     'share' => [

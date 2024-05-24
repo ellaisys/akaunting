@@ -106,6 +106,7 @@ const app = new Vue({
                     }
 
                     this.sale_information = true;
+                    this.form.sale_price = '';
                 } else {
                     if (! this.form.sale_information) {
                         this.sale_information = false;
@@ -113,14 +114,9 @@ const app = new Vue({
                     }
 
                     this.purchase_information = true;
+                    this.form.purchase_price = '';
                 }
             }
         },
-
-        onType(event) {
-            return;
-
-            this.form.type = type;
-        }
     }
 });

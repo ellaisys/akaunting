@@ -2,6 +2,7 @@
     <base-input :label="title" :name="name"
         :readonly="readonly"
         :disabled="disabled"
+        :not-required="notRequired"
         :class="[
             {'readonly': readonly},
             {'disabled': disabled},
@@ -9,9 +10,9 @@
         ]"
         :error="formError">
         <div class="flex justify-between relative mt-1">
-            <input type="text" @change="change" :name="name" :id="name" v-model="color" @keyup="addColor" class="form-element">
+            <input type="text" @change="change" :name="name" :id="name" v-model="color" @keyup="addColor" class="w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple">
 
-            <div class="absolute w-7 h-7 flex rounded-full my-auto bottom-2 right-2 cursor-pointer"
+            <div class="absolute w-7 h-7 flex rounded-full my-auto bottom-2 ltr:right-2 rtl:left-2 cursor-pointer"
                 ref="dropdownMenu"
                 @click="openPalette"
                 :class="`bg-${color}`"
@@ -105,6 +106,11 @@ export default {
             description: "Selectbox disabled status"
         },
 
+        notRequired: {
+            type: Boolean,
+            default: false
+        },
+
         small: {
             type: [Boolean, String],
             default: false,
@@ -183,8 +189,10 @@ export default {
             let el = this.$refs.dropdownMenu;
             let target = event.target;
 
-            if (el !== target && ! el.contains(target)) {
-                this.isOpen = false;
+            if (typeof el != "undefined") {
+                if (el !== target && ! el.contains(target)) {
+                    this.isOpen = false;
+                }
             }
         },
     },

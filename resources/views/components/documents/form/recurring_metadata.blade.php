@@ -1,8 +1,8 @@
 <div class="grid sm:grid-cols-7 sm:col-span-6 gap-x-8 gap-y-6 my-3.5">
-    <div class="sm:col-span-2 required">
-        <label for="contact" class="form-control-label">
+    <div class="sm:col-span-2">
+        <x-form.label for="contact" required>
             {{ trans_choice($textContact, 1) }}
-        </label>
+        </x-form.label>
 
         <x-documents.form.contact
             type="{{ $typeContact }}"
@@ -25,14 +25,14 @@
         @stack('issue_start')
 
         @if (! $hideIssuedAt)
-        <div class="form-group form-group relative sm:col-span-3">
-            <label class="form-control-label">
+        <div class="relative sm:col-span-3">
+            <x-form.label>
                 {{ trans($textIssuedAt) }}
-            </label>
+            </x-form.label>
 
             <x-tooltip id="tooltip-issued" placement="bottom" message="{{ trans('documents.recurring.tooltip.document_date', ['type' => config('type.document.' . $type . '.setting.prefix', 'invoice')]) }}">
                 <div class="relative focused has-label">
-                    <x-form.input.text name="disabled_document_date" value="{{ trans('documents.recurring.auto_generated') }}" class="form-element" disabled />
+                    <x-form.input.text name="disabled_document_date" value="{{ trans('documents.recurring.auto_generated') }}" disabled />
                 </div>
             </x-tooltip>
 
@@ -43,11 +43,22 @@
         @stack('due_start')
 
         @if (! $hideDueAt)
+            @php
+            (string) $payment_term = setting($type . '.payment_terms', 0);
+
+            if (($document)) {
+                $payment_term = \Date::parse($document->due_at)->diffInDays(\Date::parse($document->issued_at));
+
+                if ($payment_term > 0) {
+                    $payment_term++;
+                }
+            }
+            @endphp
             <x-form.group.select
                 name="payment_terms"
                 label="{{ trans('invoices.payment_due') }}"
                 :options="$payment_terms"
-                :selected="($document) ? (string) \Date::parse($document->due_at)->diffInDays(\Date::parse($document->issued_at)) : setting($type . '.payment_terms', 0)"
+                :selected="(string) $payment_term"
                 visible-change="onChangeRecurringDate"
             />  
 
@@ -61,14 +72,14 @@
         @stack('document_number_start')
 
         @if (! $hideDocumentNumber)
-        <div class="form-group form-group relative sm:col-span-3">
-            <label class="form-control-label">
+        <div class="relative sm:col-span-3">
+            <x-form.label>
                 {{ trans($textDocumentNumber) }}
-            </label>
+            </x-form.label>
 
             <x-tooltip id="tooltip-number" placement="bottom" message="{{ trans('documents.recurring.tooltip.document_number', ['type' => config('type.document.' . $type . '.setting.prefix', 'invoice')]) }}">
                 <div class="relative focused has-label">
-                    <x-form.input.text name="disabled_document_number" value="{{ trans('documents.recurring.auto_generated') }}" class="form-element" disabled />
+                    <x-form.input.text name="disabled_document_number" value="{{ trans('documents.recurring.auto_generated') }}" disabled />
                 </div>
             </x-tooltip>
 

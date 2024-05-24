@@ -5,6 +5,7 @@ namespace App\Abstracts;
 use Akaunting\Sortable\Traits\Sortable;
 use App\Events\Common\SearchStringApplied;
 use App\Events\Common\SearchStringApplying;
+use App\Interfaces\Export\WithParentSheet;
 use App\Traits\DateTime;
 use App\Traits\Owners;
 use App\Traits\Sources;
@@ -22,10 +23,10 @@ abstract class Model extends Eloquent implements Ownable
 
     protected $tenantable = true;
 
-    protected $dates = ['deleted_at'];
-
     protected $casts = [
-        'enabled' => 'boolean',
+        'amount'        => 'double',
+        'enabled'       => 'boolean',
+        'deleted_at'    => 'datetime',
     ];
 
     public $allAttributes = [];
@@ -62,7 +63,7 @@ abstract class Model extends Eloquent implements Ownable
      */
     public function owner()
     {
-        return $this->belongsTo('App\Models\Auth\User', 'created_by', 'id')->withDefault(['name' => trans('general.na')]);
+        return $this->belongsTo(user_model_class(), 'created_by', 'id')->withDefault(['name' => trans('general.na')]);
     }
 
     /**
@@ -102,22 +103,35 @@ abstract class Model extends Eloquent implements Ownable
     {
         $request = request();
 
+        /**
+         * Modules that use the sort parameter in CRUD operations cause an error,
+         * so this sort parameter set back to old value after the query is executed.
+         *
+         * for Custom Fields module
+         */
+        $request_sort = $request->get('sort');
+
         $query->usingSearchString()->sortable($sort);
 
         if ($request->expectsJson() && $request->isNotApi()) {
             return $query->get();
         }
 
+        $request->merge(['sort' => $request_sort]);
+        // This line disabled because broken sortable issue.
+        //$request->offsetUnset('direction');
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->paginate($limit);
     }
 
-    public function scopeUsingSearchString($query)
+    public function scopeUsingSearchString(Builder $query, string|null $string = null)
     {
         event(new SearchStringApplying($query));
 
-        $this->getSearchStringManager()->updateBuilder($query, request('search'));
+        $string = $string ?: request('search');
+
+        $this->getSearchStringManager()->updateBuilder($query, $string);
 
         event(new SearchStringApplied($query));
     }
@@ -148,7 +162,9 @@ abstract class Model extends Eloquent implements Ownable
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
         $offset = $page ? ($page - 1) * $limit : 0;
 
-        $query->offset($offset)->limit($limit);
+        if (! $this instanceof WithParentSheet && (empty($ids) || count((array) $ids) > $limit)) {
+            $query->offset($offset)->limit($limit);
+        }
 
         return $query->cursor();
     }

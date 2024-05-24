@@ -2,21 +2,22 @@
 
 namespace App\Widgets;
 
-use Akaunting\Apexcharts\Charts as Apexcharts;
+use Akaunting\Apexcharts\Chart;
 use App\Abstracts\Widget;
 use App\Models\Banking\Transaction;
+use App\Traits\Charts;
 use App\Traits\Currencies;
 use App\Traits\DateTime;
 use App\Utilities\Date;
 
 class CashFlow extends Widget
 {
-    use Currencies, DateTime;
+    use Charts, Currencies, DateTime;
 
     public $default_name = 'widgets.cash_flow';
 
     public $default_settings = [
-        'width' => 'w-full my-8 px-12',
+        'width' => '100',
     ];
 
     public $description = 'widgets.description.cash_flow';
@@ -33,42 +34,36 @@ class CashFlow extends Widget
     {
         $this->setFilter();
 
-        $labels = $this->getLabels();
-
         $income = array_values($this->calculateTotals('income'));
         $expense = array_values($this->calculateTotals('expense'));
         $profit = array_values($this->calculateProfit($income, $expense));
 
-        $colors = $this->getColors();
-
-        $options = [
-            'chart' => [
-                'stacked'           => true,
-            ],
-            'plotOptions' => [
-                'bar' => [
-                    'columnWidth'   => '40%',
-                ],
-            ],
-            'legend' => [
-                'position'          => 'top',
-            ],
-        ];
-
-        $chart = new Apexcharts();
+        $chart = new Chart();
 
         $chart->setType('line')
-            ->setOptions($options)
-            ->setLabels(array_values($labels))
-            ->setColors($colors)
+            ->setDefaultLocale($this->getDefaultLocaleOfChart())
+            ->setLocales($this->getLocaleTranslationOfChart())
+            ->setStacked(true)
+            ->setBar(['columnWidth' => '40%'])
+            ->setLegendPosition('top')
+            ->setYaxisLabels(['formatter' => $this->getChartLabelFormatter()])
+            ->setLabels(array_values($this->getLabels()))
+            ->setColors($this->getColors())
             ->setDataset(trans('general.incoming'), 'column', $income)
             ->setDataset(trans('general.outgoing'), 'column', $expense)
             ->setDataset(trans_choice('general.profits', 1), 'line', $profit);
 
+        $incoming_amount = money(array_sum($income));
+        $outgoing_amount = money(abs(array_sum($expense)));
+        $profit_amount = money(array_sum($profit));
+
         $totals = [
-            'incoming'  => money(array_sum($income), setting('default.currency'), true),
-            'outgoing'  => money(abs(array_sum($expense)), setting('default.currency'), true),
-            'profit'    => money(array_sum($profit), setting('default.currency'), true),
+            'incoming_exact'        => $incoming_amount->format(),
+            'incoming_for_humans'   => $incoming_amount->formatForHumans(),
+            'outgoing_exact'        => $outgoing_amount->format(),
+            'outgoing_for_humans'   => $outgoing_amount->formatForHumans(),
+            'profit_exact'          => $profit_amount->format(),
+            'profit_for_humans'     => $profit_amount->formatForHumans(),
         ];
 
         return $this->view('widgets.cash_flow', [
@@ -79,46 +74,29 @@ class CashFlow extends Widget
 
     public function setFilter(): void
     {
-        $financial_start = $this->getFinancialStart()->format('Y-m-d');
+        $financial_year = $this->getFinancialYear();
 
-        // check and assign year start
-        if (($year_start = Date::today()->startOfYear()->format('Y-m-d')) !== $financial_start) {
-            $year_start = $financial_start;
-        }
-
-        $this->start_date = Date::parse(request('start_date', $year_start));
-        $this->end_date = Date::parse(request('end_date', Date::parse($year_start)->addYear(1)->subDays(1)->format('Y-m-d')));
+        $this->start_date = Date::parse(request('start_date', $financial_year->copy()->getStartDate()->toDateString()))->startOfDay();
+        $this->end_date = Date::parse(request('end_date', $financial_year->copy()->getEndDate()->toDateString()))->endOfDay();
         $this->period = request('period', 'month');
     }
 
     public function getLabels(): array
     {
-        $range = request('range', 'custom');
-
-        $start_month = $this->start_date->month;
-        $end_month = $this->end_date->month;
-
-        // Monthly
         $labels = [];
 
-        $s = clone $this->start_date;
+        $start_date = $this->start_date->copy();
 
-        if ($range == 'last_12_months') {
-            $end_month   = 12;
-            $start_month = 0;
-        } elseif ($range == 'custom') {
-            $end_month   = $this->end_date->diffInMonths($this->start_date);
-            $start_month = 0;
-        }
+        $counter = $this->end_date->diffInMonths($this->start_date);
 
-        for ($j = $end_month; $j >= $start_month; $j--) {
-            $labels[$end_month - $j] = $s->format('M Y');
+        for ($j = 0; $j <= $counter; $j++) {
+            $labels[$j] = $start_date->format($this->getMonthlyDateFormat());
 
             if ($this->period == 'month') {
-                $s->addMonth();
+                $start_date->addMonth();
             } else {
-                $s->addMonths(3);
-                $j -= 2;
+                $start_date->addMonths(3);
+                $j += 2;
             }
         }
 
@@ -196,7 +174,7 @@ class CashFlow extends Widget
             $totals[$i] += $item->getAmountConvertedToDefault();
         }
 
-        $precision = config('money.' . setting('default.currency') . '.precision');
+        $precision = currency()->getPrecision();
 
         foreach ($totals as $key => $value) {
             if ($type == 'expense') {
@@ -211,7 +189,7 @@ class CashFlow extends Widget
     {
         $profit = [];
 
-        $precision = config('money.' . setting('default.currency') . '.precision');
+        $precision = currency()->getPrecision();
 
         foreach ($incomes as $key => $income) {
             $value = $income - abs($expenses[$key]);

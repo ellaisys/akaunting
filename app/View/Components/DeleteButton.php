@@ -19,6 +19,8 @@ class DeleteButton extends Component
 
     public $modelTable;
 
+    public $modelTitle;
+
     /** @var string */
     public $text;
 
@@ -48,7 +50,7 @@ class DeleteButton extends Component
      */
     public function __construct(
         $label = '',
-        $model = false, $modelId = 'id', $modelName = 'name', string $modelTable = '',
+        $model = false, $modelId = 'id', $modelName = 'name', string $modelTitle = '', string $modelTable = '',
         $text = '', $type = '',
         $title = '',  $message = '', 
         $action = '', $route = '', $url = '',
@@ -59,6 +61,7 @@ class DeleteButton extends Component
         $this->model = $model;
         $this->modelId = $modelId;
         $this->modelName = $modelName;
+        $this->modelTitle = $modelTitle;
         $this->modelTable = $model->getTable();
 
         $this->text = $text;
@@ -200,7 +203,15 @@ class DeleteButton extends Component
             $page = '';
 
             if (! empty($this->route)) {
-                $page = explode('.', $this->route)[0];
+                if (! is_array($this->route)) {
+                    $string = $this->route;
+                }
+                
+                if (is_array($this->route)) {
+                    $string = $this->route[0];
+                }
+
+                $page = explode('.', $string)[0];
             } elseif (! empty($this->url)) {
                 $page = explode('/', $this->url)[1];
             }
@@ -221,15 +232,21 @@ class DeleteButton extends Component
 
     protected function getModelTitle()
     {
-        if (! empty($this->text)) {
-            return $this->text;
+        if (! empty($this->modelTitle)) {
+            return $this->modelTitle;
         }
 
         $group = 'core';
         $page = '';
 
         if (! empty($this->route)) {
-            $paths = explode('.', $this->route);
+            if (is_array($this->route)) {
+                $string = $this->route[0];
+            } else {
+                $string = $this->route;
+            }
+
+            $paths = explode('.', $string);
 
             $page = $paths[0];
         } elseif (! empty($this->url)) {
@@ -244,7 +261,7 @@ class DeleteButton extends Component
             $group = $page;
             $page = (! empty($this->route)) ? $paths[1] : $paths[2];
 
-            $title = trans_choice($group . '::general.' . $page, 1);
+            $title = trans_choice($group . '::general.' . str_replace('-', '_', $page), 1);
         }
 
         return $title;

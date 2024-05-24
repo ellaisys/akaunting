@@ -2,7 +2,6 @@
 
 namespace App\Abstracts;
 
-use App\Models\Auth\User;
 use App\Models\Common\Company;
 use App\Traits\Jobs;
 use App\Utilities\Date;
@@ -54,7 +53,7 @@ abstract class Factory extends BaseFactory
 
     public function setUser(): void
     {
-        $this->user = User::first();
+        $this->user = user_model_class()::first();
     }
 
     public function setCompany(): void
@@ -65,7 +64,7 @@ abstract class Factory extends BaseFactory
 
         $this->company->makeCurrent();
 
-        app('url')->defaults(['company_id' => $this->company->id]);
+        //app('url')->defaults(['company_id' => $this->company->id]);
     }
 
     public function getRawAttribute($key)

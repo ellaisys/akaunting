@@ -1,5 +1,5 @@
 <template>
-    <div :id="'dropzone-' + _uid" class="dropzone dz-clickable" :class="[preview == 'single' ? 'dropzone-single': 'dropzone-multiple', singleWidthClasses ? 'w-full': 'w-37']">
+    <div :id="'dropzone-' + _uid" class="dropzone dz-clickable" :class="[preview == 'single' ? 'dropzone-single': 'dropzone-multiple', singleWidthClasses ? 'w-full': 'sm:w-37']">
         <div class="fallback">
             <div class="custom-file">
                 <input type="file" class="custom-file-input" :id="'projectCoverUploads' + _uid" :multiple="multiple">
@@ -17,6 +17,12 @@
                 <span class="material-icons-outlined avatar hidden" data-dz-thumbnail-word>content_paste</span>
                 <span class="material-icons-outlined avatar hidden" data-dz-thumbnail-excel>table_chart</span>
                 <span class="mb-1 text-sm ml-3 text-gray-500 hidden" data-dz-name>...</span>
+
+                <div class="gap-x-1 relative">
+                    <button data-dz-remove="true" class="absolute group right-0">
+                        <span class="material-icons-outlined text-base text-gray-300 px-1.5 py-1 rounded-lg group-hover:bg-gray-100">delete</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -33,21 +39,23 @@
                         </div>
 
                         <div class="col text-gray-500 ml-3">
-                            <h4 class="text-sm mb-1" data-dz-name>...</h4>
+                            <h4 class="w-56 lg:w-96 text-sm mb-1 truncate" data-dz-name>...</h4>
 
                             <p class="text-xs text-muted mb-0" data-dz-size>...</p>
                         </div>
                     </div>
 
-                    <div class="gap-x-1">
-                        <button data-dz-remove="true" class="btn btn-danger btn-sm">
-                            <span class="material-icons text-base text-red">delete</span>
+                    <div class="flex flex-col gap-x-1">
+                        <button data-dz-remove="true" class="group">
+                            <span class="material-icons-outlined text-base text-gray-300 px-1.5 py-1 rounded-lg group-hover:bg-gray-100">delete</span>
                         </button>
-                        <a href="#" type="button" class="btn btn-sm btn-info hidden" data-dz-download>
-                            <span class="material-icons-round text-base">download</span>
+                        <a href="#" type="button" class="group hidden" data-dz-download>
+                            <span class="material-icons text-base text-gray-300 px-1.5 py-1 rounded-lg group-hover:bg-gray-100">download</span>
                         </a>
                     </div>
                 </div>
+
+                <div class="text-red text-sm mt-1 block" data-dz-errormessage></div>
             </li>
         </ul>
     </div>

@@ -28,7 +28,7 @@ class Accounts extends Controller
      */
     public function create()
     {
-        $currency = Currency::where('code', '=', setting('default.currency'))->first();
+        $currency = Currency::where('code', '=', default_currency())->first();
 
         $html = view('modals.accounts.create', compact('currency'))->render();
 
@@ -54,7 +54,7 @@ class Accounts extends Controller
         $response = $this->ajaxDispatch(new CreateAccount($request));
 
         if ($response['success']) {
-            $response['message'] = trans('messages.success.added', ['type' => trans_choice('general.accounts', 1)]);
+            $response['message'] = trans('messages.success.created', ['type' => trans_choice('general.accounts', 1)]);
         }
 
         return response()->json($response);

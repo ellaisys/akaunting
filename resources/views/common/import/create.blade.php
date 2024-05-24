@@ -3,42 +3,60 @@
         {{ trans('import.title', ['type' => $title_type]) }}
     </x-slot>
 
+    <x-slot name="favorite"
+        title="{{ trans('import.title', ['type' => $title_type]) }}"
+        icon="import_export"
+        url="{{ route('import.create', ['group' => $group, 'type' => $type]) }}"
+    ></x-slot>
+
     <x-slot name="content">
         <div class="card">
             <x-form id="import" :route="$form_params['route']" :url="$form_params['url']">
-                <div class="card-body mt-8">
-                    <div class="border-t-4 border-orange-300 rounded-b-lg text-orange-700 px-4 py-3 shadow-md" role="alert">
-                        <div class="flex">
-                            <div>
-                                {!! trans('import.limitations', ['extensions' => strtoupper(config('excel.imports.extensions')),
-                                        'row_limit' => config('excel.imports.row_limit')
-                                    ])
-                                !!}
-                            </div>
-                        </div>
+                <div class="flex flex-col lg:flex-row">
+                    <div class="hidden lg:flex w-4/12 ltr:-ml-10 rtl:-mr-10 ltr:mr-10 rtl:ml-10">
+                        <img src="{{ asset('public/img/import.png') }}" alt="{{ trans('import.title', ['type' => $title_type]) }}">
                     </div>
 
-                    <div class="border-t-4 mt-8 border-blue-300 rounded-b-lg text-blue-700 px-4 py-3 shadow-md" role="alert">
-                        <div class="flex">
-                            <div>
-                                {!! trans('import.sample_file', ['download_link' => $sample_file]) !!}
+                    <!-- 
+                    <div class="hidden lg:flex w-4/12 mt-18 mr-14">
+                        <iframe width="560" height="244" src="https://www.youtube.com/embed/p98z142g2yY" frameborder="0"  title="{{ trans('import.title', ['type' => $title_type]) }}" class="rounded-lg"></iframe>
+                    </div>
+                     -->
+
+                    <div class="card-body mt-8 lg:w-8/12 w-full">
+                        <div class="w-full mt-8 bg-blue-100 rounded-lg text-blue-700 px-4 py-2" role="alert">
+                            <div class="flex">
+                                <span class="material-icons ltr:mr-3 rtl:ml-3">error_outline</span>
+
+                                <div class="font-semibold text-sm mt-1">
+                                    {!! trans('import.sample_file_and_document', [
+                                        'download_link' => $sample_file,
+                                        'document_link' => $document_link
+                                    ]) !!}
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <x-form.group.file name="import" dropzone-class="form-file" singleWidthClasses :options="['acceptedFiles' => '.xls,.xlsx']" form-group-class="mt-8" />
+                        <x-form.group.import
+                            name="import"
+                            dropzone-class="form-file"
+                            singleWidthClasses
+                            :options="['acceptedFiles' => '.xls,.xlsx']"
+                            form-group-class="mt-8"
+                        />
+                    </div>
                 </div>
 
-                <div class="relative__footer mt-8">
+                <div class="mt-8">
                     <div class="sm:col-span-6 flex items-center justify-end">
                         @if (! empty($route))
-                            <a href="{{ route(\Str::replaceFirst('.import', '.index', $route)) }}" class="px-6 py-1.5 mr-2 hover:bg-gray-200 rounded-lg">
+                            <x-link href="{{ route(\Str::replaceFirst('.import', '.index', $route)) }}" class="px-6 py-1.5 mr-2 hover:bg-gray-200 rounded-lg" override="class">
                                 {{ trans('general.cancel') }}
-                            </a>
+                            </x-link>
                         @else
-                            <a href="{{ url($path) }}" class="px-6 py-1.5 hover:bg-gray-200 rounded-lg ltr:ml-2 rtl:mr-2">
+                            <x-link href="{{ url($path) }}" class="px-6 py-1.5 hover:bg-gray-200 rounded-lg ltr:mr-2 rtl:ml-2" override="class">
                                 {{ trans('general.cancel') }}
-                            </a>
+                            </x-link>
                         @endif
 
                         <x-button
@@ -47,10 +65,9 @@
                             ::disabled="form.loading"
                             override="class"
                         >
-                            <i v-if="form.loading" class="animate-submit delay-[0.28s] absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto before:absolute before:w-2 before:h-2 before:rounded-full before:animate-submit before:delay-[0.14s] after:absolute after:w-2 after:h-2 after:rounded-full after:animate-submit before:-left-3.5 after:-right-3.5 after:delay-[0.42s]"></i>
-                            <span :class="[{'opacity-0': form.loading}]">
+                            <x-button.loading>
                                 {{ trans('import.import') }}
-                            </span>
+                            </x-button.loading>
                         </x-button>
                     </div>
                 </div>
@@ -60,3 +77,4 @@
 
     <x-script folder="common" file="imports" />
 </x-layouts.admin>
+

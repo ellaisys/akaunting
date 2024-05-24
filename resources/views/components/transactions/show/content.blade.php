@@ -18,7 +18,7 @@
                 @php
                     $recurring_message = trans('recurring.message_parent', [
                         'type' => mb_strtolower(trans_choice($textRecurringType, 1)),
-                        'link' => '<a href="' . route(config('type.transaction.' . $transaction->parent->type . '.route.prefix') . '.show', $parent->id) . '"><u>' . $parent->number . '</u></a>'
+                        'link' => '<a href="' . route(config('type.transaction.' . $transaction->parent->type . '.route.prefix') . '.show', $parent->id) . '"><u>' . $parent->number . '</u></a>',
                     ]);
                 @endphp
 
@@ -54,6 +54,26 @@
             />
         @endif
         @stack('children_end')
+
+        @stack('connect_start')
+        @if (! $hideConnect
+            && $transaction->isSplitTransaction()
+        )
+            <x-transactions.show.connect
+                type="{{ $type }}"
+                :transaction="$transaction"
+            />
+        @endif
+        @stack('connect_end')
+
+        @stack('transfer_start')
+        @if (! $hideTransfer)
+            <x-transactions.show.transfer
+                type="{{ $type }}"
+                :transaction="$transaction"
+            />
+        @endif
+        @stack('transfer_end')
 
         @stack('attachment_start')
         @if (! $hideAttachment)
